@@ -4,7 +4,6 @@ import de.adorsys.ledgers.domain.payment.AmountTO;
 import de.adorsys.ledgers.domain.payment.BulkPaymentTO;
 import de.adorsys.ledgers.domain.payment.PeriodicPaymentTO;
 import de.adorsys.ledgers.domain.payment.SinglePaymentTO;
-import de.adorsys.psd2.xs2a.core.profile.PaymentProduct;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
 import de.adorsys.psd2.xs2a.spi.domain.code.SpiFrequencyCode;
 import de.adorsys.psd2.xs2a.spi.domain.common.SpiAmount;
@@ -30,7 +29,6 @@ import java.util.Arrays;
 import java.util.Currency;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
 
 public class LedgersSpiPaymentMapperTest {
     private final LedgersSpiPaymentMapper mapper = Mappers.getMapper(LedgersSpiPaymentMapper.class);
@@ -121,7 +119,7 @@ public class LedgersSpiPaymentMapperTest {
     }
 
     private SpiSinglePayment getSpiSingle() {
-        SpiSinglePayment spiPayment = new SpiSinglePayment(PaymentProduct.SEPA);
+        SpiSinglePayment spiPayment = new SpiSinglePayment("SEPA");
         spiPayment.setPaymentId("myPaymentId");
         spiPayment.setEndToEndIdentification("123456789");
         spiPayment.setDebtorAccount(getDebtorAcc());
@@ -138,7 +136,7 @@ public class LedgersSpiPaymentMapperTest {
     }
 
     private SpiPeriodicPayment getPeriodic() {
-        SpiPeriodicPayment spiPayment = new SpiPeriodicPayment(PaymentProduct.SEPA);
+        SpiPeriodicPayment spiPayment = new SpiPeriodicPayment("SEPA");
         spiPayment.setPaymentId("myPaymentId");
         spiPayment.setEndToEndIdentification("123456789");
         spiPayment.setDebtorAccount(getDebtorAcc());
@@ -178,10 +176,10 @@ public class LedgersSpiPaymentMapperTest {
         two.setPaymentId("myPaymentId2");
         two.setCreditorAccount(getCreditorAcc2());
         two.setCreditorName("Sokol.ua");
-        two.setPaymentProduct(PaymentProduct.CROSS_BORDER);
+        two.setPaymentProduct("CROSS_BORDER");
 
         payment.setPayments(Arrays.asList(one, two));
-        payment.setPaymentProduct(PaymentProduct.SEPA);
+        payment.setPaymentProduct("SEPA");
         return payment;
     }
 

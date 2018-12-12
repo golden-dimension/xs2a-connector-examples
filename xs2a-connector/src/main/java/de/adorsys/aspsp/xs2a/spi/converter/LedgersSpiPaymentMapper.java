@@ -5,7 +5,6 @@ import de.adorsys.ledgers.domain.payment.BulkPaymentTO;
 import de.adorsys.ledgers.domain.payment.PaymentCancellationResponseTO;
 import de.adorsys.ledgers.domain.payment.PeriodicPaymentTO;
 import de.adorsys.ledgers.domain.payment.SinglePaymentTO;
-import de.adorsys.psd2.xs2a.core.profile.PaymentProduct;
 import de.adorsys.psd2.xs2a.spi.domain.code.SpiFrequencyCode;
 import de.adorsys.psd2.xs2a.spi.domain.common.SpiTransactionStatus;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiAddress;
@@ -46,7 +45,7 @@ public abstract class LedgersSpiPaymentMapper {
     public abstract SpiBulkPaymentInitiationResponse toSpiBulkResponse(BulkPaymentTO payment);
 
     public SpiSinglePayment toSpiSinglePayment(SinglePaymentTO payment) {
-        SpiSinglePayment spiPayment = new SpiSinglePayment(PaymentProduct.valueOf(payment.getPaymentProduct().name()));
+        SpiSinglePayment spiPayment = new SpiSinglePayment(payment.getPaymentProduct().name());
         spiPayment.setPaymentId(payment.getPaymentId());
         spiPayment.setEndToEndIdentification(payment.getEndToEndIdentification());
         spiPayment.setDebtorAccount(accountMapper.toSpiAccountReference(payment.getDebtorAccount()));
@@ -63,7 +62,7 @@ public abstract class LedgersSpiPaymentMapper {
     } //Direct mapping no need for testing
 
     public SpiPeriodicPayment mapToSpiPeriodicPayment(PeriodicPaymentTO payment) {
-        SpiPeriodicPayment spiPayment = new SpiPeriodicPayment(PaymentProduct.valueOf(payment.getPaymentProduct().name()));
+        SpiPeriodicPayment spiPayment = new SpiPeriodicPayment(payment.getPaymentProduct().name());
         spiPayment.setPaymentId(payment.getPaymentId());
         spiPayment.setEndToEndIdentification(payment.getEndToEndIdentification());
         spiPayment.setDebtorAccount(accountMapper.toSpiAccountReference(payment.getDebtorAccount()));
@@ -94,7 +93,7 @@ public abstract class LedgersSpiPaymentMapper {
                            spiBulkPayment.setRequestedExecutionDate(p.getRequestedExecutionDate());
                            spiBulkPayment.setPaymentStatus(SpiTransactionStatus.valueOf(p.getPaymentStatus().name()));
                            spiBulkPayment.setPayments(toSpiSinglePaymentsList(p.getPayments()));
-                           spiBulkPayment.setPaymentProduct(PaymentProduct.valueOf(p.getPaymentProduct().name()));
+                           spiBulkPayment.setPaymentProduct(p.getPaymentProduct().name());
                            return spiBulkPayment;
                        }).orElse(null);
     }
@@ -102,7 +101,7 @@ public abstract class LedgersSpiPaymentMapper {
     public abstract List<SpiSinglePayment> toSpiSinglePaymentsList(List<SinglePaymentTO> payments);
 
     public LocalTime toTime(OffsetDateTime time) {
-        return time.toLocalTime();
+        return Optional.ofNullable(time).map(OffsetDateTime::toLocalTime).orElse(LocalTime.now());
     } //Direct mapping no need for testing
 
     public OffsetDateTime toDateTime(LocalDate date, LocalTime time) {

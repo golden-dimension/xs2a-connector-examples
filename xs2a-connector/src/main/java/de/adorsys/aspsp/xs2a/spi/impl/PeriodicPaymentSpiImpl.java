@@ -80,7 +80,7 @@ public class PeriodicPaymentSpiImpl implements PeriodicPaymentSpi {
         try {
             logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.PERIODIC, payment.getPaymentId());
             logger.debug("Periodic payment body={}", payment);
-            PeriodicPaymentTO response = ledgersRestClient.getPeriodicPaymentPaymentById(PaymentTypeTO.PERIODIC, PaymentProductTO.valueOf(payment.getPaymentProduct().name()), payment.getPaymentId()).getBody();
+            PeriodicPaymentTO response = ledgersRestClient.getPeriodicPaymentPaymentById(PaymentTypeTO.PERIODIC, PaymentProductTO.valueOf(payment.getPaymentProduct()), payment.getPaymentId()).getBody();
             SpiPeriodicPayment spiPeriodicPayment = Optional.ofNullable(response)
                                                             .map(paymentMapper::mapToSpiPeriodicPayment)
                                                             .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
@@ -103,14 +103,14 @@ public class PeriodicPaymentSpiImpl implements PeriodicPaymentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> executePaymentWithoutSca(@NotNull SpiPsuData psuData, @NotNull SpiPeriodicPayment payment, @NotNull AspspConsentData aspspConsentData) {
-        return paymentService.executePaymentWithoutSca(payment.getPaymentId(), PaymentProductTO.valueOf(payment.getPaymentProduct().name()), PaymentTypeTO.PERIODIC, aspspConsentData);
+        return paymentService.executePaymentWithoutSca(payment.getPaymentId(), PaymentProductTO.valueOf(payment.getPaymentProduct()), PaymentTypeTO.PERIODIC, aspspConsentData);
     }
 
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> verifyScaAuthorisationAndExecutePayment(@NotNull SpiPsuData psuData, @NotNull SpiScaConfirmation spiScaConfirmation, @NotNull SpiPeriodicPayment payment, @NotNull AspspConsentData aspspConsentData) {
         return paymentService.verifyScaAuthorisationAndExecutePayment(
                 payment.getPaymentId(),
-                PaymentProductTO.valueOf(payment.getPaymentProduct().name()),
+                PaymentProductTO.valueOf(payment.getPaymentProduct()),
                 PaymentTypeTO.PERIODIC,
                 payment.toString(),
                 spiScaConfirmation,

@@ -86,12 +86,12 @@ public class AccountSpiImpl implements AccountSpi {
                            .success();
         } catch (FeignException e) {
             logger.error(e.getMessage());
-            return SpiResponse.<SpiAccountDetails>builder().fail(getSpiResponseStatus(e));
+            return SpiResponse.<SpiAccountDetails>builder().aspspConsentData(aspspConsentData).fail(getSpiResponseStatus(e));
         }
     }
 
     @Override
-    public SpiResponse<SpiTransactionReport> requestTransactionsForAccount(boolean withBalance, @NotNull LocalDate dateFrom, @NotNull LocalDate dateTo, @NotNull SpiAccountReference accountReference, @NotNull SpiAccountConsent accountConsent, @NotNull AspspConsentData aspspConsentData) {
+    public SpiResponse<SpiTransactionReport> requestTransactionsForAccount(String s, boolean withBalance, @NotNull LocalDate dateFrom, @NotNull LocalDate dateTo, @NotNull SpiAccountReference accountReference, @NotNull SpiAccountConsent accountConsent, @NotNull AspspConsentData aspspConsentData) {
         try {
             logger.info("Requested transactions for account with is: {},  dates from: {}, to: {}, withBalance: {}", accountReference.getResourceId(), dateFrom, dateTo, withBalance);
             List<SpiTransaction> transactions = Optional.ofNullable(restClient.getTransactionByDates(accountReference.getResourceId(), dateFrom, dateTo).getBody())
@@ -100,7 +100,7 @@ public class AccountSpiImpl implements AccountSpi {
             logger.info("Transactions are: {}", transactions);
             List<SpiAccountBalance> balances = getSpiAccountBalances(withBalance, accountReference, accountConsent, aspspConsentData);
 
-            SpiTransactionReport transactionReport = new SpiTransactionReport(transactions, balances);
+            SpiTransactionReport transactionReport = new SpiTransactionReport(transactions, balances,"json",null); //TODO cross-check
             logger.info("Final transaction report is: {}", transactionReport);
             return SpiResponse.<SpiTransactionReport>builder()
                            .payload(transactionReport)
@@ -108,7 +108,7 @@ public class AccountSpiImpl implements AccountSpi {
                            .success();
         } catch (FeignException e) {
             logger.error(e.getMessage());
-            return SpiResponse.<SpiTransactionReport>builder().fail(getSpiResponseStatus(e));
+            return SpiResponse.<SpiTransactionReport>builder().aspspConsentData(aspspConsentData).fail(getSpiResponseStatus(e));
         }
     }
 
@@ -126,7 +126,7 @@ public class AccountSpiImpl implements AccountSpi {
                            .success();
         } catch (FeignException e) {
             logger.error(e.getMessage());
-            return SpiResponse.<SpiTransaction>builder().fail(getSpiResponseStatus(e));
+            return SpiResponse.<SpiTransaction>builder().aspspConsentData(aspspConsentData).fail(getSpiResponseStatus(e));
         }
     }
 
@@ -144,7 +144,7 @@ public class AccountSpiImpl implements AccountSpi {
                            .success();
         } catch (FeignException e) {
             logger.error(e.getMessage());
-            return SpiResponse.<List<SpiAccountBalance>>builder().fail(getSpiResponseStatus(e));
+            return SpiResponse.<List<SpiAccountBalance>>builder().aspspConsentData(aspspConsentData).fail(getSpiResponseStatus(e));
         }
     }
 

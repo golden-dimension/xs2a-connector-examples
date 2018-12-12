@@ -80,7 +80,7 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
         try {
             logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.SINGLE, payment.getPaymentId());
             logger.debug("Single payment body={}", payment);
-            SinglePaymentTO response = ledgersRestClient.getSinglePaymentPaymentById(PaymentTypeTO.SINGLE, PaymentProductTO.valueOf(payment.getPaymentProduct().name()), payment.getPaymentId()).getBody();
+            SinglePaymentTO response = ledgersRestClient.getSinglePaymentPaymentById(PaymentTypeTO.SINGLE, PaymentProductTO.valueOf(payment.getPaymentProduct()), payment.getPaymentId()).getBody();
             SpiSinglePayment spiPayment = Optional.ofNullable(response)
                                                   .map(paymentMapper::toSpiSinglePayment)
                                                   .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
@@ -102,14 +102,14 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> executePaymentWithoutSca(@NotNull SpiPsuData spiPsuData, @NotNull SpiSinglePayment payment, @NotNull AspspConsentData aspspConsentData) {
-        return paymentService.executePaymentWithoutSca(payment.getPaymentId(), PaymentProductTO.valueOf(payment.getPaymentProduct().name()), PaymentTypeTO.SINGLE, aspspConsentData);
+        return paymentService.executePaymentWithoutSca(payment.getPaymentId(), PaymentProductTO.valueOf(payment.getPaymentProduct()), PaymentTypeTO.SINGLE, aspspConsentData);
     }
 
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> verifyScaAuthorisationAndExecutePayment(@NotNull SpiPsuData spiPsuData, @NotNull SpiScaConfirmation spiScaConfirmation, @NotNull SpiSinglePayment payment, @NotNull AspspConsentData aspspConsentData) {
         return paymentService.verifyScaAuthorisationAndExecutePayment(
                 payment.getPaymentId(),
-                PaymentProductTO.valueOf(payment.getPaymentProduct().name()),
+                PaymentProductTO.valueOf(payment.getPaymentProduct()),
                 PaymentTypeTO.SINGLE,
                 payment.toString(),
                 spiScaConfirmation,

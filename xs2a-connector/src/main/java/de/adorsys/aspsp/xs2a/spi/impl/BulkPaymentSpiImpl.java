@@ -80,7 +80,7 @@ public class BulkPaymentSpiImpl implements BulkPaymentSpi {
         try {
             logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.BULK, payment.getPaymentId());
             logger.debug("Bulk payment body={}", payment);
-            BulkPaymentTO response = ledgersRestClient.getBulkPaymentPaymentById(PaymentTypeTO.BULK, PaymentProductTO.valueOf(payment.getPaymentProduct().name()), payment.getPaymentId()).getBody();
+            BulkPaymentTO response = ledgersRestClient.getBulkPaymentPaymentById(PaymentTypeTO.BULK, PaymentProductTO.valueOf(payment.getPaymentProduct()), payment.getPaymentId()).getBody();
             SpiBulkPayment spiBulkPayment = Optional.ofNullable(response)
                                                     .map(paymentMapper::mapToSpiBulkPayment)
                                                     .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
@@ -102,14 +102,14 @@ public class BulkPaymentSpiImpl implements BulkPaymentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> executePaymentWithoutSca(@NotNull SpiPsuData psuData, @NotNull SpiBulkPayment payment, @NotNull AspspConsentData aspspConsentData) {
-        return paymentService.executePaymentWithoutSca(payment.getPaymentId(), PaymentProductTO.valueOf(payment.getPaymentProduct().name()), PaymentTypeTO.BULK, aspspConsentData);
+        return paymentService.executePaymentWithoutSca(payment.getPaymentId(), PaymentProductTO.valueOf(payment.getPaymentProduct()), PaymentTypeTO.BULK, aspspConsentData);
     }
 
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> verifyScaAuthorisationAndExecutePayment(@NotNull SpiPsuData psuData, @NotNull SpiScaConfirmation spiScaConfirmation, @NotNull SpiBulkPayment payment, @NotNull AspspConsentData aspspConsentData) {
         return paymentService.verifyScaAuthorisationAndExecutePayment(
                 payment.getPaymentId(),
-                PaymentProductTO.valueOf(payment.getPaymentProduct().name()),
+                PaymentProductTO.valueOf(payment.getPaymentProduct()),
                 PaymentTypeTO.BULK,
                 payment.toString(),
                 spiScaConfirmation,

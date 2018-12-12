@@ -20,7 +20,9 @@ import de.adorsys.aspsp.xs2a.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.ledgers.LedgersAccountRestClient;
 import de.adorsys.ledgers.domain.account.FundsConfirmationRequestTO;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
+import de.adorsys.psd2.xs2a.core.piis.PiisConsent;
 import de.adorsys.psd2.xs2a.spi.domain.fund.SpiFundsConfirmationRequest;
+import de.adorsys.psd2.xs2a.spi.domain.fund.SpiFundsConfirmationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponseStatus;
@@ -45,18 +47,20 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
     }
 
     @Override
-    public @NotNull SpiResponse<Boolean> performFundsSufficientCheck(@NotNull SpiPsuData psuData, @Nullable String consentId, @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest, @NotNull AspspConsentData aspspConsentData) {
+    public @NotNull SpiResponse<SpiFundsConfirmationResponse> performFundsSufficientCheck(@NotNull SpiPsuData spiPsuData, @Nullable PiisConsent piisConsent, @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest, @NotNull AspspConsentData aspspConsentData) {
         try {
             logger.info("Funds confirmation request e={}", spiFundsConfirmationRequest);
-            FundsConfirmationRequestTO request = accountMapper.toFundsConfirmationTO(psuData, spiFundsConfirmationRequest);
+            FundsConfirmationRequestTO request = accountMapper.toFundsConfirmationTO(spiPsuData, spiFundsConfirmationRequest);
             Boolean fundsAvailable = restClient.fundsConfirmation(request).getBody();
             logger.info("And got the response ={}", fundsAvailable);
-            return SpiResponse.<Boolean>builder()
+            SpiFundsConfirmationResponse response = new SpiFundsConfirmationResponse();
+            response.setFundsAvailable(fundsAvailable);
+            return SpiResponse.<SpiFundsConfirmationResponse>builder()
                            .aspspConsentData(aspspConsentData)
-                           .payload(fundsAvailable)
+                           .payload(response)
                            .success();
         } catch (FeignException e) {
-            return SpiResponse.<Boolean>builder()
+            return SpiResponse.<SpiFundsConfirmationResponse>builder()
                            .aspspConsentData(aspspConsentData)
                            .fail(getSpiFailureResponse(e));
         }
@@ -69,5 +73,4 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
                        ? SpiResponseStatus.TECHNICAL_FAILURE
                        : SpiResponseStatus.LOGICAL_FAILURE;
     }
-
 }
