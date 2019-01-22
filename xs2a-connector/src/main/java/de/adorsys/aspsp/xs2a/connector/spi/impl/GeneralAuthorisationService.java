@@ -14,6 +14,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
+import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.middleware.api.domain.um.UserRoleTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
@@ -108,11 +109,13 @@ public class GeneralAuthorisationService {
         try {
         	SCALoginResponseTO sca = tokenService.response(aspspConsentData, SCALoginResponseTO.class);
         	if(sca.getScaMethods()!=null) {
-        		userMgmtRestClient.validate(sca.getBearerToken().getAccess_token());
+				// Validate the access token
+				BearerTokenTO bearerTokenTO = validateToken(sca.getBearerToken().getAccess_token());
+				sca.setBearerToken(bearerTokenTO);
         		List<ScaUserDataTO> scaMethods = sca.getScaMethods();
         		List<SpiAuthenticationObject> authenticationObjects = scaMethodConverter.toSpiAuthenticationObjectList(scaMethods);
         		return SpiResponse.<List<SpiAuthenticationObject>>builder()
-        				.aspspConsentData(aspspConsentData)
+        				.aspspConsentData(tokenService.store(sca, aspspConsentData))
         				.payload(authenticationObjects)
         				.success();
         	} else {
@@ -167,6 +170,15 @@ public class GeneralAuthorisationService {
             return SpiResponse.<SpiResponse.VoidResponse>builder()
                            .fail(SpiFailureResponseHelper.getSpiFailureResponse(e, logger));
         }
+    }
+    
+    public BearerTokenTO validateToken(String accessToken) {
+    	try {
+        	authRequestInterceptor.setAccessToken(accessToken);
+    		return userMgmtRestClient.validate(accessToken).getBody();
+    	} finally {
+        	authRequestInterceptor.setAccessToken(null);
+    	}
     }
 
 }
