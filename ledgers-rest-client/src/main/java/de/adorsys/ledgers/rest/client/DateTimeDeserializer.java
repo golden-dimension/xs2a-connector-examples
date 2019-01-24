@@ -23,11 +23,15 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 public class DateTimeDeserializer extends StdDeserializer<LocalDateTime> {
+	private static final Logger logger = LoggerFactory.getLogger(DateTimeDeserializer.class); 
     private final DateTimeFormatter formatter;
 
     {
@@ -48,7 +52,7 @@ public class DateTimeDeserializer extends StdDeserializer<LocalDateTime> {
             String date = jsonParser.getText();
             return LocalDateTime.parse(date, formatter);
         } catch (IOException | DateTimeParseException e) {
-            e.printStackTrace();
+        	logger.error(e.getMessage(), e);
         }
         return null;
     }

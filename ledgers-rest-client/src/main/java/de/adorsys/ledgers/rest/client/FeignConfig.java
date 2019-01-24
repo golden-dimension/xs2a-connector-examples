@@ -1,7 +1,5 @@
 package de.adorsys.ledgers.rest.client;
 
-import java.time.LocalDateTime;
-
 import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.boot.autoconfigure.web.HttpMessageConverters;
 import org.springframework.cloud.netflix.feign.support.SpringEncoder;
@@ -14,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import feign.codec.Encoder;
@@ -25,12 +22,14 @@ public class FeignConfig {
 	@Bean
 	public Encoder feignEncoder() {
 		ObjectMapper mapper = objectMapper();
+		@SuppressWarnings("rawtypes")
 		HttpMessageConverter jacksonConverter = new MappingJackson2HttpMessageConverter(mapper);
 		ObjectFactory<HttpMessageConverters> objectFactory = () -> new HttpMessageConverters(jacksonConverter);
 		return new SpringEncoder(objectFactory);
 	}
 	
-    public ObjectMapper objectMapper() {
+    @SuppressWarnings("deprecation")
+	public ObjectMapper objectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(SerializationFeature.WRAP_ROOT_VALUE, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -42,10 +41,5 @@ public class FeignConfig {
         objectMapper.registerModule(new JavaTimeModule()); // add support for java.time types
 //        objectMapper.registerModule(new ParameterNamesModule()); // support for multiargs constructors
         return objectMapper;
-    }
-    private SimpleModule getDateTimeDeserializerModule() {
-        SimpleModule dateTimeModule = new SimpleModule();
-        dateTimeModule.addDeserializer(LocalDateTime.class, new DateTimeDeserializer());
-        return dateTimeModule;
     }
 }

@@ -258,6 +258,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 		}
 	}
 
+	@SuppressWarnings("PMD.UnusedFormalParameter")
 	private SCAConsentResponseTO toConsentResponse(SpiAccountConsent businessObject, SpiResponse<SpiAuthorisationStatus> authorisePsu, SCAConsentResponseTO originalResponse) throws IOException {
         SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(authorisePsu.getAspspConsentData().getAspspConsentData(), SCALoginResponseTO.class);
         SCAConsentResponseTO consentResponse = scaLoginToConsentResponseMapper.toConsentResponse(scaResponseTO);
@@ -327,6 +328,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 		return e.status() == 500 ? SpiResponseStatus.TECHNICAL_FAILURE : SpiResponseStatus.LOGICAL_FAILURE;
 	}
 	
+	@SuppressWarnings("PMD.UnusedFormalParameter")
 	private SpiAuthorizationCodeResult spiAuthorizationCodeResult(AspspConsentData aspspConsentData, SCAConsentResponseTO sca) {
 		SpiAuthorizationCodeResult spiAuthorizationCodeResult = new SpiAuthorizationCodeResult();
 		ChallengeData challengeData = Optional.ofNullable(challengeDataMapper.toChallengeData(sca.getChallengeData())).orElse(new ChallengeData());
