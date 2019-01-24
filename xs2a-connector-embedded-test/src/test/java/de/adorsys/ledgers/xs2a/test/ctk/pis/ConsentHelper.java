@@ -94,7 +94,7 @@ public class ConsentHelper {
 				psUDeviceID, psUGeoLocation);
 
 		Assert.assertNotNull(updateConsentsPsuDataResponse);
-		Assert.assertEquals(updateConsentsPsuDataResponse.getStatusCode(), 200);
+		Assert.assertEquals(updateConsentsPsuDataResponse.getStatusCode(), HttpStatus.OK);
 
 		return updateConsentsPsuDataResponse;
 	}
