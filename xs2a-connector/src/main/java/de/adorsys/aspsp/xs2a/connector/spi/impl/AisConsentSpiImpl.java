@@ -19,6 +19,7 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.AisConsentMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaLoginToConsentResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
@@ -43,6 +45,7 @@ import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.ConsentRestClient;
 import de.adorsys.ledgers.util.Ids;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
+import de.adorsys.psd2.xs2a.core.sca.ChallengeData;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountConsent;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthenticationObject;
@@ -71,11 +74,13 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 	private final GeneralAuthorisationService authorisationService;
 	private final ScaMethodConverter scaMethodConverter;
 	private final ScaLoginToConsentResponseMapper scaLoginToConsentResponseMapper;
+	private final ChallengeDataMapper challengeDataMapper;
 
 	public AisConsentSpiImpl(ConsentRestClient consentRestClient, TokenStorageService tokenStorageService,
 			AisConsentMapper aisConsentMapper, AuthRequestInterceptor authRequestInterceptor,
 			AspspConsentDataService tokenService, GeneralAuthorisationService authorisationService,
-			ScaMethodConverter scaMethodConverter, ScaLoginToConsentResponseMapper scaLoginToConsentResponseMapper) {
+			ScaMethodConverter scaMethodConverter, ScaLoginToConsentResponseMapper scaLoginToConsentResponseMapper,
+			ChallengeDataMapper challengeDataMapper) {
 		super();
 		this.consentRestClient = consentRestClient;
 		this.tokenStorageService = tokenStorageService;
@@ -85,6 +90,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 		this.authorisationService = authorisationService;
 		this.scaMethodConverter = scaMethodConverter;
 		this.scaLoginToConsentResponseMapper = scaLoginToConsentResponseMapper;
+		this.challengeDataMapper = challengeDataMapper;
 	}
 
 	/*
@@ -98,7 +104,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 		if (initialAspspConsentData.getAspspConsentData() == null) {
 			return firstCallInstantiatingConsent(accountConsent, initialAspspConsentData, new SpiInitiateAisConsentResponse());
 		}
-		SCAConsentResponseTO consentResponse = initiateCpnsentInternal(accountConsent, initialAspspConsentData);
+		SCAConsentResponseTO consentResponse = initiateConsentInternal(accountConsent, initialAspspConsentData);
 		SpiAccountAccess accountAccess = accountConsent.getAccess();// aisConsentMapper.toSpi(accountConsent);
 		return SpiResponse.<SpiInitiateAisConsentResponse>builder()
 				.payload(new SpiInitiateAisConsentResponse(accountAccess))
@@ -107,17 +113,22 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 				.message(consentResponse.getScaStatus().name()).success();
 	}
 
-	private SCAConsentResponseTO initiateCpnsentInternal(SpiAccountConsent accountConsent, AspspConsentData initialAspspConsentData) {
+	private SCAConsentResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, AspspConsentData initialAspspConsentData) {
 		try {
 			SCAResponseTO sca = tokenService.response(initialAspspConsentData);
 			authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
 			AisConsentTO aisConsent = aisConsentMapper.toTo(accountConsent);
-
+			
+			// Bearer token only returned in case of exempted consent.
 			ResponseEntity<SCAConsentResponseTO> consentResponse = consentRestClient.startSCA(accountConsent.getId(),
 					aisConsent);
-			return consentResponse.getBody();
+			SCAConsentResponseTO response = consentResponse.getBody();
+			if(response.getBearerToken()==null) {
+				response.setBearerToken(sca.getBearerToken());
+			}
 
+			return response;
 		} finally {
 			authRequestInterceptor.setAccessToken(null);
 		}
@@ -191,19 +202,19 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 			@NotNull SpiPsuData psuLoginData, String password, SpiAccountConsent businessObject,
 			@NotNull AspspConsentData aspspConsentData) {
 
-		SCAConsentResponseTO originalResponse = null;
-		
-		if(aspspConsentData!=null && aspspConsentData.getAspspConsentData()!=null) {
-			try {
-				originalResponse = tokenStorageService.fromBytes(aspspConsentData.getAspspConsentData(), SCAConsentResponseTO.class);
-			} catch (IOException e) {
-		        return SpiResponse.<SpiAuthorisationStatus>builder()
-		        		.message(e.getMessage())
-		        		.aspspConsentData(aspspConsentData)
-		                .fail(SpiResponseStatus.LOGICAL_FAILURE);
-			}
-			
-		}
+		SCAConsentResponseTO originalResponse = tokenService.response(aspspConsentData, SCAConsentResponseTO.class, false);		
+//		
+//		if(aspspConsentData!=null && aspspConsentData.getAspspConsentData()!=null) {
+//			try {
+//				originalResponse = tokenStorageService.fromBytes(aspspConsentData.getAspspConsentData(), SCAConsentResponseTO.class);
+//			} catch (IOException e) {
+//		        return SpiResponse.<SpiAuthorisationStatus>builder()
+//		        		.message(e.getMessage())
+//		        		.aspspConsentData(aspspConsentData)
+//		                .fail(SpiResponseStatus.LOGICAL_FAILURE);
+//			}
+//			
+//		}
 
 		String consentid = aspspConsentData.getConsentId();
         String authorisationId = originalResponse!=null && originalResponse.getAuthorisationId()!=null
@@ -225,25 +236,25 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 	                .fail(SpiResponseStatus.LOGICAL_FAILURE);
 		}
 		
-		AspspConsentData consentAspspConsentData;
-		try {
-	        byte[] responseAspspConsentData = tokenStorageService.toBytes(scaConsentResponse);
-	        consentAspspConsentData = authorisePsu.getAspspConsentData().respondWith(responseAspspConsentData);
-		} catch (IOException e) {
-	        return SpiResponse.<SpiAuthorisationStatus>builder()
-	        		.message(e.getMessage())
-	        		.aspspConsentData(aspspConsentData)
-	                .fail(SpiResponseStatus.LOGICAL_FAILURE);
-		}
+//		AspspConsentData consentAspspConsentData;
+//		try {
+//	        byte[] responseAspspConsentData = tokenStorageService.toBytes(scaConsentResponse);
+//	        consentAspspConsentData = authorisePsu.getAspspConsentData().respondWith(responseAspspConsentData);
+//		} catch (IOException e) {
+//	        return SpiResponse.<SpiAuthorisationStatus>builder()
+//	        		.message(e.getMessage())
+//	        		.aspspConsentData(aspspConsentData)
+//	                .fail(SpiResponseStatus.LOGICAL_FAILURE);
+//		}
 		
 		switch (scaConsentResponse.getScaStatus()) {// Initiate the payment if login was successfull.
 		case EXEMPTED:
 		case PSUAUTHENTICATED:
 		case PSUIDENTIFIED:
-			SCAConsentResponseTO resp = initiateCpnsentInternal(businessObject, consentAspspConsentData);
-			return new SpiResponse<>(authorisePsu.getPayload(), tokenService.store(resp, consentAspspConsentData));
+			SCAConsentResponseTO resp = initiateConsentInternal(businessObject, authorisePsu.getAspspConsentData());
+			return new SpiResponse<>(authorisePsu.getPayload(), tokenService.store(resp, authorisePsu.getAspspConsentData()));
 		default:
-			return new SpiResponse<>(authorisePsu.getPayload(), consentAspspConsentData);
+			return new SpiResponse<>(authorisePsu.getPayload(), authorisePsu.getAspspConsentData());
 		}
 	}
 
@@ -301,8 +312,10 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 					.selectMethod(sca.getConsentId(), sca.getAuthorisationId(), authenticationMethodId);
 			SCAConsentResponseTO consentResponse = selectMethodResponse.getBody();
 
+			SpiAuthorizationCodeResult resp = spiAuthorizationCodeResult(aspspConsentData, consentResponse);
 			return SpiResponse.<SpiAuthorizationCodeResult>builder()
 					.aspspConsentData(tokenService.store(consentResponse, aspspConsentData))
+					.payload(resp)
 					.message(consentResponse.getScaStatus().name()).success();
 		} finally {
 			authRequestInterceptor.setAccessToken(null);
@@ -313,4 +326,13 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 		logger.error(e.getMessage(), e);
 		return e.status() == 500 ? SpiResponseStatus.TECHNICAL_FAILURE : SpiResponseStatus.LOGICAL_FAILURE;
 	}
+	
+	private SpiAuthorizationCodeResult spiAuthorizationCodeResult(AspspConsentData aspspConsentData, SCAConsentResponseTO sca) {
+		SpiAuthorizationCodeResult spiAuthorizationCodeResult = new SpiAuthorizationCodeResult();
+		ChallengeData challengeData = Optional.ofNullable(challengeDataMapper.toChallengeData(sca.getChallengeData())).orElse(new ChallengeData());
+		spiAuthorizationCodeResult.setChallengeData(challengeData);
+		spiAuthorizationCodeResult.setSelectedScaMethod(scaMethodConverter.toSpiAuthenticationObject(sca.getChosenScaMethod()));
+		return spiAuthorizationCodeResult;
+	}
+	
 }

@@ -63,7 +63,7 @@ public class AspspConsentDataService {
 	private <T extends SCAResponseTO> void checkBearerTokenPresent(boolean checkCredentials, T sca) {
 		if(checkCredentials && sca.getBearerToken()==null) {
 			throw FeignException.errorStatus("Missing credentials. Expecting a bearer token in the consent data object.", 
-					Response.builder().status(401).build());
+					error(401));
 		}
 	}
 

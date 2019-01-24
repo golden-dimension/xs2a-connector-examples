@@ -18,7 +18,7 @@ import de.adorsys.psd2.model.UpdatePsuAuthenticationResponse;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = StarterApplication.class)
 public class ConsentEmbeddedNoScaIT {
-	private String PSU_ID = "marion.mueller";
+	private String PSU_ID = "anton.brueckner";
 
 	@Autowired
 	private ConsentApiClient consentApi;
