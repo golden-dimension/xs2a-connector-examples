@@ -1,5 +1,6 @@
 package de.adorsys.ledgers.xs2a.test.ctk.pis;
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ public abstract class AbstractPaymentEmbedded {
 	
 	@Before
 	public void beforeClass() {
+		ymlMapper.registerModule(new JavaTimeModule());
 		PaymentCase paymentCase = LoadPayment.loadPayment(getClass(), getClass().getSimpleName() + ".yml", ymlMapper);
 		paymentInitService = new PaymentExecutionHelper(paymentApi, paymentCase, paymentService, paymentProduct);
 	}

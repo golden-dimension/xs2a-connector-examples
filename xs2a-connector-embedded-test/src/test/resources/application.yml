@@ -12,3 +12,6 @@ spring:
   jackson:
     deserialization:
       unwrap-root-value: true
+      FAIL_ON_UNKNOWN_PROPERTIES: false
+      FAIL_ON_IGNORED_PROPERTIES: false
+
