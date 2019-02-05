@@ -7,6 +7,7 @@ feign:
         loggerLevel: full
 
 logging.level.de.adorsys.ledgers.xs2a: debug
+<<<<<<< HEAD
 
 spring:
   jackson:
@@ -15,3 +16,5 @@ spring:
       FAIL_ON_UNKNOWN_PROPERTIES: false
       FAIL_ON_IGNORED_PROPERTIES: false
 
+=======
+>>>>>>> 004accde53b7c897a7e2a5a63f975c93af021fee
