@@ -1,15 +1,5 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentProductTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.TransactionStatusTO;
@@ -29,6 +19,15 @@ import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponseStatus;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import feign.FeignException;
 import feign.Response;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 public class GeneralPaymentService {
@@ -39,13 +38,18 @@ public class GeneralPaymentService {
 
     public GeneralPaymentService(PaymentRestClient ledgersRestClient,
                                  AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService) {
-        super();
         this.paymentRestClient = ledgersRestClient;
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
     }
 
-    public SpiResponse<SpiTransactionStatus> getPaymentStatusById(@NotNull PaymentTypeTO paymentType, @NotNull String paymentId, @NotNull AspspConsentData aspspConsentData) {
+    public SpiResponse<SpiTransactionStatus> getPaymentStatusById(@NotNull PaymentTypeTO paymentType, @NotNull String paymentId, @NotNull SpiTransactionStatus spiTransactionStatus, @NotNull AspspConsentData aspspConsentData) {
+        if(!SpiTransactionStatus.ACSP.equals(spiTransactionStatus)){
+            return SpiResponse.<SpiTransactionStatus>builder()
+                    .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
+                    .payload(spiTransactionStatus)
+                    .success();
+        }
         try {
             SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
@@ -90,10 +94,10 @@ public class GeneralPaymentService {
     }
 
     private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {
-    	return new SpiPaymentExecutionResponse(SpiTransactionStatus.valueOf(transactionStatus.name()));
-	}
+        return new SpiPaymentExecutionResponse(SpiTransactionStatus.valueOf(transactionStatus.name()));
+    }
 
-	/**
+    /**
      * Instantiating the very first response object.
      *
      * @param paymentType             the payment type
@@ -126,8 +130,7 @@ public class GeneralPaymentService {
             // First check if there is any payment response ongoing.
             SCAPaymentResponseTO response = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
 
-            if (ScaStatusTO.EXEMPTED.equals(response.getScaStatus())
-                        || ScaStatusTO.FINALISED.equals(response.getScaStatus())) {
+            if (ScaStatusTO.EXEMPTED.equals(response.getScaStatus()) || ScaStatusTO.FINALISED.equals(response.getScaStatus())) {
                 // Success
                 List<String> messages = Arrays.asList(response.getScaStatus().name(),
                         String.format("Payment scheduled for execution. Transaction status is %s. Als see sca status",
@@ -149,12 +152,10 @@ public class GeneralPaymentService {
         }
     }
 
-
     private SpiResponseStatus getSpiFailureResponse(FeignException e) {
         logger.error(e.getMessage(), e);
         return e.status() == 500
                        ? SpiResponseStatus.TECHNICAL_FAILURE
                        : SpiResponseStatus.LOGICAL_FAILURE;
     }
-    
 }
