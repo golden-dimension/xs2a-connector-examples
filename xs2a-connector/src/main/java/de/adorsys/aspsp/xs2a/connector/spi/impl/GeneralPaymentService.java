@@ -44,11 +44,11 @@ public class GeneralPaymentService {
     }
 
     public SpiResponse<SpiTransactionStatus> getPaymentStatusById(@NotNull PaymentTypeTO paymentType, @NotNull String paymentId, @NotNull SpiTransactionStatus spiTransactionStatus, @NotNull AspspConsentData aspspConsentData) {
-        if(!SpiTransactionStatus.ACSP.equals(spiTransactionStatus)){
+        if (!SpiTransactionStatus.ACSP.equals(spiTransactionStatus)) {
             return SpiResponse.<SpiTransactionStatus>builder()
-                    .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                    .payload(spiTransactionStatus)
-                    .success();
+                           .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
+                           .payload(spiTransactionStatus)
+                           .success();
         }
         try {
             SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
@@ -91,10 +91,6 @@ public class GeneralPaymentService {
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
-    }
-
-    private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {
-        return new SpiPaymentExecutionResponse(SpiTransactionStatus.valueOf(transactionStatus.name()));
     }
 
     /**
@@ -152,10 +148,33 @@ public class GeneralPaymentService {
         }
     }
 
+    public Optional<Object> getPaymentById(String paymentId, String toString, AspspConsentData aspspConsentData) {
+        try {
+            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
+            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.SINGLE, paymentId);
+            logger.debug("Single payment body={}", toString);
+            // Normally the paymentId contained here must match the payment id
+            // String paymentId = sca.getPaymentId(); This could also be used.
+            // TODO: store payment type in sca.
+            return Optional.ofNullable(paymentRestClient.getPaymentById(sca.getPaymentId()).getBody());
+        } catch (FeignException e) {
+            logger.error(e.getMessage());
+            return Optional.empty();
+        } finally {
+            authRequestInterceptor.setAccessToken(null);
+        }
+    }
+
     private SpiResponseStatus getSpiFailureResponse(FeignException e) {
         logger.error(e.getMessage(), e);
         return e.status() == 500
                        ? SpiResponseStatus.TECHNICAL_FAILURE
                        : SpiResponseStatus.LOGICAL_FAILURE;
+    }
+
+    private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {
+        return new SpiPaymentExecutionResponse(SpiTransactionStatus.valueOf(transactionStatus.name()));
     }
 }

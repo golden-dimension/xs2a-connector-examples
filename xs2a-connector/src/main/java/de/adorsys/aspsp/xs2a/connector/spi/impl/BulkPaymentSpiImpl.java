@@ -90,36 +90,21 @@ public class BulkPaymentSpiImpl implements BulkPaymentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiBulkPayment> getPaymentById(@NotNull SpiContextData contextData, @NotNull SpiBulkPayment payment, @NotNull AspspConsentData aspspConsentData) {
-        if(!SpiTransactionStatus.ACSP.equals(payment.getPaymentStatus())){
-            return SpiResponse.<SpiBulkPayment>builder()
-                    .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                    .payload(payment)
-                    .success();
-        }
-        try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
-
-            logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.BULK, payment.getPaymentId());
-            logger.debug("Bulk payment body={}", payment);
-            // Normally the paymentid contained here must match the payment id 
-            // String paymentId = sca.getPaymentId(); This could also be used.
-            // TODO: store payment type in sca.
-            BulkPaymentTO response = objectMapper.convertValue(ledgersRestClient.getPaymentById(sca.getPaymentId()).getBody(), BulkPaymentTO.class);
-            SpiBulkPayment spiBulkPayment = Optional.ofNullable(response)
-                                                    .map(paymentMapper::mapToSpiBulkPayment)
-                                                    .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
+        if (!SpiTransactionStatus.ACSP.equals(payment.getPaymentStatus())) {
             return SpiResponse.<SpiBulkPayment>builder()
                            .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                           .payload(spiBulkPayment)
+                           .payload(payment)
                            .success();
-        } catch (FeignException e) {
-            return SpiResponse.<SpiBulkPayment>builder()
-                           .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                           .fail(getSpiFailureResponse(e));
-        } finally {
-            authRequestInterceptor.setAccessToken(null);
         }
+        return paymentService.getPaymentById(payment.getPaymentId(), payment.toString(), aspspConsentData)
+                       .map(p -> objectMapper.convertValue(p, BulkPaymentTO.class))
+                       .map(paymentMapper::mapToSpiBulkPayment)
+                       .map(p -> SpiResponse.<SpiBulkPayment>builder()
+                                         .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
+                                         .payload(p)
+                                         .success())
+                       .orElseGet(() -> SpiResponse.<SpiBulkPayment>builder()
+                                                .fail(SpiResponseStatus.LOGICAL_FAILURE));
     }
 
     @Override

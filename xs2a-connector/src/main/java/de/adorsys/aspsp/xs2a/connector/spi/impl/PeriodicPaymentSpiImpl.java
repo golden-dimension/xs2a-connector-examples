@@ -87,37 +87,21 @@ public class PeriodicPaymentSpiImpl implements PeriodicPaymentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiPeriodicPayment> getPaymentById(@NotNull SpiContextData contextData, @NotNull SpiPeriodicPayment payment, @NotNull AspspConsentData aspspConsentData) {
-        if(!SpiTransactionStatus.ACSP.equals(payment.getPaymentStatus())){
-            return SpiResponse.<SpiPeriodicPayment>builder()
-                    .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                    .payload(payment)
-                    .success();
-        }
-        try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
-
-            logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.PERIODIC, payment.getPaymentId());
-            logger.debug("Periodic payment body={}", payment);
-
-            // String paymentId = sca.getPaymentId(); This could also be used.
-            // TODO: store payment type in sca.
-            PeriodicPaymentTO response = objectMapper.convertValue(ledgersRestClient.getPaymentById(sca.getPaymentId()).getBody(), PeriodicPaymentTO.class);
-            SpiPeriodicPayment spiPeriodicPayment = Optional.ofNullable(response)
-                                                            .map(paymentMapper::mapToSpiPeriodicPayment)
-                                                            .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
+        if (!SpiTransactionStatus.ACSP.equals(payment.getPaymentStatus())) {
             return SpiResponse.<SpiPeriodicPayment>builder()
                            .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                           .payload(spiPeriodicPayment)
+                           .payload(payment)
                            .success();
-
-        } catch (FeignException e) {
-            return SpiResponse.<SpiPeriodicPayment>builder()
-                           .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                           .fail(getSpiFailureResponse(e));
-        } finally {
-            authRequestInterceptor.setAccessToken(null);
         }
+        return paymentService.getPaymentById(payment.getPaymentId(), payment.toString(), aspspConsentData)
+                       .map(p -> objectMapper.convertValue(p, PeriodicPaymentTO.class))
+                       .map(paymentMapper::mapToSpiPeriodicPayment)
+                       .map(p -> SpiResponse.<SpiPeriodicPayment>builder()
+                                         .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
+                                         .payload(p)
+                                         .success())
+                       .orElseGet(() -> SpiResponse.<SpiPeriodicPayment>builder()
+                                                .fail(SpiResponseStatus.LOGICAL_FAILURE));
     }
 
     @Override

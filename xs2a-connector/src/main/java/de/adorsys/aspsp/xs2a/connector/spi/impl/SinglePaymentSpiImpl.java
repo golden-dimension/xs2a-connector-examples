@@ -98,36 +98,21 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiSinglePayment> getPaymentById(@NotNull SpiContextData contextData, @NotNull SpiSinglePayment payment, @NotNull AspspConsentData aspspConsentData) {
-        if(!SpiTransactionStatus.ACSP.equals(payment.getPaymentStatus())){
-            return SpiResponse.<SpiSinglePayment>builder()
-                    .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                    .payload(payment)
-                    .success();
-        }
-        try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
-
-            logger.info("Get payment by id with type={}, and id={}", PaymentTypeTO.SINGLE, payment.getPaymentId());
-            logger.debug("Single payment body={}", payment);
-            // Normally the paymentId contained here must match the payment id
-            // String paymentId = sca.getPaymentId(); This could also be used.
-            // TODO: store payment type in sca.
-            SinglePaymentTO response = objectMapper.convertValue(ledgersRestClient.getPaymentById(sca.getPaymentId()).getBody(), SinglePaymentTO.class);
-            SpiSinglePayment spiPayment = Optional.ofNullable(response)
-                                                  .map(paymentMapper::toSpiSinglePayment)
-                                                  .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
+        if (!SpiTransactionStatus.ACSP.equals(payment.getPaymentStatus())) {
             return SpiResponse.<SpiSinglePayment>builder()
                            .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                           .payload(spiPayment)
+                           .payload(payment)
                            .success();
-        } catch (FeignException e) {
-            return SpiResponse.<SpiSinglePayment>builder()
-                           .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
-                           .fail(getSpiFailureResponse(e));
-        } finally {
-            authRequestInterceptor.setAccessToken(null);
         }
+        return paymentService.getPaymentById(payment.getPaymentId(), payment.toString(), aspspConsentData)
+                       .map(p -> objectMapper.convertValue(p, SinglePaymentTO.class))
+                       .map(paymentMapper::toSpiSinglePayment)
+                       .map(p -> SpiResponse.<SpiSinglePayment>builder()
+                                         .aspspConsentData(aspspConsentData.respondWith(aspspConsentData.getAspspConsentData()))
+                                         .payload(p)
+                                         .success())
+                       .orElseGet(() -> SpiResponse.<SpiSinglePayment>builder()
+                                                .fail(SpiResponseStatus.LOGICAL_FAILURE));
     }
 
     @Override
