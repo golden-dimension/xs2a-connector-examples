@@ -200,6 +200,7 @@
 								<argument>--log4j.logger.org.springframework=WARN</argument>
 								<argument>--logging.level.root=WARN</argument>
 								<argument>--logging.level.org.springframework.boot=WARN</argument>
+								<argument>--online-banking.sca.uiRedirect=${UI}</argument>
 							</arguments>
 						</configuration>
 					</execution>

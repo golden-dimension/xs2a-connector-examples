@@ -40,8 +40,12 @@ public abstract class AbstractXISController {
 	@Autowired
 	protected MiddlewareAuthentication auth;
 	
-	@Value("${online-banking.sca.loginpage:web/login}")
+	@Value("${online-banking.sca.loginpage:http://localhost:4300/}")
 	private String loginPage;
+	
+	@Value("${online-banking.sca.uiRedirect:false}")
+	private boolean uiRedirect;
+	
 	
 	@Autowired
 	protected ConsentReferencePolicy referencePolicy;
@@ -79,8 +83,11 @@ public abstract class AbstractXISController {
 			.queryParam("authorisationId", authResponse.getAuthorisationId())
 			.build().toUriString();
 
-		response.addHeader("Location", uriString);
-		return ResponseEntity.<AuthorizeResponse>ok(authResponse);
-//		return responseUtils.redirect(uriString, response);
+		if(uiRedirect) {
+			return responseUtils.redirect(uriString, response);
+		} else {
+			response.addHeader("Location", uriString);
+			return ResponseEntity.<AuthorizeResponse>ok(authResponse);
+		}
 	}
 }

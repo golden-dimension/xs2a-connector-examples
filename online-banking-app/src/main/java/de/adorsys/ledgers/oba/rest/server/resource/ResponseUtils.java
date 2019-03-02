@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.config.annotation.UrlBasedViewResolverRegistration;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import de.adorsys.ledgers.middleware.api.domain.um.AccessTokenTO;
@@ -63,6 +64,8 @@ public class ResponseUtils {
 			accessTokenCookie.setHttpOnly(true);
 			accessTokenCookie.setSecure(https_enabled);
 			accessTokenCookie.setMaxAge(validity);
+			accessTokenCookie.setDomain("localhost");
+			accessTokenCookie.setPath("/");
 			response.addCookie(accessTokenCookie);
 		} else {
 			removeCookie(response, ACCESS_TOKEN_COOKIE_NAME);
@@ -74,6 +77,8 @@ public class ResponseUtils {
 			consentCookie.setHttpOnly(true);
 			consentCookie.setSecure(https_enabled);
 			consentCookie.setMaxAge(validity);
+			consentCookie.setDomain("localhost");
+			consentCookie.setPath("/");
 			response.addCookie(consentCookie);
 		}
 	}

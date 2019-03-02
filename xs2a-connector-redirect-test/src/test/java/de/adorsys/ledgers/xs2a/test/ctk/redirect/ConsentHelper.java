@@ -112,7 +112,7 @@ public class ConsentHelper {
 		String scaRedirectLink = getScaRedirect(consentsResponse201.getLinks());
 		String encryptedConsentId = consentsResponse201.getConsentId();
 		String redirectId = QuerryParser.param(scaRedirectLink, "redirectId");
-		String encryptedConsentIdFromOnlineBanking = QuerryParser.param(scaRedirectLink, "consentId");
+		String encryptedConsentIdFromOnlineBanking = QuerryParser.param(scaRedirectLink, "encryptedConsentId");
 
 		Assert.assertEquals(encryptedConsentId, encryptedConsentIdFromOnlineBanking);
 
