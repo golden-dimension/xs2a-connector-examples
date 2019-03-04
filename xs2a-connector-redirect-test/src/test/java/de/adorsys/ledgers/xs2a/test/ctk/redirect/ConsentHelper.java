@@ -147,7 +147,7 @@ public class ConsentHelper {
 		return consentStatus;
 	}
 
-	private String getScaRedirect(@NotNull @Valid Map map) {
+	String getScaRedirect(@NotNull @Valid Map map) {
 		return (String) map.get("scaRedirect");
 	}
 
