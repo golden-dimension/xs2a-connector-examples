@@ -22,7 +22,7 @@ public class AisConsentMapper {
 	public AisConsentTO toTo(AisAccountConsent consent) {
 		AisConsentTO a = new AisConsentTO();
 		a.setId(consent.getId());
-		a.setUserId(resolveUserId(consent.getPsuIdDataList())); // TODO should be changed after implementation of multiple sca
+		a.setUserId(resolveUserId(consent.getPsuIdDataList())); // TODO should be changed after implementation of multiple sca https://git.adorsys.de/adorsys/xs2a/ledgers/issues/205
 		a.setTppId(Optional.ofNullable(consent.getTppInfo()).map(TppInfo::getAuthorisationNumber).orElse(null));
 		a.setFrequencyPerDay(consent.getFrequencyPerDay());
 		a.setAccess(toAccess(consent));

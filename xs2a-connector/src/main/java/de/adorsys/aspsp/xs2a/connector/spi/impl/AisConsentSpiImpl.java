@@ -143,7 +143,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
                                                                                     .authorizeConsent(sca.getConsentId(), sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
             SCAConsentResponseTO consentResponse = authorizeConsentResponse.getBody();
 
-            // TODO use real sca status from Ledgers for resolving consent status
+            // TODO use real sca status from Ledgers for resolving consent status https://git.adorsys.de/adorsys/xs2a/ledgers/issues/206
             return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder().payload(new SpiVerifyScaAuthorisationResponse(ConsentStatus.VALID))
                            .aspspConsentData(consentDataService.store(consentResponse, aspspConsentData))
                            .message(consentResponse.getScaStatus().name()).success();
