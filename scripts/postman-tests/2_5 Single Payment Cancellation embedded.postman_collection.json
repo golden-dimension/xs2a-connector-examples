@@ -1962,7 +1962,7 @@
 									"    pm.expect(chosenScaMethod.authenticationType).to.eql('SMS_OTP');*/",
 									"    ",
 									"    pm.expect(chosenScaMethod).to.have.property('authenticationMethodId');",
-									"    pm.expect(chosenScaMethod.authenticationMethodId).to.eql('bKLq119_SJomg8FlC_Y4Gs');",
+									"    //pm.expect(chosenScaMethod.authenticationMethodId).to.eql('bKLq119_SJomg8FlC_Y4Gs');",
 									"});",
 									"",
 									"pm.test(\"Challenge data exist\", () => {",
@@ -2088,7 +2088,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"scaAuthenticationData\": \"123456\"\n}"
+							"raw": "{\n\t\"scaAuthenticationData\": \"{{tan}}\"\n}"
 						},
 						"url": {
 							"raw": "http://localhost:8089/v1/payments/{{payment_product}}/{{payment_id}}/cancellation-authorisations/{{authorisation_id}}",
@@ -2876,13 +2876,14 @@
 									"    pm.expect(scaMethods[0].authenticationType).to.eql('SMS_OTP');*/",
 									"",
 									"    pm.expect(scaMethods[0]).to.have.property('authenticationMethodId');",
-									"    pm.expect(scaMethods[0].authenticationMethodId).to.eql('TCI_bX9rRQohgiba31INDw');",
+									"    pm.globals.set(\"authentication_method_id\", scaMethods[0].authenticationMethodId)",
+									"    //pm.expect(scaMethods[0].authenticationMethodId).to.eql('TCI_bX9rRQohgiba31INDw');",
 									"    ",
 									"    /*pm.expect(scaMethods[1]).to.have.property('authenticationType');",
 									"    pm.expect(scaMethods[1].authenticationType).to.eql('PUSH_OTP');*/",
 									"    ",
 									"    pm.expect(scaMethods[1]).to.have.property('authenticationMethodId');",
-									"    pm.expect(scaMethods[1].authenticationMethodId).to.eql('push');",
+									"    //pm.expect(scaMethods[1].authenticationMethodId).to.eql('push');",
 									"});",
 									"",
 									""
@@ -2977,7 +2978,7 @@
 									"    pm.expect(chosenScaMethod.authenticationType).to.eql('SMS_OTP');*/",
 									"    ",
 									"    pm.expect(chosenScaMethod).to.have.property('authenticationMethodId');",
-									"    pm.expect(chosenScaMethod.authenticationMethodId).to.eql('TCI_bX9rRQohgiba31INDw');",
+									"    pm.expect(chosenScaMethod.authenticationMethodId).to.eql(pm.globals.get(\"authentication_method_id\"));",
 									"});",
 									"",
 									"pm.test(\"Challenge data exist\", () => {",
@@ -3102,7 +3103,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n\t\"scaAuthenticationData\": \"123456\"\n}"
+							"raw": "{\n\t\"scaAuthenticationData\": \"{{tan}}\"\n}"
 						},
 						"url": {
 							"raw": "{{protocol}}://{{url_xs2a}}/v1/payments/{{payment_product}}/{{payment_id}}/cancellation-authorisations/{{authorisation_id}}",
