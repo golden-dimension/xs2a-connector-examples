@@ -10,21 +10,17 @@ services:
 
   # Xs2a connector example
   xs2a-connector-examples:
-    image: adorsys/xs2a-connector-examples
+    image: adorsys/xs2a-connector-examples:develop
     container_name: xs2a-connector-examples
     restart: on-failure
     ports:
       - "8089:8089"
       - "8189:8000"
     environment:
-      - ASPSP_PROFILE_BASEURL=http://xs2a-aspsp-profile:48080/api/v1
-      - CONSENT_SERVICE_BASEURL=http://xs2a-consent-management:38080
+      - SPRING_PROFILES_ACTIVE=mockspi
+      - ASPSP-PROFILE_BASEURL=http://xs2a-aspsp-profile:8080/api/v1
+      - CONSENT-SERVICE.BASEURL=http://xs2a-consent-management:8080
       - LEDGERS_URL=http://ledgers:8088
-      - SPRING_PROFILES_ACTIVE=postgres,mockspi
-      - DB_HOST=xs2a_connector_examples_db
-      - DB_DATABASE=consent
-      - DB_USER=cms
-      - DB_PASSWORD=cms
     networks:
       - xs2a-net
     depends_on:
@@ -34,7 +30,7 @@ services:
 
   # Xs2a aspsp profile
   xs2a-aspsp-profile:
-    image: adorsys/xs2a-aspsp-profile
+    image: adorsys/xs2a-aspsp-profile:2.0.1
     container_name: xs2a-aspsp-profile
     restart: on-failure
     environment:
@@ -47,7 +43,7 @@ services:
 
   # Consent management
   xs2a-consent-management:
-    image: adorsys/xs2a-consent-management
+    image: adorsys/xs2a-consent-management:2.0.1
     container_name: xs2a-consent-management
     restart: on-failure
     ports:
@@ -55,19 +51,18 @@ services:
     networks:
       - xs2a-net
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://xs2a-connector-examples-db/consent?currentSchema=consent
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://xs2a-consent-management-db/consent?currentSchema=consent
       - SPRING_DATASOURCE_USERNAME=cms
       - SPRING_DATASOURCE_PASSWORD=cms
-      - ASPSP_PROFILE_BASEURL=http://xs2a-aspsp-profile:48080/api/v1
       - SERVER_KEY=ledgers_conenctor_secret
+      - LIQUIBASE_ENABLED=true
     depends_on:
-      - xs2a-connector-examples-db
-      - xs2a-aspsp-profile
+      - xs2a-consent-management-db
 
-  # Xs2a connector example DB
-  xs2a-connector-examples-db:
+  # Xs2a consent management DB
+  xs2a-consent-management-db:
     image: centos/postgresql-95-centos7
-    container_name: xs2a_connector_examples_db
+    container_name: xs2a-consent-management-db
     restart: on-failure
     volumes:
       - xs2a-connector-data:/var/lib/pgsql/data
@@ -75,7 +70,7 @@ services:
     expose:
       - 5432
     ports:
-      - "5436:5432"
+      - "5432:5432"
     networks:
       - xs2a-net
     environment:
@@ -106,7 +101,7 @@ services:
 
   # Ledgers
   ledgers:
-    image: adorsys/ledgers
+    image: adorsys/ledgers:0.3
     container_name: ledgers
     restart: on-failure
     networks:
@@ -114,11 +109,12 @@ services:
     ports:
       - "8088:8088"
       - "8188:8000"
-    depends_on:
-      - xs2a-connector-examples-db
     environment:
-      - SPRING_PROFILES_ACTIVE=postgres
-      - DB_HOST=xs2a-connector-examples-db
-      - DB_DATABASE=consent
-      - DB_USER=cms
-      - DB_PASSWORD=cms
+      - SPRING_PROFILES_ACTIVE=h2
+      - SPRING_JPA_SHOW_SQL=false
+      - DB_URL=jdbc:h2:/var/lib/data/xs2adbs/ledgers;DB_CLOSE_DELAY=-1
+      - DB_USER=sa
+      - DB_PASSWORD=sa
+      - LEDGERS_MOCKBANK_DATA_LOAD=true
+    volumes:
+      - xs2a-connector-data:/var/lib/data
