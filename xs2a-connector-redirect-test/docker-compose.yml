@@ -19,7 +19,7 @@ services:
     - SPRING_PROFILES_ACTIVE=mockspi
     - LEDGERS_URL=http://ledgers:8088
     - ASPSP_PROFILE_BASEURL=http://profile:48080/api/v1
-    - CONSENT_SERVICE_BASEURL=http://consent:38080
+    - CONSENT_SERVICE_BASEURL=http://consent:38080/api/v1
     - SECURITY_BASIC_ENABLED=false
     - LOGGING_LEVEL_ROOT=INFO
     networks:
