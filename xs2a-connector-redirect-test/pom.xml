@@ -26,7 +26,7 @@
 	<dependencies>
 		<!-- Project dependencies -->
 		<dependency>
-			<groupId>de.adorsys.ledgers</groupId>
+			<groupId>de.adorsys.psd2.sandbox</groupId>
 			<artifactId>oba-rest-client</artifactId>
 			<version>${project.version}</version>
 		</dependency>
@@ -174,7 +174,7 @@
 							<destFileName>fakesmtp.jar</destFileName>
 						</artifactItem>
 						<artifactItem>
-							<groupId>de.adorsys.ledgers</groupId>
+							<groupId>de.adorsys.psd2.sandbox</groupId>
 							<artifactId>online-banking-app</artifactId>
 							<version>${project.version}</version>
 							<type>jar</type>
