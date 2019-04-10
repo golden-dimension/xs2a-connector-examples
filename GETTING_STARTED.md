@@ -45,7 +45,7 @@ $ git clone https://github.com/adorsys/xs2a-connector-examples.git
 $ cd xs2a-connector-examples
 $ mvn clean install
 ```
-- Launch XS2A connector as SpringBoot application with the active profile `mock-qwac`: `-Dspring.profiles.active=mock-qwac`
+- Launch XS2A connector (LedgersXs2aGatewayApplication.java) as SpringBoot application with the active profile `mock-qwac`: `-Dspring.profiles.active=mock-qwac`
 
 If you have any troubles, first check the properties file of XS2A connector: `xs2a-connector-examples/gateway-app/src/main/resources/application.yml`.
 Here you can find the ports and URLs of other projects from this scope (in case of using non-default values). 
