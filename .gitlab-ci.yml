@@ -162,6 +162,16 @@ Deploy Openshift (develop):
     OPENSHIFT_NAMESPACE: "${DEV_NAMESPACE}"
   <<: *deploy_openshift
 
+# temporary for testing
+Deploy Openshift (tne-test):
+  stage: "Deployment"
+  only:
+    - TNE_gitlab_issue_779
+  variables:
+    DOCKER_TAG: develop
+    OPENSHIFT_NAMESPACE: "tne-test"
+  <<: *deploy_openshift
+
 ##########
 # master #
 ##########
