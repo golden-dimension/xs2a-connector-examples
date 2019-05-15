@@ -72,7 +72,6 @@ public class AccountSpiImpl implements AccountSpi {
 					withBalance);
 			List<SpiAccountDetails> accountDetailsList = getSpiAccountDetails(withBalance, accountConsent,
 					aspspConsentData);
-			logger.info("Details for consent are: {}", accountDetailsList);
 			return SpiResponse.<List<SpiAccountDetails>>builder()
 					.payload(filterAccountDetailsByWithBalance(withBalance, accountDetailsList, accountConsent.getAccess()))
 					.aspspConsentData(aspspConsentData).success();
@@ -92,7 +91,7 @@ public class AccountSpiImpl implements AccountSpi {
 		try {
 			auth(aspspConsentData);
 
-			logger.info("Requested details for account with id: {}, and withBalances: {}",
+			logger.info("Requested details for ACCOUNT-ID: {}, and withBalances: {}",
 					accountReference.getResourceId(), withBalance);
 			SpiAccountDetails accountDetails = Optional
 					.ofNullable(accountRestClient.getAccountDetailsById(accountReference.getResourceId()).getBody())
@@ -102,7 +101,7 @@ public class AccountSpiImpl implements AccountSpi {
 			if (!withBalance) {
 				accountDetails.emptyBalances();
 			}
-			logger.info("The responded details are: {}", accountDetails);
+			logger.info("The responded account RESOURCE-ID: {}", accountDetails.getResourceId());
 			return SpiResponse.<SpiAccountDetails>builder().payload(accountDetails).aspspConsentData(aspspConsentData)
 					.success();
 		} catch (FeignException e) {
@@ -122,12 +121,11 @@ public class AccountSpiImpl implements AccountSpi {
 		try {
 			auth(aspspConsentData);
 
-			logger.info("Requested transactions for account with is: {},  dates from: {}, to: {}, withBalance: {}",
+			logger.info("Requested transactions for account: {},  dates from: {}, to: {}, withBalance: {}",
 					accountReference.getResourceId(), dateFrom, dateTo, withBalance);
 			List<SpiTransaction> transactions = Optional.ofNullable(
 					accountRestClient.getTransactionByDates(accountReference.getResourceId(), dateFrom, dateTo).getBody())
 					.map(accountMapper::toSpiTransactions).orElseGet(ArrayList::new);
-			logger.info("Transactions are: {}", transactions);
 			List<SpiAccountBalance> balances = getSpiAccountBalances(contextData, withBalance, accountReference,
 					accountConsent, aspspConsentData);
 
@@ -135,7 +133,7 @@ public class AccountSpiImpl implements AccountSpi {
 			// transactions.
 			SpiTransactionReport transactionReport = new SpiTransactionReport(transactions, balances, acceptMediaType,
 					null);
-			logger.info("Final transaction report is: {}", transactionReport);
+			logger.info("Finally found {} transactions.", transactionReport.getTransactions().size());
 			return SpiResponse.<SpiTransactionReport>builder().payload(transactionReport)
 					.aspspConsentData(aspspConsentData).success();
 		} catch (FeignException e) {
@@ -156,7 +154,7 @@ public class AccountSpiImpl implements AccountSpi {
 		try {
 			auth(aspspConsentData);
 
-			logger.info("Requested transaction id is: {}, for account with id: {}", transactionId,
+			logger.info("Requested transaction with TRANSACTION-ID: {}, for ACCOUNT-ID: {}", transactionId,
 					accountReference.getResourceId());
 			SpiTransaction transaction = Optional
 					.ofNullable(
@@ -164,7 +162,7 @@ public class AccountSpiImpl implements AccountSpi {
 					.map(accountMapper::toSpiTransaction)
 					.orElseThrow(() -> FeignException.errorStatus("Response status was 200, but the body was empty!",
 							Response.builder().status(404).build()));
-			logger.info("Transaction is: {}", transaction);
+			logger.info("Found transaction with TRANSACTION-ID: {}", transaction.getTransactionId());
 			return SpiResponse.<SpiTransaction>builder().payload(transaction).aspspConsentData(aspspConsentData)
 					.success();
 		} catch (FeignException e) {
@@ -182,13 +180,13 @@ public class AccountSpiImpl implements AccountSpi {
 		try {
 			auth(aspspConsentData);
 
-			logger.info("Requested Balances for account with is: {}", accountReference.getResourceId());
+			logger.info("Requested Balances for ACCOUNT-ID: {}", accountReference.getResourceId());
 			List<SpiAccountBalance> accountBalances = Optional
 					.ofNullable(accountRestClient.getBalances(accountReference.getResourceId()).getBody())
 					.map(accountMapper::toSpiAccountBalancesList)
 					.orElseThrow(() -> FeignException.errorStatus("Response status was 200, but the body was empty!",
 							Response.builder().status(404).build()));
-			logger.info("Balances received are: {}", accountBalances);
+			logger.info("Found Balances: {}", accountBalances.size());
 			return SpiResponse.<List<SpiAccountBalance>>builder().payload(accountBalances)
 					.aspspConsentData(aspspConsentData).success();
 		} catch (FeignException e) {
