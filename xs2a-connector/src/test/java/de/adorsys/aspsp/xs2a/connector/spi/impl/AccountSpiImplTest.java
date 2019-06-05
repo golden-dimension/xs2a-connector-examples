@@ -8,7 +8,6 @@ import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.psd2.xs2a.core.ais.BookingStatus;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
-import de.adorsys.psd2.xs2a.core.psu.PsuIdData;
 import de.adorsys.psd2.xs2a.core.tpp.TppInfo;
 import de.adorsys.psd2.xs2a.core.tpp.TppRole;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
@@ -84,7 +83,7 @@ public class AccountSpiImplTest {
     }
 
     @Test
-    public void requestTransactionsForAccount_useDefaultAcceptType_success() {
+    public void requestTransactionsForAccount_useDefaultAcceptTypeWhenNull_success() {
         SCAConsentResponseTO sca = new SCAConsentResponseTO();
         sca.setBearerToken(new BearerTokenTO("access_token", 100, "refresh_token", new AccessTokenTO()));
         when(tokenService.response(ASPSP_CONSENT_DATA.getAspspConsentData())).thenReturn(sca);
@@ -95,6 +94,28 @@ public class AccountSpiImplTest {
         SpiResponse<SpiTransactionReport> actualResponse = accountSpi.requestTransactionsForAccount(SPI_CONTEXT_DATA, null, true, DATE_FROM, DATE_TO, BookingStatus.BOOKED,
                                                  new SpiAccountReference(RESOURCE_ID, null, null, null, null, null, Currency.getInstance("EUR")),
                                                  SPI_ACCOUNT_CONSENT, ASPSP_CONSENT_DATA);
+
+        verify(accountRestClient, times(1)).getTransactionByDates(RESOURCE_ID, DATE_FROM, DATE_TO);
+        verify(accountRestClient, times(1)).getBalances(RESOURCE_ID);
+        verify(tokenService, times(2)).response(ASPSP_CONSENT_DATA.getAspspConsentData());
+        verify(authRequestInterceptor, times(2)).setAccessToken("access_token");
+        verify(authRequestInterceptor, times(2)).setAccessToken(null);
+
+        assertEquals(MediaType.APPLICATION_JSON_VALUE, actualResponse.getPayload().getResponseContentType());
+    }
+
+    @Test
+    public void requestTransactionsForAccount_useDefaultAcceptTypeWhenWildcard_success() {
+        SCAConsentResponseTO sca = new SCAConsentResponseTO();
+        sca.setBearerToken(new BearerTokenTO("access_token", 100, "refresh_token", new AccessTokenTO()));
+        when(tokenService.response(ASPSP_CONSENT_DATA.getAspspConsentData())).thenReturn(sca);
+
+        when(accountRestClient.getTransactionByDates(RESOURCE_ID, DATE_FROM, DATE_TO)).thenReturn(ResponseEntity.ok(new ArrayList<>()));
+        when(accountRestClient.getBalances(RESOURCE_ID)).thenReturn(ResponseEntity.ok(new ArrayList<>()));
+
+        SpiResponse<SpiTransactionReport> actualResponse = accountSpi.requestTransactionsForAccount(SPI_CONTEXT_DATA, "*/*", true, DATE_FROM, DATE_TO, BookingStatus.BOOKED,
+                                                                                                    new SpiAccountReference(RESOURCE_ID, null, null, null, null, null, Currency.getInstance("EUR")),
+                                                                                                    SPI_ACCOUNT_CONSENT, ASPSP_CONSENT_DATA);
 
         verify(accountRestClient, times(1)).getTransactionByDates(RESOURCE_ID, DATE_FROM, DATE_TO);
         verify(accountRestClient, times(1)).getBalances(RESOURCE_ID);

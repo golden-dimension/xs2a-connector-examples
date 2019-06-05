@@ -51,6 +51,7 @@ public class AccountSpiImpl implements AccountSpi {
     private static final Logger logger = LoggerFactory.getLogger(AccountSpiImpl.class);
 
     private static final String DEFAULT_ACCEPT_MEDIA_TYPE = MediaType.APPLICATION_JSON_VALUE;
+    private static final String WILDCARD_ACCEPT_HEADER = "*/*";
 
     private final AccountRestClient accountRestClient;
     private final LedgersSpiAccountMapper accountMapper;
@@ -134,8 +135,8 @@ public class AccountSpiImpl implements AccountSpi {
                                                                      accountConsent, aspspConsentData);
 
             // TODO: Check what is to be done here. We can return a json array with those transactions.
-            SpiTransactionReport transactionReport = new SpiTransactionReport(transactions, balances, StringUtils.defaultIfBlank(acceptMediaType, DEFAULT_ACCEPT_MEDIA_TYPE),
-                                                                              null);
+            SpiTransactionReport transactionReport = new SpiTransactionReport(transactions, balances,
+                                                                              processAcceptMediaType(acceptMediaType), null);
             logger.info("Finally found {} transactions.", transactionReport.getTransactions().size());
             return SpiResponse.<SpiTransactionReport>builder().payload(transactionReport)
                            .aspspConsentData(aspspConsentData).success();
@@ -147,6 +148,11 @@ public class AccountSpiImpl implements AccountSpi {
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
+    }
+
+    private String processAcceptMediaType(String acceptMediaType) {
+        return StringUtils.isBlank(acceptMediaType) || WILDCARD_ACCEPT_HEADER.equals(acceptMediaType) ?
+                       DEFAULT_ACCEPT_MEDIA_TYPE : acceptMediaType;
     }
 
     @Override
