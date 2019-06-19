@@ -34,7 +34,6 @@ import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
-import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponseStatus;
 import feign.FeignException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -146,6 +145,6 @@ public class GeneralAuthorisationService {
 
         return e.status() == 500
                        ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
-                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Authorisation Psu request is failed.");
+                       : new TppMessage(MessageErrorCode.PSU_CREDENTIALS_INVALID, "PSU authorisation request was failed.");
     }
 }
