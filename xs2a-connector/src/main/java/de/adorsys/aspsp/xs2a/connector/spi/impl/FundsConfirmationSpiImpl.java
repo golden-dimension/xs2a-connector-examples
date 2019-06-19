@@ -97,7 +97,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
         logger.error(e.getMessage(), e);
 
         return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: The funds confirmation request failed.");
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
+                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "The funds confirmation request failed.");
     }
 }

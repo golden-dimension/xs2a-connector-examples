@@ -328,9 +328,8 @@ public class AccountSpiImpl implements AccountSpi {
         logger.error(e.getMessage(), e);
 
         return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.CONSENT_UNKNOWN_403, "Connector: The consent-ID cannot be matched by the ASPSP relative to the TPP");
-
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
+                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "The consent-ID cannot be matched by the ASPSP relative to the TPP");
     }
 
     private SCAResponseTO auth(AspspConsentData aspspConsentData) {

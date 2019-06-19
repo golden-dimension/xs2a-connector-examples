@@ -124,7 +124,7 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
         }
         return SpiResponse.<SpiResponse.VoidResponse>builder()
                        .aspspConsentData(aspspConsentData)
-                       .error(new TppMessage(MessageErrorCode.CANCELLATION_INVALID, "Connector: Couldn't execute payment cancellation"))
+                       .error(new TppMessage(MessageErrorCode.CANCELLATION_INVALID, "Couldn't execute payment cancellation"))
                        .build();
     }
 
@@ -141,11 +141,11 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
                                      .payload(SpiResponse.voidResponse())
                                      .build()
                            : SpiResponse.<SpiResponse.VoidResponse>builder()
-                                     .error(new TppMessage(MessageErrorCode.UNAUTHORIZED, "Connector: Couldn't authorise payment cancellation"))
+                                     .error(new TppMessage(MessageErrorCode.UNAUTHORIZED, "Couldn't authorise payment cancellation"))
                                      .build();
         } catch (Exception e) {
             return SpiResponse.<SpiResponse.VoidResponse>builder().aspspConsentData(aspspConsentData)
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't execute authorisation payment cancellation"))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute authorisation payment cancellation"))
                            .build();
         }
     }
@@ -171,7 +171,7 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
                            .aspspConsentData(aspspConsentData)
-                           .error(new TppMessage(MessageErrorCode.UNAUTHORIZED, "Connector: Couldn't authorise payment cancellation"))
+                           .error(new TppMessage(MessageErrorCode.UNAUTHORIZED, "Couldn't authorise payment cancellation"))
                            .build();
         }
     }
@@ -192,7 +192,7 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
         return authenticationObjectList.isEmpty()
                        ? SpiResponse.<List<SpiAuthenticationObject>>builder()
                                  .aspspConsentData(aspspConsentData)
-                                 .error(new TppMessage(MessageErrorCode.UNAUTHORIZED, "Connector: Getting SCA methods failed"))
+                                 .error(new TppMessage(MessageErrorCode.UNAUTHORIZED, "Getting SCA methods failed"))
                                  .build()
                        : SpiResponse.<List<SpiAuthenticationObject>>builder()
                                  .payload(authenticationObjectList)
@@ -228,7 +228,7 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
         logger.error(e.getMessage(), e);
 
         return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't execute payment cancellation");
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
+                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment cancellation");
     }
 }

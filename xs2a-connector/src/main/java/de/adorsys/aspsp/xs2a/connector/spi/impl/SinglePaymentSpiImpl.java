@@ -97,7 +97,7 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
                            .build();
         } catch (IllegalStateException e) {
             return SpiResponse.<SpiSinglePaymentInitiationResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: The payment initiation request failed during the initial process."))
+                           .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, "The payment initiation request failed during the initial process."))
                            .build();
         }
     }
@@ -116,7 +116,7 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
                                          .payload(p)
                                          .build())
                        .orElseGet(() -> SpiResponse.<SpiSinglePayment>builder()
-                                                .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: Couldn't get payment by ID"))
+                                                .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Couldn't get payment by ID"))
                                                 .build());
     }
 
@@ -167,8 +167,8 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
         logger.error(e.getMessage(), e);
 
         return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: The payment initiation request failed during the initial process.");
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
+                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "The payment initiation request failed during the initial process.");
 
     }
 

@@ -110,7 +110,7 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
                            .aspspConsentData(aspspConsentData)
-                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN, "Connector: getting PSU token was failed"))
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN, "Getting PSU token was failed"))
                            .build();
         }
     }
@@ -139,7 +139,8 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
             } catch (FeignException e) {
                 return SpiResponse.<SpiAuthorizationCodeResult>builder()
                                .aspspConsentData(aspspConsentData)
-                               .error(getFailureMessageFromFeignException(e))
+                               // TODO fix response form ledgers https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/185
+                               .error(new TppMessage(MessageErrorCode.SCA_METHOD_UNKNOWN, "Sending SCA via phone not implemented yet"))
                                .build();
             } finally {
                 authRequestInterceptor.setAccessToken(null);
@@ -204,13 +205,5 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
                                .error( new TppMessage(MessageErrorCode.PAYMENT_FAILED,  String.format("Unknown payment type %s", paymentType.getValue())))
                                .build();
         }
-    }
-
-    private TppMessage getFailureMessageFromFeignException(FeignException e) {
-        logger.error(e.getMessage(), e);
-
-        return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't execute payment");
     }
 }

@@ -81,7 +81,7 @@ public class GeneralPaymentService {
                            .build();
         } catch (FeignException e) {
             return SpiResponse.<TransactionStatus>builder()
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't get payment status by ID"))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't get payment status by ID"))
                            .build();
 
         } finally {
@@ -110,7 +110,7 @@ public class GeneralPaymentService {
                            .build();
         } catch (Exception e) {
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't execute payment"))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment"))
                            .build();
         } finally {
             authRequestInterceptor.setAccessToken(null);
@@ -167,7 +167,7 @@ public class GeneralPaymentService {
                                .build();
             }
 
-            String message = String.format("Connector: Payment not executed. Transaction status is %s. Als see sca status %s."
+            String message = String.format("Payment not executed. Transaction status is %s. Als see sca status %s."
                     ,response.getTransactionStatus(), scaStatusName);
 
             aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
@@ -208,7 +208,7 @@ public class GeneralPaymentService {
         logger.error(e.getMessage(), e);
 
         return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't execute payment");
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
+                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment");
     }
 }

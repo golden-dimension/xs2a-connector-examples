@@ -145,7 +145,7 @@ public class GeneralAuthorisationService {
         logger.error(e.getMessage(), e);
 
         return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
-                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: Authorisation Psu request is failed.");
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
+                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Authorisation Psu request is failed.");
     }
 }
