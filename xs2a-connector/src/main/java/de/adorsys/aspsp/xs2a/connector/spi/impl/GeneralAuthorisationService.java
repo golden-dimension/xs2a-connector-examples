@@ -27,6 +27,8 @@ import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.ledgers.util.Ids;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
+import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
+import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.sca.ChallengeData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
@@ -93,11 +95,17 @@ public class GeneralAuthorisationService {
                                                     ? SpiAuthorisationStatus.SUCCESS
                                                     : SpiAuthorisationStatus.FAILURE;
             logger.info("Authorisation result is {}", status);
-            return new SpiResponse<>(status, aspspConsentData.respondWith(consentDataService.store(Optional.ofNullable(response).map(HttpEntity::getBody).orElseGet(SCALoginResponseTO::new))));
+            return SpiResponse.<SpiAuthorisationStatus>builder()
+                           .aspspConsentData(aspspConsentData.respondWith(consentDataService.store(Optional.ofNullable(response)
+                                                                                                           .map(HttpEntity::getBody)
+                                                                                                           .orElseGet(SCALoginResponseTO::new))))
+                           .payload(status)
+                           .build();
         } catch (FeignException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
                            .aspspConsentData(aspspConsentData)
-                           .fail(SpiFailureResponseHelper.getSpiFailureResponse(e, logger));
+                           .error(getFailureMessageFromFeignException(e))
+                           .build();
         }
     }
 
@@ -116,8 +124,9 @@ public class GeneralAuthorisationService {
         } else {
             return SpiResponse.<SpiAuthorizationCodeResult>builder()
                            .aspspConsentData(aspspConsentData)
-                           .message(String.format("Wrong state. Expecting sca status to be %s if auth was sent or %s if auth code wasn't sent yet. But was %s.", SCAMETHODSELECTED.name(), PSUIDENTIFIED.name(), sca.getScaStatus().name()))
-                           .fail(SpiResponseStatus.LOGICAL_FAILURE);
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR,
+                                                 String.format("Wrong state. Expecting sca status to be %s if auth was sent or %s if auth code wasn't sent yet. But was %s.", SCAMETHODSELECTED.name(), PSUIDENTIFIED.name(), sca.getScaStatus().name())))
+                           .build();
         }
     }
 
@@ -129,7 +138,14 @@ public class GeneralAuthorisationService {
         return SpiResponse.<SpiAuthorizationCodeResult>builder()
                        .aspspConsentData(aspspConsentData.respondWith(consentDataService.store(sca)))
                        .payload(spiAuthorizationCodeResult)
-                       .success();
+                       .build();
     }
 
+    private TppMessage getFailureMessageFromFeignException(FeignException e) {
+        logger.error(e.getMessage(), e);
+
+        return e.status() == 500
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
+                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: Authorisation Psu request is failed.");
+    }
 }

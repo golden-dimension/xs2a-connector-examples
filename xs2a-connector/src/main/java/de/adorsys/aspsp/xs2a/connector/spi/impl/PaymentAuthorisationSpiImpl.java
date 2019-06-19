@@ -28,6 +28,8 @@ import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
+import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
+import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthenticationObject;
@@ -102,14 +104,14 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
 
         try {
             SCAPaymentResponseTO scaPaymentResponse = toPaymentConsent(spiPayment, authorisePsu, originalResponse);
-            cmsPaymentStatusUpdateService.updatePaymentStatus(spiPayment.getPaymentId(),authorisePsu.getAspspConsentData());
+            cmsPaymentStatusUpdateService.updatePaymentStatus(spiPayment.getPaymentId(), authorisePsu.getAspspConsentData());
             AspspConsentData paymentAspspConsentData = authorisePsu.getAspspConsentData().respondWith(tokenStorageService.toBytes(scaPaymentResponse));
             return initiatePmtOnExemptedIfRequired(contextData, spiPayment, authorisePsu, scaPaymentResponse, paymentAspspConsentData);
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .message(e.getMessage())
                            .aspspConsentData(aspspConsentData)
-                           .fail(SpiResponseStatus.LOGICAL_FAILURE);
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN, "Connector: getting PSU token was failed"))
+                           .build();
         }
     }
 
@@ -117,8 +119,10 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
     public SpiResponse<List<SpiAuthenticationObject>> requestAvailableScaMethods(@NotNull SpiContextData contextData, SpiPayment spiPayment, @NotNull AspspConsentData aspspConsentData) {
         SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData.getAspspConsentData(), SCAPaymentResponseTO.class);
         List<ScaUserDataTO> scaMethods = Optional.ofNullable(sca.getScaMethods()).orElse(Collections.emptyList());
-        return SpiResponse.<List<SpiAuthenticationObject>>builder().payload(scaMethodConverter.toSpiAuthenticationObjectList(scaMethods))
-                       .aspspConsentData(aspspConsentData).success();
+        return SpiResponse.<List<SpiAuthenticationObject>>builder()
+                       .aspspConsentData(aspspConsentData)
+                       .payload(scaMethodConverter.toSpiAuthenticationObjectList(scaMethods))
+                       .build();
     }
 
     @Override
@@ -135,7 +139,8 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
             } catch (FeignException e) {
                 return SpiResponse.<SpiAuthorizationCodeResult>builder()
                                .aspspConsentData(aspspConsentData)
-                               .fail(SpiFailureResponseHelper.getSpiFailureResponse(e, logger));
+                               .error(getFailureMessageFromFeignException(e))
+                               .build();
             } finally {
                 authRequestInterceptor.setAccessToken(null);
             }
@@ -167,7 +172,10 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
                     .contains(scaPaymentResponse.getScaStatus())) {
             return initiatePaymentOnExemptedSCA(contextData, spiPayment, authorisePsu, paymentAspspConsentData);
         }
-        return new SpiResponse<>(authorisePsu.getPayload(), paymentAspspConsentData);
+        return SpiResponse.<SpiAuthorisationStatus>builder()
+                       .aspspConsentData(paymentAspspConsentData)
+                       .payload(authorisePsu.getPayload())
+                       .build();
     }
 
     private SpiResponse<SpiAuthorisationStatus> initiatePaymentOnExemptedSCA(SpiContextData contextData, SpiPayment spiPayment,
@@ -193,8 +201,16 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
             default:
                 // throw unsupported payment type
                 return SpiResponse.<SpiAuthorisationStatus>builder()
-                               .message(String.format("Unknown payment type %s", paymentType.getValue()))
-                               .fail(SpiResponseStatus.LOGICAL_FAILURE);
+                               .error( new TppMessage(MessageErrorCode.PAYMENT_FAILED,  String.format("Unknown payment type %s", paymentType.getValue())))
+                               .build();
         }
+    }
+
+    private TppMessage getFailureMessageFromFeignException(FeignException e) {
+        logger.error(e.getMessage(), e);
+
+        return e.status() == 500
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
+                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Connector: Couldn't execute payment");
     }
 }

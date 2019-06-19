@@ -22,6 +22,8 @@ import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
+import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
+import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.piis.PiisConsent;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.fund.SpiFundsConfirmationRequest;
@@ -30,12 +32,15 @@ import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponseStatus;
 import de.adorsys.psd2.xs2a.spi.service.FundsConfirmationSpi;
 import feign.FeignException;
+import feign.Request;
+import feign.Response;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.Optional;
 
 @Component
@@ -44,28 +49,28 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
 
     private final AccountRestClient restClient;
     private final LedgersSpiAccountMapper accountMapper;
-	private final AuthRequestInterceptor authRequestInterceptor;
-	private final AspspConsentDataService tokenService;
+    private final AuthRequestInterceptor authRequestInterceptor;
+    private final AspspConsentDataService tokenService;
 
     public FundsConfirmationSpiImpl(AccountRestClient restClient, LedgersSpiAccountMapper accountMapper,
-			AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService tokenService) {
-		this.restClient = restClient;
-		this.accountMapper = accountMapper;
-		this.authRequestInterceptor = authRequestInterceptor;
-		this.tokenService = tokenService;
-	}
-    
-	/*
+                                    AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService tokenService) {
+        this.restClient = restClient;
+        this.accountMapper = accountMapper;
+        this.authRequestInterceptor = authRequestInterceptor;
+        this.tokenService = tokenService;
+    }
+
+    /*
      * We accept any response with valid bearer token for the fund confirmation.
-     *  
+     *
      */
-	@Override
-	public @NotNull SpiResponse<SpiFundsConfirmationResponse> performFundsSufficientCheck(@NotNull SpiContextData contextData,
-			@Nullable PiisConsent piisConsent, @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
-			@NotNull AspspConsentData aspspConsentData) {
+    @Override
+    public @NotNull SpiResponse<SpiFundsConfirmationResponse> performFundsSufficientCheck(@NotNull SpiContextData contextData,
+                                                                                          @Nullable PiisConsent piisConsent, @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
+                                                                                          @NotNull AspspConsentData aspspConsentData) {
         try {
-			SCAResponseTO sca = tokenService.response(aspspConsentData.getAspspConsentData());
-			authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+            SCAResponseTO sca = tokenService.response(aspspConsentData.getAspspConsentData());
+            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             logger.info("Funds confirmation request e={}", spiFundsConfirmationRequest);
             FundsConfirmationRequestTO request = accountMapper.toFundsConfirmationTO(contextData.getPsuData(), spiFundsConfirmationRequest);
@@ -77,22 +82,22 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
             return SpiResponse.<SpiFundsConfirmationResponse>builder()
                            .aspspConsentData(aspspConsentData)
                            .payload(spiFundsConfirmationResponse)
-                           .success();
+                           .build();
         } catch (FeignException e) {
             return SpiResponse.<SpiFundsConfirmationResponse>builder()
                            .aspspConsentData(aspspConsentData)
-                           .fail(getSpiFailureResponse(e));
-		} finally {
-			authRequestInterceptor.setAccessToken(null);
-		}
-	}
-	
-	@NotNull
-    private SpiResponseStatus getSpiFailureResponse(FeignException e) {
-        logger.error(e.getMessage(), e);
-        return e.status() == 500
-                       ? SpiResponseStatus.TECHNICAL_FAILURE
-                       : SpiResponseStatus.LOGICAL_FAILURE;
+                           .error(getFailureMessageFromFeignException(e))
+                           .build();
+        } finally {
+            authRequestInterceptor.setAccessToken(null);
+        }
     }
 
+    private TppMessage getFailureMessageFromFeignException(FeignException e) {
+        logger.error(e.getMessage(), e);
+
+        return e.status() == 500
+                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Connector: Request was failed")
+                       : new TppMessage(MessageErrorCode.PAYMENT_FAILED, "Connector: The funds confirmation request failed.");
+    }
 }
