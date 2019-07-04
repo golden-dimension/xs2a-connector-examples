@@ -76,7 +76,7 @@ Get Dependency xs2a-impl.jar:
   only:
     - feature/get_foreign_pipeline_dependency
   script:
-    - curl --location --output xs2a-connector-remote/lib/aspsp-xs2a.jar --header "PRIVATE-TOKEN: $PIPELINE_DEPENDENCIES" "https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/-/jobs/artifacts/develop/raw/xs2a-impl/target/aspsp-xs2a.jar?job=Compile%20Java8"
+    - curl --location --create-dirs --output xs2a-connector-remote/lib/aspsp-xs2a.jar "https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/-/jobs/artifacts/develop/raw/xs2a-impl/target/aspsp-xs2a.jar?job=Compile%20Java8"
     - mvn install:install-file -Dfile=xs2a-connector-remote/lib/aspsp-xs2a.jar -Dpackaging=jar -DpomFile=xs2a-connector-remote/pom.xml
 
 Compile:
