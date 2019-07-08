@@ -117,6 +117,9 @@ public class AccountSpiImpl implements AccountSpi {
                 accountDetails.emptyBalances();
             }
             logger.info("The responded account RESOURCE-ID: {}", accountDetails.getResourceId());
+
+            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+
             return SpiResponse.<SpiAccountDetails>builder()
                            .payload(accountDetails)
                            .build();
@@ -158,6 +161,9 @@ public class AccountSpiImpl implements AccountSpi {
             SpiTransactionReport transactionReport = new SpiTransactionReport(transactions, balances,
                                                                               processAcceptMediaType(acceptMediaType), null);
             logger.info("Finally found {} transactions.", transactionReport.getTransactions().size());
+
+            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+
             return SpiResponse.<SpiTransactionReport>builder()
                            .payload(transactionReport)
                            .build();
@@ -195,6 +201,9 @@ public class AccountSpiImpl implements AccountSpi {
                                                  .orElseThrow(() -> FeignException.errorStatus("Response status was 200, but the body was empty!",
                                                                                                buildErrorResponse()));
             logger.info("Found transaction with TRANSACTION-ID: {}", transaction.getTransactionId());
+
+            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+
             return SpiResponse.<SpiTransaction>builder()
                            .payload(transaction)
                            .build();
@@ -224,6 +233,9 @@ public class AccountSpiImpl implements AccountSpi {
                                                               .orElseThrow(() -> FeignException.errorStatus("Response status was 200, but the body was empty!",
                                                                                                             buildErrorResponse()));
             logger.info("Found Balances: {}", accountBalances.size());
+
+            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+
             return SpiResponse.<List<SpiAccountBalance>>builder()
                            .payload(accountBalances)
                            .build();
