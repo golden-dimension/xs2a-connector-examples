@@ -21,10 +21,10 @@ import de.adorsys.ledgers.middleware.api.domain.account.FundsConfirmationRequest
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
-import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.piis.PiisConsent;
+import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.fund.SpiFundsConfirmationRequest;
 import de.adorsys.psd2.xs2a.spi.domain.fund.SpiFundsConfirmationResponse;
@@ -62,11 +62,14 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
      */
     @Override
     public @NotNull SpiResponse<SpiFundsConfirmationResponse> performFundsSufficientCheck(@NotNull SpiContextData contextData,
-                                                                                          @Nullable PiisConsent piisConsent, @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
-                                                                                          @NotNull AspspConsentData aspspConsentData) {
+                                                                                          @Nullable PiisConsent piisConsent,
+                                                                                          @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
+                                                                                          @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+
         try {
-            SCAResponseTO sca = tokenService.response(aspspConsentData.getAspspConsentData());
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+            SCAResponseTO response = tokenService.response(aspspConsentData);
+            authRequestInterceptor.setAccessToken(response.getBearerToken().getAccess_token());
 
             logger.info("Funds confirmation request e={}", spiFundsConfirmationRequest);
             FundsConfirmationRequestTO request = accountMapper.toFundsConfirmationTO(contextData.getPsuData(), spiFundsConfirmationRequest);
@@ -75,13 +78,14 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
 
             SpiFundsConfirmationResponse spiFundsConfirmationResponse = new SpiFundsConfirmationResponse();
             spiFundsConfirmationResponse.setFundsAvailable(Optional.ofNullable(fundsAvailable).orElse(false));
+
+            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+
             return SpiResponse.<SpiFundsConfirmationResponse>builder()
-                           .aspspConsentData(aspspConsentData)
                            .payload(spiFundsConfirmationResponse)
                            .build();
         } catch (FeignException e) {
             return SpiResponse.<SpiFundsConfirmationResponse>builder()
-                           .aspspConsentData(aspspConsentData)
                            .error(getFailureMessageFromFeignException(e))
                            .build();
         } finally {
