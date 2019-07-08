@@ -99,7 +99,10 @@ public class AccountSpiImpl implements AccountSpi {
     @Override
     public SpiResponse<SpiAccountDetails> requestAccountDetailForAccount(@NotNull SpiContextData contextData,
                                                                          boolean withBalance, @NotNull SpiAccountReference accountReference,
-                                                                         @NotNull SpiAccountConsent accountConsent, @NotNull AspspConsentData aspspConsentData) {
+                                                                         @NotNull SpiAccountConsent accountConsent,
+                                                                         @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
+        byte[] aspspConsentData = spiAspspConsentDataProvider.loadAspspConsentData();
+
         try {
             auth(aspspConsentData);
 
