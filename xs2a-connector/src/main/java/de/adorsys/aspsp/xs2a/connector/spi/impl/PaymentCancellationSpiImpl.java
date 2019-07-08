@@ -24,7 +24,6 @@ import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
-import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
@@ -122,7 +121,7 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
                                .payload(SpiResponse.voidResponse())
                                .build();
             } catch (FeignException f) {
-                logger.error("An error occured during Payment Cancellation Process: {}, with message: {}", f.status(), f.getLocalizedMessage());
+                logger.error("An error occurred during Payment Cancellation Process: {}, with message: {}", f.status(), f.getLocalizedMessage());
                 return SpiResponse.<SpiResponse.VoidResponse>builder()
                                .error(getFailureMessageFromFeignException(f))
                                .build();
@@ -178,10 +177,10 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
 
         try {
             SCAPaymentResponseTO scaPaymentResponse = paymentAuthorisation.toPaymentConsent(businessObject, authorisePsu, originalResponse);
-            AspspConsentData paymentAspspConsentData = authorisePsu.getAspspConsentData().respondWith(tokenStorageService.toBytes(scaPaymentResponse));
+            aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaPaymentResponse));
+
             return SpiResponse.<SpiAuthorisationStatus>builder()
                            .payload(SpiAuthorisationStatus.SUCCESS)
-                           .aspspConsentData(paymentAspspConsentData)
                            .build();
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
