@@ -176,7 +176,7 @@ public class PaymentCancellationSpiImpl implements PaymentCancellationSpi {
         }
 
         try {
-            SCAPaymentResponseTO scaPaymentResponse = paymentAuthorisation.toPaymentConsent(businessObject, authorisePsu, originalResponse);
+            SCAPaymentResponseTO scaPaymentResponse = paymentAuthorisation.toPaymentConsent(businessObject, aspspConsentDataProvider, originalResponse);
             aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaPaymentResponse));
 
             return SpiResponse.<SpiAuthorisationStatus>builder()
