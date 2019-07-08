@@ -26,6 +26,7 @@ import de.adorsys.psd2.xs2a.core.ais.BookingStatus;
 import de.adorsys.psd2.xs2a.core.consent.AisConsentRequestType;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
+import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.*;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiAccountAccess;
@@ -71,23 +72,26 @@ public class AccountSpiImpl implements AccountSpi {
 
     @Override
     public SpiResponse<List<SpiAccountDetails>> requestAccountList(@NotNull SpiContextData contextData,
-                                                                   boolean withBalance, @NotNull SpiAccountConsent accountConsent,
-                                                                   @NotNull AspspConsentData aspspConsentData) {
+                                                                   boolean withBalance,
+                                                                   @NotNull SpiAccountConsent accountConsent,
+                                                                   @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+
         try {
-            auth(aspspConsentData);
+            SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested Details list for consent with id: {} and withBalance : {}", accountConsent.getId(),
                         withBalance);
-            List<SpiAccountDetails> accountDetailsList = getSpiAccountDetails(withBalance, accountConsent,
-                                                                              aspspConsentData);
+            List<SpiAccountDetails> accountDetailsList = getSpiAccountDetails(withBalance, accountConsent, aspspConsentData);
+
+            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+
             return SpiResponse.<List<SpiAccountDetails>>builder()
-                           .aspspConsentData(aspspConsentData)
                            .payload(filterAccountDetailsByWithBalance(withBalance, accountDetailsList, accountConsent.getAccess()))
                            .build();
         } catch (FeignException e) {
             logger.error(e.getMessage());
             return SpiResponse.<List<SpiAccountDetails>>builder()
-                           .aspspConsentData(aspspConsentData)
                            .error(getFailureMessageFromFeignException(e))
                            .build();
         } finally {
@@ -104,7 +108,7 @@ public class AccountSpiImpl implements AccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            auth(aspspConsentData);
+            SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested details for ACCOUNT-ID: {}, and withBalances: {}",
                         accountReference.getResourceId(), withBalance);
@@ -147,7 +151,7 @@ public class AccountSpiImpl implements AccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            auth(aspspConsentData);
+            SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested transactions for account: {}, dates from: {}, to: {}, withBalance: {}",
                         accountReference.getResourceId(), dateFrom, dateTo, withBalance);
@@ -190,7 +194,7 @@ public class AccountSpiImpl implements AccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            auth(aspspConsentData);
+            SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested transaction with TRANSACTION-ID: {}, for ACCOUNT-ID: {}", transactionId,
                         accountReference.getResourceId());
@@ -224,7 +228,7 @@ public class AccountSpiImpl implements AccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            auth(aspspConsentData);
+            SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested Balances for ACCOUNT-ID: {}", accountReference.getResourceId());
             List<SpiAccountBalance> accountBalances = Optional
@@ -249,7 +253,7 @@ public class AccountSpiImpl implements AccountSpi {
     }
 
     private List<SpiAccountDetails> getSpiAccountDetails(boolean withBalance, @NotNull SpiAccountConsent accountConsent,
-                                                         AspspConsentData aspspConsentData) {
+                                                         byte[] aspspConsentData) {
         List<SpiAccountDetails> accountDetailsList;
         if (isGlobalConsent(accountConsent.getAccess()) || isAllAvailableAccountsConsent(accountConsent)) {
             logger.info("Consent with ID: {} is a global or available account Consent", accountConsent.getId());
@@ -287,10 +291,9 @@ public class AccountSpiImpl implements AccountSpi {
         return accountConsent.getAisConsentRequestType() == AisConsentRequestType.ALL_AVAILABLE_ACCOUNTS;
     }
 
-    private List<SpiAccountDetails> getAccountDetailsByConsentId(
-            AspspConsentData aspspConsentData) {
+    private List<SpiAccountDetails> getAccountDetailsByConsentId(byte[] aspspConsentData) {
         try {
-            auth(aspspConsentData);
+            applyAuthorisation(aspspConsentData);
 
             return Optional.ofNullable(accountRestClient.getListOfAccounts().getBody())
                            .map(l -> l.stream().map(accountMapper::toSpiAccountDetails).collect(Collectors.toList()))
@@ -325,7 +328,7 @@ public class AccountSpiImpl implements AccountSpi {
         }
 
         try {
-            auth(aspspConsentData);
+            applyAuthorisation(aspspConsentData);
 
             // TODO don't use IBAN as an account identifier
             // https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/440
@@ -367,8 +370,8 @@ public class AccountSpiImpl implements AccountSpi {
         return isConsentGlobal || isConsentForAvailableAccountsWithBalances;
     }
 
-    private SCAResponseTO auth(AspspConsentData aspspConsentData) {
-        SCAResponseTO sca = tokenService.response(aspspConsentData.getAspspConsentData());
+    private SCAResponseTO applyAuthorisation(byte[] aspspConsentData) {
+        SCAResponseTO sca = tokenService.response(aspspConsentData);
         authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
         return sca;
     }
