@@ -205,7 +205,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
         SCAConsentResponseTO scaConsentResponse;
 
         try {
-            scaConsentResponse = mapToScaConsentResponse(aisConsent, authorisePsu);
+            scaConsentResponse = mapToScaConsentResponse(aisConsent, aspspConsentDataProvider.loadAspspConsentData());
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
                            .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Unknown response type"))
@@ -322,8 +322,8 @@ public class AisConsentSpiImpl implements AisConsentSpi {
                        .build();
     }
 
-    private SCAConsentResponseTO mapToScaConsentResponse(SpiAccountConsent businessObject, SpiResponse<SpiAuthorisationStatus> authorisePsu) throws IOException {
-        SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(authorisePsu.getAspspConsentData().getAspspConsentData(), SCALoginResponseTO.class);
+    private SCAConsentResponseTO mapToScaConsentResponse(SpiAccountConsent businessObject, byte[] aspspConsentData) throws IOException {
+        SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(aspspConsentData, SCALoginResponseTO.class);
         SCAConsentResponseTO consentResponse = scaLoginToConsentResponseMapper.toConsentResponse(scaResponseTO);
         consentResponse.setObjectType(SCAConsentResponseTO.class.getSimpleName());
         consentResponse.setConsentId(businessObject.getId());
