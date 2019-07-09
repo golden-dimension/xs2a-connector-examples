@@ -5,6 +5,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl
 import de.adorsys.aspsp.xs2a.util.JsonReader;
 import de.adorsys.ledgers.middleware.api.domain.account.AccountDetailsTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.AccessTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
@@ -32,7 +33,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -51,7 +55,6 @@ public class AccountSpiImplTest {
     private final static LocalDate DATE_FROM = LocalDate.of(2019, 1, 1);
     private final static LocalDate DATE_TO = LocalDate.of(2020, 1, 1);
 
-
     @InjectMocks
     private AccountSpiImpl accountSpi;
 
@@ -65,6 +68,8 @@ public class AccountSpiImplTest {
     private AspspConsentDataService tokenService;
     @Mock
     private SpiAspspConsentDataProvider aspspConsentDataProvider;
+    @Mock
+    private SCAResponseTO scaResponseTO;
 
     private JsonReader jsonReader = new JsonReader();
     private SpiAccountConsent spiAccountConsent;
@@ -82,6 +87,11 @@ public class AccountSpiImplTest {
         SCAConsentResponseTO sca = new SCAConsentResponseTO();
         sca.setBearerToken(new BearerTokenTO("access_token", 100, "refresh_token", new AccessTokenTO()));
         when(tokenService.response(ASPSP_CONSENT_DATA.getAspspConsentData())).thenReturn(sca);
+        when(aspspConsentDataProvider.loadAspspConsentData()).thenReturn("data".getBytes());
+        BearerTokenTO bearerTokenTO = new BearerTokenTO();
+        bearerTokenTO.setAccess_token("access_token");
+        when(scaResponseTO.getBearerToken()).thenReturn(bearerTokenTO);
+        when(tokenService.response("data".getBytes())).thenReturn(scaResponseTO);
     }
 
     @Test

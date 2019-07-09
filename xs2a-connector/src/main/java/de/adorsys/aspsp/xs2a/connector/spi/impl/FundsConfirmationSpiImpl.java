@@ -65,7 +65,9 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
                                                                                           @Nullable PiisConsent piisConsent,
                                                                                           @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
                                                                                           @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+        byte[] aspspConsentData = piisConsent == null
+                                          ? null
+                                          : aspspConsentDataProvider.loadAspspConsentData();
 
         try {
             SCAResponseTO response = tokenService.response(aspspConsentData);
