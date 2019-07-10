@@ -64,8 +64,8 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
     public @NotNull SpiResponse<SpiFundsConfirmationResponse> performFundsSufficientCheck(@NotNull SpiContextData contextData,
                                                                                           @Nullable PiisConsent piisConsent,
                                                                                           @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
-                                                                                          @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        byte[] aspspConsentData = piisConsent == null
+                                                                                          @Nullable SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        byte[] aspspConsentData = (piisConsent == null && aspspConsentDataProvider == null)
                                           ? null
                                           : aspspConsentDataProvider.loadAspspConsentData();
 
