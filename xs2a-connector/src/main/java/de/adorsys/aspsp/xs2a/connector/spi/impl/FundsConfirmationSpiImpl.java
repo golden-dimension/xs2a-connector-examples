@@ -65,7 +65,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
                                                                                           @Nullable PiisConsent piisConsent,
                                                                                           @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
                                                                                           @Nullable SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        byte[] aspspConsentData = (piisConsent == null && aspspConsentDataProvider == null)
+        byte[] aspspConsentData = (piisConsent == null || aspspConsentDataProvider == null)
                                           ? null
                                           : aspspConsentDataProvider.loadAspspConsentData();
 
@@ -81,7 +81,9 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
             SpiFundsConfirmationResponse spiFundsConfirmationResponse = new SpiFundsConfirmationResponse();
             spiFundsConfirmationResponse.setFundsAvailable(Optional.ofNullable(fundsAvailable).orElse(false));
 
-            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+            if (aspspConsentDataProvider != null) {
+                aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+            }
 
             return SpiResponse.<SpiFundsConfirmationResponse>builder()
                            .payload(spiFundsConfirmationResponse)
