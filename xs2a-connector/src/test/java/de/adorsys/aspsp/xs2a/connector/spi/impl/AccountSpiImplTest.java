@@ -44,6 +44,7 @@ public class AccountSpiImplTest {
     private static final TppInfo TPP_INFO = buildTppInfo();
     private final static UUID X_REQUEST_ID = UUID.randomUUID();
     private static final String CONSENT_ID = "c966f143-f6a2-41db-9036-8abaeeef3af7";
+    private static final String IBAN = "DE89370400440532013000";
 
     private static final SpiContextData SPI_CONTEXT_DATA = buildSpiContextData(null);
     private static final AspspConsentData ASPSP_CONSENT_DATA = new AspspConsentData("data".getBytes(), CONSENT_ID);
@@ -141,14 +142,14 @@ public class AccountSpiImplTest {
 
     @Test
     public void requestAccountList_withoutBalance_regularConsent() {
-        when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(accountDetailsTO));
+        when(accountRestClient.getAccountDetailsByIban(IBAN)).thenReturn(ResponseEntity.ok(accountDetailsTO));
 
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
                 spiAccountConsent, ASPSP_CONSENT_DATA);
 
         assertTrue(actualResponse.getErrors().isEmpty());
         assertNotNull(actualResponse.getPayload());
-        verify(accountRestClient, times(1)).getAccountDetailsById(RESOURCE_ID);
+        verify(accountRestClient, times(1)).getAccountDetailsByIban(IBAN);
         verify(tokenService, times(2)).response(ASPSP_CONSENT_DATA.getAspspConsentData());
         verify(authRequestInterceptor, times(2)).setAccessToken("access_token");
         verify(authRequestInterceptor, times(2)).setAccessToken(null);
@@ -156,14 +157,14 @@ public class AccountSpiImplTest {
 
     @Test
     public void requestAccountList_withBalance_regularConsent() {
-        when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(accountDetailsTO));
+        when(accountRestClient.getAccountDetailsByIban(IBAN)).thenReturn(ResponseEntity.ok(accountDetailsTO));
 
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, true,
                 spiAccountConsent, ASPSP_CONSENT_DATA);
 
         assertTrue(actualResponse.getErrors().isEmpty());
         assertNotNull(actualResponse.getPayload());
-        verify(accountRestClient, times(1)).getAccountDetailsById(RESOURCE_ID);
+        verify(accountRestClient, times(1)).getAccountDetailsByIban(IBAN);
         verify(tokenService, times(2)).response(ASPSP_CONSENT_DATA.getAspspConsentData());
         verify(authRequestInterceptor, times(2)).setAccessToken("access_token");
         verify(authRequestInterceptor, times(2)).setAccessToken(null);
