@@ -45,8 +45,8 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -120,7 +120,7 @@ public class AccountSpiImpl implements AccountSpi {
             SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested details for ACCOUNT-ID: {}, and withBalances: {}",
-                    accountReference.getResourceId(), withBalance);
+                        accountReference.getResourceId(), withBalance);
             SpiAccountDetails accountDetails = Optional
                                                        .ofNullable(accountRestClient.getAccountDetailsById(accountReference.getResourceId()).getBody())
                                                        .map(accountMapper::toSpiAccountDetails)
@@ -171,7 +171,7 @@ public class AccountSpiImpl implements AccountSpi {
                                                                      accountConsent, aspspConsentDataProvider);
 
             SpiTransactionReport transactionReport = new SpiTransactionReport("suffixForTest", transactions, balances,
-                    processAcceptMediaType(acceptMediaType), null);
+                                                                              processAcceptMediaType(acceptMediaType), null);
             logger.info("Finally found {} transactions.", transactionReport.getTransactions().size());
 
             aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
@@ -205,7 +205,7 @@ public class AccountSpiImpl implements AccountSpi {
             SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested transaction with TRANSACTION-ID: {}, for ACCOUNT-ID: {}", transactionId,
-                    accountReference.getResourceId());
+                        accountReference.getResourceId());
             SpiTransaction transaction = Optional
                                                  .ofNullable(
                                                          accountRestClient.getTransactionById(accountReference.getResourceId(), transactionId).getBody())
@@ -273,9 +273,9 @@ public class AccountSpiImpl implements AccountSpi {
 
             logger.info("Requested downloading list of transactions by download SUFFIX: {}", downloadUrlSuffix);
 
-            Reader reader = new StringReader(transactionList);
+            InputStream stream = new ByteArrayInputStream(transactionList.getBytes());
 
-            SpiTransactionsDownloadResponse transactionsDownloadResponse = new SpiTransactionsDownloadResponse(reader, SpiTransactionReport.RESPONSE_TYPE_JSON, "transactions", transactionList.getBytes().length);
+            SpiTransactionsDownloadResponse transactionsDownloadResponse = new SpiTransactionsDownloadResponse(stream, "transactions.json", transactionList.getBytes().length);
 
             aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
 
