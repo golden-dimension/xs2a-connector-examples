@@ -170,7 +170,7 @@ public class AccountSpiImpl implements AccountSpi {
             List<SpiAccountBalance> balances = getSpiAccountBalances(contextData, withBalance, accountReference,
                                                                      accountConsent, aspspConsentDataProvider);
 
-            SpiTransactionReport transactionReport = new SpiTransactionReport("suffixForTest", transactions, balances,
+            SpiTransactionReport transactionReport = new SpiTransactionReport("downloadId", transactions, balances,
                                                                               processAcceptMediaType(acceptMediaType), null);
             logger.info("Finally found {} transactions.", transactionReport.getTransactions().size());
 
@@ -263,7 +263,7 @@ public class AccountSpiImpl implements AccountSpi {
     @Override
     public SpiResponse<SpiTransactionsDownloadResponse> requestTransactionsByDownloadLink(@NotNull SpiContextData spiContextData,
                                                                                           @NotNull SpiAccountConsent spiAccountConsent,
-                                                                                          @NotNull String downloadUrlSuffix,
+                                                                                          @NotNull String downloadId,
                                                                                           @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
@@ -271,7 +271,7 @@ public class AccountSpiImpl implements AccountSpi {
         try {
             SCAResponseTO response = applyAuthorisation(aspspConsentData);
 
-            logger.info("Requested downloading list of transactions by download SUFFIX: {}", downloadUrlSuffix);
+            logger.info("Requested downloading list of transactions by download ID: {}", downloadId);
 
             InputStream stream = new ByteArrayInputStream(transactionList.getBytes());
 
