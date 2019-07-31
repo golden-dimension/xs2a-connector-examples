@@ -71,7 +71,7 @@ Compile:
   script:
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
-    - mvn -DskipTests clean install
+    - mvn -ntp -DskipTests clean install
   artifacts:
     paths:
       - "gateway-app/target/gateway-app*jar"
@@ -85,7 +85,7 @@ PMD Report:
   script:
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
-    - mvn -Dmaven.test.skip=true package pmd:pmd
+    - mvn -ntp -Dmaven.test.skip=true package pmd:pmd
   artifacts:
     paths:
       - "qa/pmd/pmd-ruleset.xml"
@@ -99,14 +99,14 @@ PMD Check:
   script:
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
-    - mvn -Dmaven.test.skip=true package pmd:check
+    - mvn -ntp -Dmaven.test.skip=true package pmd:check
 
 Javadoc Check:
   stage: "Test"
   script:
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
-    - mvn -Dmaven.test.skip=true package javadoc:javadoc
+    - mvn -ntp -Dmaven.test.skip=true package javadoc:javadoc
   artifacts:
     paths:
       - "**/target/site/*"
@@ -118,7 +118,7 @@ Unit Tests:
   script:
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
-    - mvn --fail-at-end clean install
+    - mvn -ntp --fail-at-end clean install
   artifacts:
     paths:
       - "**/target/surefire-reports/*"
