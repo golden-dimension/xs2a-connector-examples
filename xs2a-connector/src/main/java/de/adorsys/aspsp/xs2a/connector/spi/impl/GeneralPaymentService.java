@@ -40,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -73,7 +74,8 @@ public class GeneralPaymentService {
             TransactionStatusTO response = paymentRestClient.getPaymentStatusById(sca.getPaymentId()).getBody();
             TransactionStatus status = Optional.ofNullable(response)
                                                .map(r -> TransactionStatus.valueOf(r.name()))
-                                               .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!", Response.builder().status(400).build()));
+                                               .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!",
+                                                                                             Response.builder().status(HttpStatus.BAD_REQUEST.value()).build()));
             logger.info("The status was:{}", status);
             return SpiResponse.<TransactionStatus>builder()
                            .payload(status)
@@ -175,7 +177,7 @@ public class GeneralPaymentService {
                            .build();
         } catch (FeignException e) {
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
-                           .error(getFailureMessageFromFeignException(e))
+                           .error(FeignExceptionHandler.getFailureMessage(e, MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment"))
                            .build();
         }
     }
@@ -201,13 +203,5 @@ public class GeneralPaymentService {
 
     private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {
         return new SpiPaymentExecutionResponse(TransactionStatus.valueOf(transactionStatus.name()));
-    }
-
-    private TppMessage getFailureMessageFromFeignException(FeignException e) {
-        logger.error(e.getMessage(), e);
-
-        return e.status() == 500
-                       ? new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, "Request was failed")
-                       : new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment");
     }
 }
