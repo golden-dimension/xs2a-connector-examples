@@ -77,7 +77,7 @@ public class GeneralPaymentService {
                                                .map(r -> TransactionStatus.valueOf(r.name()))
                                                .orElseThrow(() -> FeignException.errorStatus("Request failed, Response was 200, but body was empty!",
                                                                                              Response.builder().status(HttpStatus.BAD_REQUEST.value()).build()));
-            logger.info("The status was:{}", status);
+            logger.info("The status was: {}", status);
             return SpiResponse.<SpiGetPaymentStatusResponse>builder()
                            .payload(new SpiGetPaymentStatusResponse(status, null))
                            .build();
@@ -106,7 +106,7 @@ public class GeneralPaymentService {
                                        .map(ScaStatusTO::name)
                                        .orElse(null);
 
-            logger.info("SCA status is {}", scaStatus);
+            logger.info("SCA status is: {}", scaStatus);
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
                            .payload(spiPaymentExecutionResponse(consentResponse.getTransactionStatus()))
                            .build();
@@ -161,15 +161,15 @@ public class GeneralPaymentService {
             if (ScaStatusTO.EXEMPTED.equals(scaStatus) || ScaStatusTO.FINALISED.equals(scaStatus)) {
                 // Success
 
-                logger.info("SCA status` is {}", scaStatusName);
-                logger.info("Payment scheduled for execution. Transaction status is {}. Als see sca status", response.getTransactionStatus());
+                logger.info("SCA status is: {}", scaStatusName);
+                logger.info("Payment scheduled for execution. Transaction status is: {}. Als see SCA status", response.getTransactionStatus());
 
                 return SpiResponse.<SpiPaymentExecutionResponse>builder()
                                .payload(spiPaymentExecutionResponse(response.getTransactionStatus()))
                                .build();
             }
 
-            String message = String.format("Payment not executed. Transaction status is %s. Als see sca status %s."
+            String message = String.format("Payment not executed. Transaction status is: %s. Als see SCA status %s."
                     ,response.getTransactionStatus(), scaStatusName);
 
             aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
