@@ -333,7 +333,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             SCAResponseTO sca = consentDataService.response(initialAspspConsentData);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
-            AisConsentTO aisConsent = aisConsentMapper.toTo(accountConsent);
+            AisConsentTO aisConsent = aisConsentMapper.mapToAisConsent(accountConsent);
 
             // Bearer token only returned in case of exempted consent.
             ResponseEntity<SCAConsentResponseTO> consentResponse = consentRestClient.startSCA(accountConsent.getId(),

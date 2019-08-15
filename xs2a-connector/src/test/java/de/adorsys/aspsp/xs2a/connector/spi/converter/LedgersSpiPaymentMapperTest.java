@@ -35,15 +35,16 @@ import java.util.Currency;
 import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class})
+@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, LedgersSpiAccountMapperImpl.class,
+        ChallengeDataMapperImpl.class, AddressMapperImpl.class})
 public class LedgersSpiPaymentMapperTest {
 
     @Autowired
     private LedgersSpiPaymentMapper ledgersSpiPaymentMapper;
     private JsonReader jsonReader = new JsonReader();
 
-    public static final PaymentProductTO PAYMENT_PRODUCT_SEPA = PaymentProductTO.SEPA;
-    public static final PaymentProductTO PAYMENT_PRODUCT_CROSS_BORDER = PaymentProductTO.CROSS_BORDER;
+    private static final PaymentProductTO PAYMENT_PRODUCT_SEPA = PaymentProductTO.SEPA;
+    private static final PaymentProductTO PAYMENT_PRODUCT_CROSS_BORDER = PaymentProductTO.CROSS_BORDER;
 
     @Test
     public void toSinglePaymentTOWithRealData() {
