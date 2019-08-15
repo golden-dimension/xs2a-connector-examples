@@ -69,10 +69,10 @@ public class GeneralAuthorisationService {
     /**
      * First authorization of the PSU.
      * <p>
-     * The result of this authorization must contain an scaStatus with following options:
-     * - {@link ScaStatusTO#EXEMPTED} : There is no sca needed. The user does not have any sca method anyway.
-     * - {@link ScaStatusTO#SCAMETHODSELECTED} : The user has receive an authorization code and must enter it.
-     * - {@link ScaStatusTO#PSUIDENTIFIED} : the user must select a authorization method to complete auth.
+     * The result of this authorisation must contain an scaStatus with following options:
+     * - {@link ScaStatusTO#EXEMPTED}: There is no SCA needed. The user does not have any SCA method anyway.
+     * - {@link ScaStatusTO#SCAMETHODSELECTED}: The user has receive an authorisation code and must enter it.
+     * - {@link ScaStatusTO#PSUIDENTIFIED}: the user must select an authorisation method to complete authorisation.
      * <p>
      * In all three cases, we store the response object for reuse in an {@link AspspConsentData} object.
      *
@@ -93,7 +93,7 @@ public class GeneralAuthorisationService {
             SpiAuthorisationStatus status = response != null && response.getBody() != null && response.getBody().getBearerToken() != null
                                                     ? SpiAuthorisationStatus.SUCCESS
                                                     : SpiAuthorisationStatus.FAILURE;
-            logger.info("Authorisation result is: {}", status);
+            logger.info("Authorisation status is: {}", status);
 
             aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(Optional.ofNullable(response)
                                                                                              .map(HttpEntity::getBody)

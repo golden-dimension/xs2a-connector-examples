@@ -260,7 +260,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             } else {
                 logger.error("Process mismatch. Current SCA Status is {}", sca.getScaStatus());
                 return SpiResponse.<List<SpiAuthenticationObject>>builder()
-                               .error(new TppMessage(MessageErrorCode.SESSIONS_NOT_SUPPORTED, "Process mismatch. PSU doest'n have any SCA method"))
+                               .error(new TppMessage(MessageErrorCode.SESSIONS_NOT_SUPPORTED, "Process mismatch. PSU does not have any SCA method"))
                                .build();
             }
         } catch (FeignException e) {
