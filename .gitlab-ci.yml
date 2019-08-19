@@ -164,8 +164,7 @@ Deploy Openshift (develop):
     OPENSHIFT_NAMESPACE: "${DEV_NAMESPACE}"
   <<: *deploy_openshift
 
-
-#Build Support-4.x imnages and deploy to support-4.x
+#Build Support-4.x images and deploy to support-4.x
 
 Push to DockerHub (support-4.x):
   stage: "Package"
@@ -176,7 +175,7 @@ Push to DockerHub (support-4.x):
   <<: *build_dockerhub_image
 
 Deploy to Openshift (support-4.x):
-  stage: "Deploy"
+  stage: "Deployment"
   cache: {}
   dependencies: []
   only:
@@ -186,7 +185,6 @@ Deploy to Openshift (support-4.x):
     DOCKER_TAG: support-4-x # Dockerhub source tag
     OPENSHIFT_NAMESPACE: ${OPENSHIFT_NAMESPACE_SUPPORT_4_X} # Openshift target namespace
   <<: *deploy_openshift
-
 
 ##########
 # master #
