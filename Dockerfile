@@ -14,6 +14,6 @@ USER 1001
 
 COPY ./gateway-app/target/gateway-app.jar /opt/gateway-app/gateway-app.jar
 
-EXPOSE 8089 8000
+EXPOSE 8089
 
 CMD exec $JAVA_HOME/bin/java $JAVA_OPTS -jar /opt/gateway-app/gateway-app.jar
