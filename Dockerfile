@@ -4,7 +4,7 @@ MAINTAINER https://github.com/adorsys/xs2a-connector-examples
 
 ENV SERVER_PORT 8089
 ENV JAVA_OPTS -Xmx1024m
-ENV JAVA_TOOL_OPTIONS -Xmx1024m -agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n
+ENV JAVA_TOOL_OPTIONS -Xmx1024m
 
 WORKDIR /opt/gateway-app
 
