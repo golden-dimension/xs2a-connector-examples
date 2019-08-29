@@ -327,16 +327,16 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 
         List<String> s = Arrays.asList(response.getPayload().getChallengeData().getAdditionalInformation().split(" "));
         int indexOfTan = s.indexOf("is") + 1;
-        String encryptedConsentId ="";
+        String encryptedConsentId = "";
         try {
-             encryptedConsentId = (String) FieldUtils.readField(aspspConsentDataProvider, "encryptedConsentId", true);
+            encryptedConsentId = (String) FieldUtils.readField(aspspConsentDataProvider, "encryptedConsentId", true);
         } catch (IllegalAccessException e) {
             logger.error("could not read encrypted consent id");
         }
         String url = obaUrl.replace(USER_LOGIN, contextData.getPsuData().getPsuId())
-                                 .replace(CONSENT_ID, encryptedConsentId)
-                                 .replace(AUTH_ID, authorisationId)
-                                 .replace(TAN, s.get(indexOfTan));
+                             .replace(CONSENT_ID, encryptedConsentId)
+                             .replace(AUTH_ID, authorisationId)
+                             .replace(TAN, s.get(indexOfTan));
 
         String psuMessage = format(DECOUPLED_USR_MSG, url);
         return response.hasError()
