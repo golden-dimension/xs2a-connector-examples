@@ -112,7 +112,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             aisConsentResponse = initiateConsentInternal(accountConsent, initialAspspConsentData);
         } catch (FeignException e) {
             return SpiResponse.<SpiInitiateAisConsentResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(e, MessageErrorCode.FORMAT_ERROR, "Addressed account is unknown to the ASPSP or not associated to the PSU."))
+                           .error(FeignExceptionHandler.getFailureMessage(e, FORMAT_ERROR, "Addressed account is unknown to the ASPSP or not associated to the PSU."))
                            .build();
         }
 
@@ -223,7 +223,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
                 aisConsentResponse = initiateConsentInternal(aisConsent, aspspConsentDataProvider.loadAspspConsentData());
             } catch (FeignException e) {
                 return SpiResponse.<SpiAuthorisationStatus>builder()
-                               .error(FeignExceptionHandler.getFailureMessage(e, MessageErrorCode.FORMAT_ERROR, "Addressed account is unknown to the ASPSP or not associated to the PSU."))
+                               .error(FeignExceptionHandler.getFailureMessage(e, FORMAT_ERROR, "Addressed account is unknown to the ASPSP or not associated to the PSU."))
                                .build();
             }
 
@@ -265,7 +265,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             } else {
                 logger.error("Process mismatch. Current SCA Status is {}", sca.getScaStatus());
                 return SpiResponse.<List<SpiAuthenticationObject>>builder()
-                               .error(new TppMessage(MessageErrorCode.SESSIONS_NOT_SUPPORTED, "Process mismatch. PSU does not have any SCA method"))
+                               .error(new TppMessage(SESSIONS_NOT_SUPPORTED, "Process mismatch. PSU does not have any SCA method"))
                                .build();
             }
         } catch (FeignException e) {
@@ -315,7 +315,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
     public @NotNull SpiResponse<SpiAuthorisationDecoupledScaResponse> startScaDecoupled(@NotNull SpiContextData contextData, @NotNull String authorisationId, @Nullable String authenticationMethodId, @NotNull SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         if (authenticationMethodId == null) {
             return SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.SERVICE_NOT_SUPPORTED, DECOUPLED_NOT_SUPPORTED_MESSAGE))
+                           .error(new TppMessage(SERVICE_NOT_SUPPORTED, DECOUPLED_NOT_SUPPORTED_MESSAGE))
                            .build();
         }
 
