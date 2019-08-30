@@ -68,6 +68,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
     private static final Logger logger = LoggerFactory.getLogger(AisConsentSpiImpl.class);
 
     private static final String SCA_STATUS_LOG = "SCA status is {}";
+    private static final String DECOUPLED_NOT_SUPPORTED_MESSAGE = "Service is not supported";
 
     private final ConsentRestClient consentRestClient;
     private final TokenStorageService tokenStorageService;
@@ -312,6 +313,12 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 
     @Override
     public @NotNull SpiResponse<SpiAuthorisationDecoupledScaResponse> startScaDecoupled(@NotNull SpiContextData contextData, @NotNull String authorisationId, @Nullable String authenticationMethodId, @NotNull SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        if (authenticationMethodId == null) {
+            return SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder()
+                           .error(new TppMessage(MessageErrorCode.SERVICE_NOT_SUPPORTED, DECOUPLED_NOT_SUPPORTED_MESSAGE))
+                           .build();
+        }
+
         SpiResponse<SpiAuthorizationCodeResult> response = requestAuthorisationCode(contextData, authenticationMethodId, businessObject, aspspConsentDataProvider);
         return response.hasError()
                        ? SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder().error(response.getErrors()).build()
