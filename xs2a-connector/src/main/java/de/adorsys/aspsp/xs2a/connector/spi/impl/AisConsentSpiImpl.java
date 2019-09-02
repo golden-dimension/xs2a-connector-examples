@@ -74,7 +74,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
     private static final String CONSENT_ID = "{consentId}";
     private static final String AUTH_ID = "{authorizationId}";
     private static final String TAN = "{tan}";
-    public static final String DECOUPLED_USR_MSG = "Please check your app to continue... %s";
+    private static final String DECOUPLED_USR_MSG = "Please check your app to continue... %s";
 
     private final ConsentRestClient consentRestClient;
     private final TokenStorageService tokenStorageService;
@@ -86,8 +86,8 @@ public class AisConsentSpiImpl implements AisConsentSpi {
     private final ScaLoginToConsentResponseMapper scaLoginToConsentResponseMapper;
     private final ObjectMapper objectMapper;
 
-    @Value("${oba.url}")
-    private String obaUrl;
+    @Value("${online-banking.url}")
+    private String onlineBankingUrl;
 
     public AisConsentSpiImpl(ConsentRestClient consentRestClient, TokenStorageService tokenStorageService,
                              AisConsentMapper aisConsentMapper, AuthRequestInterceptor authRequestInterceptor,
@@ -333,7 +333,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
         } catch (IllegalAccessException e) {
             logger.error("could not read encrypted consent id");
         }
-        String url = obaUrl.replace(USER_LOGIN, contextData.getPsuData().getPsuId())
+        String url = onlineBankingUrl.replace(USER_LOGIN, contextData.getPsuData().getPsuId())
                              .replace(CONSENT_ID, encryptedConsentId)
                              .replace(AUTH_ID, authorisationId)
                              .replace(TAN, s.get(indexOfTan));
@@ -411,7 +411,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 
             // Bearer token only returned in case of exempted consent.
             ResponseEntity<SCAConsentResponseTO> consentResponse = consentRestClient.startSCA(accountConsent.getId(),
-                    aisConsent);
+                                                                                              aisConsent);
             SCAConsentResponseTO response = consentResponse.getBody();
 
             if (response != null && response.getBearerToken() == null) {
