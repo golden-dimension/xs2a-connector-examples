@@ -404,9 +404,9 @@ public class AccountSpiImpl implements AccountSpi {
         return sca;
     }
 
-    private boolean isValidAccountByAccess(String accountId, List<SpiAccountReference> allowedAccountData) {
+    private boolean isValidAccountByAccess(String iban, List<SpiAccountReference> allowedAccountData) {
         return CollectionUtils.isNotEmpty(allowedAccountData)
                        && allowedAccountData.stream()
-                                  .anyMatch(a -> accountId.equals(a.getIban()));
+                                  .anyMatch(a -> iban.equals(a.getIban()));
     }
 }
