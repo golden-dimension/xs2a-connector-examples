@@ -384,7 +384,7 @@ public class AccountSpiImpl implements AccountSpi {
         }
 
         for (SpiAccountDetails spiAccountDetails : details) {
-            if (!withBalance || !isValidAccountByAccess(spiAccountDetails.getResourceId(), spiAccountAccess.getBalances())) {
+            if (!withBalance || !isValidAccountByAccess(spiAccountDetails.getIban(), spiAccountAccess.getBalances()) ) {
                 spiAccountDetails.emptyBalances();
             }
         }
@@ -407,6 +407,6 @@ public class AccountSpiImpl implements AccountSpi {
     private boolean isValidAccountByAccess(String accountId, List<SpiAccountReference> allowedAccountData) {
         return CollectionUtils.isNotEmpty(allowedAccountData)
                        && allowedAccountData.stream()
-                                  .anyMatch(a -> accountId.equals(a.getResourceId()));
+                                  .anyMatch(a -> accountId.equals(a.getIban()));
     }
 }
