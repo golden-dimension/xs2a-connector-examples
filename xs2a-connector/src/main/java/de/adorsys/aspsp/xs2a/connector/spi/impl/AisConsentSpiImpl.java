@@ -16,7 +16,6 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.AisConsentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaLoginMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
@@ -83,8 +82,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
     public AisConsentSpiImpl(ConsentRestClient consentRestClient, TokenStorageService tokenStorageService,
                              AisConsentMapper aisConsentMapper, AuthRequestInterceptor authRequestInterceptor,
                              AspspConsentDataService consentDataService, GeneralAuthorisationService authorisationService,
-                             ScaMethodConverter scaMethodConverter, ScaLoginMapper scaLoginMapper, ObjectMapper objectMapper,
-                             FeignExceptionReader feignExceptionReader) {
+                             ScaMethodConverter scaMethodConverter, ScaLoginMapper scaLoginMapper, FeignExceptionReader feignExceptionReader) {
         this.consentRestClient = consentRestClient;
         this.tokenStorageService = tokenStorageService;
         this.aisConsentMapper = aisConsentMapper;
@@ -150,7 +148,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Revoke AIS consent failed: consent ID {}, devMessage {}", accountConsent.getId(), devMessage);
             return SpiResponse.<VoidResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, feignException.getMessage()))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, PSU_CREDENTIALS_INVALID, feignException.getMessage()))
                            .build();
         }
 
@@ -189,7 +187,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Verify sca authorisation failed: consent ID {}, devMessage {}", accountConsent.getId(), devMessage);
             return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage, "authorisation PSU for consent was failed"))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, PSU_CREDENTIALS_INVALID, devMessage, "authorisation PSU for consent was failed"))
                            .build();
         } finally {
             authRequestInterceptor.setAccessToken(null);
