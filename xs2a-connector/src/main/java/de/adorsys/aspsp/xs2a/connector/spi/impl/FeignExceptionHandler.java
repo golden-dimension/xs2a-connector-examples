@@ -37,9 +37,14 @@ public class FeignExceptionHandler {
     }
 
     static TppMessage getFailureMessage(FeignException e, MessageErrorCode errorCode, String errorMessageAspsp, String errorMessage) {
-        return StringUtils.isBlank(errorMessageAspsp) || HttpStatus.valueOf(e.status()) == BAD_REQUEST && errorCode == MessageErrorCode.PAYMENT_FAILED
+        return shouldUseNormalErrorMessage(e, errorCode, errorMessageAspsp)
                        ? getFailureMessage(e, errorCode, errorMessage)
                        : getFailureMessage(e, errorCode, errorMessageAspsp);
+    }
+
+    private static boolean shouldUseNormalErrorMessage(FeignException e, MessageErrorCode errorCode, String errorMessageAspsp) {
+        return StringUtils.isBlank(errorMessageAspsp) ||
+                       HttpStatus.valueOf(e.status()) == BAD_REQUEST && errorCode == MessageErrorCode.PAYMENT_FAILED;
     }
 
     public static FeignException getException(HttpStatus httpStatus, String message) {

@@ -424,7 +424,7 @@ public class AccountSpiImpl implements AccountSpi {
                                   .anyMatch(a -> iban.equals(a.getIban()));
     }
 
-    private TppMessage buildTppMessage(FeignException exeption) {
-        return FeignExceptionHandler.getFailureMessage(exeption, MessageErrorCode.FORMAT_ERROR, feignExceptionReader.getErrorMessage(exeption), CONSENT_ERROR_MESSAGE);
+    private TppMessage buildTppMessage(FeignException exception) {
+        return FeignExceptionHandler.getFailureMessage(exception, MessageErrorCode.FORMAT_ERROR, feignExceptionReader.getErrorMessage(exception), CONSENT_ERROR_MESSAGE);
     }
 }

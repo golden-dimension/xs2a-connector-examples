@@ -126,7 +126,7 @@ public class GeneralPaymentService {
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage, "Couldn't execute payment"))
                            .build();
-        } catch (Exception exeption) {
+        } catch (Exception exception) {
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
                            .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment"))
                            .build();

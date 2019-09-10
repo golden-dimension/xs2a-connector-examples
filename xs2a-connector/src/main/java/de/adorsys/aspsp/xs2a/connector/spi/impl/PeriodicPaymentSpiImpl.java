@@ -78,7 +78,7 @@ public class PeriodicPaymentSpiImpl implements PeriodicPaymentSpi {
                            .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            logger.error("Initiate payment failed: payment ID {}, devMessage {}", payment.getPaymentId(), devMessage);
+            logger.error("Initiate periodic payment failed: payment ID {}, devMessage {}", payment.getPaymentId(), devMessage);
             return SpiResponse.<SpiPeriodicPaymentInitiationResponse>builder()
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PAYMENT_FAILED, devMessage, "The payment initiation request failed during the initial process."))
                            .build();
