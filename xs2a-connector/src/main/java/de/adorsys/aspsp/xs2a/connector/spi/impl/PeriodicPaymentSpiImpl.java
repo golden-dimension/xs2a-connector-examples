@@ -110,8 +110,10 @@ public class PeriodicPaymentSpiImpl implements PeriodicPaymentSpi {
     }
 
     private SCAPaymentResponseTO initiatePaymentInternal(SpiPeriodicPayment payment, byte[] initialAspspConsentData) {
-        return paymentService.initiatePaymentInternal(payment, initialAspspConsentData,
-                                                      paymentMapper::toPeriodicPaymentTO, PaymentTypeTO.PERIODIC,
-                                                      PeriodicPaymentTO::getPaymentProduct, PeriodicPaymentTO::setPaymentProduct);
+        PeriodicPaymentTO request = paymentMapper.toPeriodicPaymentTO(payment);
+        if (request.getPaymentProduct() == null) {
+            request.setPaymentProduct(paymentService.getSCAPaymentResponseTO(initialAspspConsentData).getPaymentProduct());
+        }
+        return paymentService.initiatePaymentInternal(payment, initialAspspConsentData, PaymentTypeTO.PERIODIC, request);
     }
 }

@@ -125,8 +125,10 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
 
 
     private SCAPaymentResponseTO initiatePaymentInternal(SpiSinglePayment payment, byte[] initialAspspConsentData) {
-        return paymentService.initiatePaymentInternal(payment, initialAspspConsentData,
-                                                      paymentMapper::toSinglePaymentTO, PaymentTypeTO.SINGLE,
-                                                      SinglePaymentTO::getPaymentProduct, SinglePaymentTO::setPaymentProduct);
+        SinglePaymentTO request = paymentMapper.toSinglePaymentTO(payment);
+        if (request.getPaymentProduct() == null) {
+            request.setPaymentProduct(paymentService.getSCAPaymentResponseTO(initialAspspConsentData).getPaymentProduct());
+        }
+        return paymentService.initiatePaymentInternal(payment, initialAspspConsentData, PaymentTypeTO.SINGLE, request);
     }
 }

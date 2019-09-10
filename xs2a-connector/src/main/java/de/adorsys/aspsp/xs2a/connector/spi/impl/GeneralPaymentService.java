@@ -47,7 +47,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -239,22 +238,19 @@ public class GeneralPaymentService {
         }
     }
 
-    <P, TO> SCAPaymentResponseTO initiatePaymentInternal(P payment, byte[] initialAspspConsentData,
-                                                         Function<P, TO> mapper, PaymentTypeTO paymentTypeTO,
-                                                         Function<TO, PaymentProductTO> paymentProductGetter,
-                                                         BiConsumer<TO, PaymentProductTO> paymentProductSetter) {
+    <P> SCAPaymentResponseTO initiatePaymentInternal(P payment, byte[] initialAspspConsentData, PaymentTypeTO paymentTypeTO, Object request) {
         try {
-            SCAPaymentResponseTO sca = consentDataService.response(initialAspspConsentData, SCAPaymentResponseTO.class);
+            SCAPaymentResponseTO sca = getSCAPaymentResponseTO(initialAspspConsentData);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
             logger.debug("{} payment body: {}", paymentTypeTO, payment);
-            TO request = mapper.apply(payment);
-            if (paymentProductGetter.apply(request) == null) {
-                paymentProductSetter.accept(request, sca.getPaymentProduct());
-            }
             return paymentRestClient.initiatePayment(paymentTypeTO, request).getBody();
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
+    }
+
+    SCAPaymentResponseTO getSCAPaymentResponseTO(byte[] initialAspspConsentData) {
+        return consentDataService.response(initialAspspConsentData, SCAPaymentResponseTO.class);
     }
 
     private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {

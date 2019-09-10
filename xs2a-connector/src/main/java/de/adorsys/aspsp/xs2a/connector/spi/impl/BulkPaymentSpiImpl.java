@@ -116,8 +116,10 @@ public class BulkPaymentSpiImpl implements BulkPaymentSpi {
     }
 
     private SCAPaymentResponseTO initiatePaymentInternal(SpiBulkPayment payment, byte[] initialAspspConsentData) {
-        return paymentService.initiatePaymentInternal(payment, initialAspspConsentData,
-                                                      paymentMapper::toBulkPaymentTO, PaymentTypeTO.BULK,
-                                                      BulkPaymentTO::getPaymentProduct, BulkPaymentTO::setPaymentProduct);
+        BulkPaymentTO request = paymentMapper.toBulkPaymentTO(payment);
+        if (request.getPaymentProduct() == null) {
+            request.setPaymentProduct(paymentService.getSCAPaymentResponseTO(initialAspspConsentData).getPaymentProduct());
+        }
+        return paymentService.initiatePaymentInternal(payment, initialAspspConsentData, PaymentTypeTO.BULK, request);
     }
 }
