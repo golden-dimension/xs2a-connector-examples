@@ -210,7 +210,7 @@ public class GeneralPaymentService {
             buildSuccessResponse.apply(payment);
         }
 
-        return getPaymentById(payment.getPaymentId(), payment.toString(), aspspConsentDataProvider.loadAspspConsentData(), paymentTypeTO)
+        return getPaymentFromLedgers(payment.getPaymentId(), payment.toString(), aspspConsentDataProvider.loadAspspConsentData(), paymentTypeTO)
                        .map(convertToTransferObject)
                        .map(mapperToSpiPayment)
                        .map(buildSuccessResponse)
@@ -218,7 +218,7 @@ public class GeneralPaymentService {
 
     }
 
-    private Optional<Object> getPaymentById(String paymentId, String toString, byte[] aspspConsentData, PaymentTypeTO paymentTypeTO) {
+    private Optional<Object> getPaymentFromLedgers(String paymentId, String toString, byte[] aspspConsentData, PaymentTypeTO paymentTypeTO) {
         try {
             SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());

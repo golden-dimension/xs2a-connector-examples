@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
-import java.nio.charset.Charset;
 import java.util.Collections;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -52,20 +51,10 @@ public class FeignExceptionHandler {
     }
 
     static Response error(HttpStatus httpStatus) {
-        return getBuilderTemplate(httpStatus)
-                       .build();
-    }
-
-    static Response error(HttpStatus httpStatus, String body) {
-        return getBuilderTemplate(httpStatus)
-                       .body(body, Charset.forName("utf-8"))
-                       .build();
-    }
-
-    private static Response.Builder getBuilderTemplate(HttpStatus httpStatus) {
         return Response.builder()
                        .status(httpStatus.value())
                        .request(Request.create(Request.HttpMethod.GET, "", Collections.emptyMap(), null))
-                       .headers(Collections.emptyMap());
+                       .headers(Collections.emptyMap())
+                       .build();
     }
 }
