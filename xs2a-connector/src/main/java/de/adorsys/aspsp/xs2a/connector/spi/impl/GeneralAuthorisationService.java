@@ -105,7 +105,7 @@ public class GeneralAuthorisationService {
                            .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            logger.error("Authorise PSU for consent failed: authorisation ID {}, consent ID, devMessage {}", authorisationId, consentId, devMessage);
+            logger.error("Authorise PSU for consent failed: authorisation ID {}, consent ID {}, devMessage {}", authorisationId, consentId, devMessage);
             return SpiResponse.<SpiAuthorisationStatus>builder()
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage, "PSU authorisation request was failed."))
                            .build();
