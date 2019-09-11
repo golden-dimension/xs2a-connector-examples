@@ -59,6 +59,7 @@ public class AccountSpiImpl implements AccountSpi {
 
     private static final String RESPONSE_STATUS_200_WITH_EMPTY_BODY = "Response status was 200, but the body was empty!";
     private static final String CONSENT_ERROR_MESSAGE = "The consent-ID cannot be matched by the ASPSP relative to the TPP";
+    private static final String RESOURCE_UNKNOWN_403_MESSAGE = "The addressed resource is unknown relative to the TPP.";
     @Value("${test-download-transaction-list}")
     private String transactionList;
 
@@ -227,9 +228,9 @@ public class AccountSpiImpl implements AccountSpi {
                            .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            logger.error("Request transactions for account by transaction id failed: consent ID {}, resource ID {}, transaction ID, devMessage {}", accountConsent.getId(), accountReference.getResourceId(), transactionId, devMessage);
+            logger.error("Request transactions for account by transaction id failed: consent ID {}, resource ID {}, transaction ID {}, devMessage {}", accountConsent.getId(), accountReference.getResourceId(), transactionId, devMessage);
             return SpiResponse.<SpiTransaction>builder()
-                           .error(buildTppMessage(feignException))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.RESOURCE_UNKNOWN_403, RESOURCE_UNKNOWN_403_MESSAGE))
                            .build();
         } finally {
             authRequestInterceptor.setAccessToken(null);
