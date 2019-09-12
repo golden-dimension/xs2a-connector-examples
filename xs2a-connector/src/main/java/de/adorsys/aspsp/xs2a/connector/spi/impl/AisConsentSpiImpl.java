@@ -349,20 +349,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
 
         SpiResponse<SpiAuthorizationCodeResult> response = requestAuthorisationCode(contextData, authenticationMethodId, businessObject, aspspConsentDataProvider);
 
-        List<String> s = Arrays.asList(response.getPayload().getChallengeData().getAdditionalInformation().split(" "));
-        int indexOfTan = s.indexOf("is") + 1;
-        String encryptedConsentId = "";
-        try {
-            encryptedConsentId = (String) FieldUtils.readField(aspspConsentDataProvider, "encryptedConsentId", true);
-        } catch (IllegalAccessException e) {
-            logger.error("could not read encrypted consent id");
-        }
-        String url = onlineBankingUrl.replace(USER_LOGIN, contextData.getPsuData().getPsuId())
-                             .replace(CONSENT_ID, encryptedConsentId)
-                             .replace(AUTH_ID, authorisationId)
-                             .replace(TAN, s.get(indexOfTan));
-
-        String psuMessage = format(DECOUPLED_USR_MSG, url);
+        String psuMessage = generatePsuMessage(contextData, authorisationId, aspspConsentDataProvider, response);
         return response.hasError()
                        ? SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder().error(response.getErrors()).build()
                        : SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder().payload(new SpiAuthorisationDecoupledScaResponse(psuMessage)).build();
@@ -376,6 +363,23 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             return ConsentStatus.PARTIALLY_AUTHORISED;
         }
         return ConsentStatus.VALID;
+    }
+
+    private String generatePsuMessage(@NotNull SpiContextData contextData, @NotNull String authorisationId, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, SpiResponse<SpiAuthorizationCodeResult> response) {
+        List<String> challengeDataParts = Arrays.asList(response.getPayload().getChallengeData().getAdditionalInformation().split(" "));
+        int indexOfTan = challengeDataParts.indexOf("is") + 1;
+        String encryptedConsentId = "";
+        try {
+            encryptedConsentId = (String) FieldUtils.readField(aspspConsentDataProvider, "encryptedConsentId", true);
+        } catch (IllegalAccessException e) {
+            logger.error("could not read encrypted consent id");
+        }
+        String url = onlineBankingUrl.replace(USER_LOGIN, contextData.getPsuData().getPsuId())
+                             .replace(CONSENT_ID, encryptedConsentId)
+                             .replace(AUTH_ID, authorisationId)
+                             .replace(TAN, challengeDataParts.get(indexOfTan));
+
+        return format(DECOUPLED_USR_MSG, url);
     }
 
     private <T extends SpiInitiateAisConsentResponse> SpiResponse<T> firstCallInstantiatingConsent(
