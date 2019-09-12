@@ -54,6 +54,18 @@ variables: &variables
     - docker push "adorsys/xs2a-connector-examples:$DOCKER_TAG"
     - docker logout
 
+#Build docker images aon push to openshift registry for specific branch
+.build_image_from_branch_deploy_to_openshift: &build_image_from_branch_deploy_to_openshift
+  script:
+    - docker build -t "adorsys/xs2a-connector-examples:$DOCKER_TAG" .
+    - docker login -u ${DOCKER_HUB_LOGIN} -p ${DOCKER_HUB_PASS}
+    - docker push "adorsys/xs2a-connector-examples:$DOCKER_TAG"
+    - >-
+      skopeo copy
+      --dest-creds=openshift:${OPENSHIFT_TOKEN}
+      "docker://docker.io/adorsys/xs2a-connector-examples:${DOCKER_TAG}"
+
+
 .deploy_openshift: &deploy_openshift
   script:
     - >-
@@ -162,6 +174,16 @@ Deploy Openshift (develop):
     DOCKER_TAG: develop
     OPENSHIFT_NAMESPACE: "${DEV_NAMESPACE}"
   <<: *deploy_openshift
+
+Build and Deploy to Openshift from branch:
+  stage: "Deployment"
+  cache: {}
+  only:
+    - feature/5.x/SSH_cms_calls_optimization
+  variables:
+    DOCKER_TAG: cms-calls-opt
+    OPENSHIFT_NAMESPACE: ${INTEG_NAMESPACE} # Openshift target namespace
+  <<: *build_image_from_branch_deploy_to_openshift
 
 ##########
 # master #
