@@ -64,6 +64,7 @@ variables: &variables
       skopeo copy
       --dest-creds=openshift:${OPENSHIFT_TOKEN}
       "docker://docker.io/adorsys/xs2a-connector-examples:${DOCKER_TAG}"
+      "docker://${OPENSHIFT_REGISTRY}/${OPENSHIFT_NAMESPACE}/xs2a-connector-examples:latest"
 
 
 .deploy_openshift: &deploy_openshift
