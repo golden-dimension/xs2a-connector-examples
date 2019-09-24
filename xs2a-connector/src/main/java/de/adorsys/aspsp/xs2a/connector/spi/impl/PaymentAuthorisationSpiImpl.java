@@ -44,7 +44,6 @@ import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.*;
 import feign.FeignException;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -152,8 +151,7 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
                 String devMessage = feignExceptionReader.getErrorMessage(feignException);
                 logger.error("Request authorisation code failed: payment ID {}, authentication method ID {}, devMessage {}", spiPayment.getPaymentId(), authenticationMethodId, devMessage);
                 return SpiResponse.<SpiAuthorizationCodeResult>builder()
-                               // TODO fix response form ledgers https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/185
-                               .error(new TppMessage(MessageErrorCode.SCA_METHOD_UNKNOWN, StringUtils.defaultIfBlank(devMessage, "Sending SCA via phone not implemented yet")))
+                               .error(new TppMessage(MessageErrorCode.SCA_METHOD_UNKNOWN, devMessage))
                                .build();
             } finally {
                 authRequestInterceptor.setAccessToken(null);
