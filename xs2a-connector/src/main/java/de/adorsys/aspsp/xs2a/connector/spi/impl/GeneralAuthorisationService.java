@@ -126,7 +126,7 @@ public class GeneralAuthorisationService {
             return returnScaMethodSelection(aspspConsentDataProvider, sca);
         } else {
             return SpiResponse.<SpiAuthorizationCodeResult>builder()
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR_SCA_STATUS, SCAMETHODSELECTED.name(), PSUIDENTIFIED.name(), sca.getScaStatus().name()))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR_SCA_STATUS, (Object) SCAMETHODSELECTED.name(), PSUIDENTIFIED.name(), sca.getScaStatus().name()))
                            .build();
         }
     }
