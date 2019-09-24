@@ -89,7 +89,7 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
                            .build();
         } catch (IllegalStateException e) {
             return SpiResponse.<SpiSinglePaymentInitiationResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, "The payment initiation request failed during the initial process."))
+                           .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED))
                            .build();
         }
     }
