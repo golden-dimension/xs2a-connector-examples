@@ -92,7 +92,7 @@ public class GeneralPaymentService {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Get payment status by id failed: payment ID {}, devMessage {}", paymentId, devMessage);
             return SpiResponse.<SpiGetPaymentStatusResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, StringUtils.defaultIfBlank(devMessage, "Couldn't get payment status by ID")))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, devMessage))
                            .build();
 
         } finally {
@@ -127,7 +127,7 @@ public class GeneralPaymentService {
                            .build();
         } catch (Exception exception) {
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR, "Couldn't execute payment"))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR_PAYMENT_NOT_EXECUTED))
                            .build();
         } finally {
             authRequestInterceptor.setAccessToken(null);
@@ -190,7 +190,7 @@ public class GeneralPaymentService {
                            .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            logger.error("Execute payment without sca failed: devMessage {}", devMessage);
+            logger.error("Execute payment without SCA failed: devMessage {}", devMessage);
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR, devMessage))
                            .build();
