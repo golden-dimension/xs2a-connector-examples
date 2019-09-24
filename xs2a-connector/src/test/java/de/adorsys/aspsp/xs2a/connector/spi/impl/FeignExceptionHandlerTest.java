@@ -16,7 +16,7 @@ public class FeignExceptionHandlerTest {
         TppMessage tppMessage = FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR);
 
         assertEquals(MessageErrorCode.INTERNAL_SERVER_ERROR, tppMessage.getErrorCode());
-        assertEquals(FeignExceptionHandler.REQUEST_WAS_FAILED_MESSAGE, tppMessage.getMessageText());
+        assertEquals("", tppMessage.getMessageText());
     }
 
     @Test

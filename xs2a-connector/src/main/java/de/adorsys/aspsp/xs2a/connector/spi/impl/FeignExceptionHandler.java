@@ -17,8 +17,6 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 public class FeignExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(FeignExceptionHandler.class);
 
-    static final String REQUEST_WAS_FAILED_MESSAGE = "Request was failed";
-
     private FeignExceptionHandler() {
     }
 
@@ -27,7 +25,7 @@ public class FeignExceptionHandler {
 
         switch (HttpStatus.valueOf(e.status())) {
             case INTERNAL_SERVER_ERROR:
-                return new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR, REQUEST_WAS_FAILED_MESSAGE);
+                return new TppMessage(MessageErrorCode.INTERNAL_SERVER_ERROR);
             case UNAUTHORIZED:
                 return new TppMessage(MessageErrorCode.PSU_CREDENTIALS_INVALID);
             default:
