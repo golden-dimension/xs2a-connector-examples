@@ -66,7 +66,6 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
     private static final Logger logger = LoggerFactory.getLogger(PaymentAuthorisationSpiImpl.class);
 
     private static final String DECOUPLED_PSU_MESSAGE = "Please check your app to continue...";
-    private static final String DECOUPLED_NOT_SUPPORTED_MESSAGE = "Service is not supported";
 
     private final GeneralAuthorisationService authorisationService;
     private final TokenStorageService tokenStorageService;
@@ -122,7 +121,7 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
             return initiatePmtOnExemptedIfRequired(contextData, spiPayment, authorisePsu, scaPaymentResponse, aspspConsentDataProvider);
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN, "Getting PSU token was failed"))
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
                            .build();
         }
     }
@@ -168,7 +167,7 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
     public @NotNull SpiResponse<SpiAuthorisationDecoupledScaResponse> startScaDecoupled(@NotNull SpiContextData contextData, @NotNull String authorisationId, @Nullable String authenticationMethodId, @NotNull SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         if (authenticationMethodId == null) {
             return SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.SERVICE_NOT_SUPPORTED, DECOUPLED_NOT_SUPPORTED_MESSAGE))
+                           .error(new TppMessage(MessageErrorCode.SERVICE_NOT_SUPPORTED))
                            .build();
         }
         SpiResponse<SpiAuthorizationCodeResult> response = requestAuthorisationCode(contextData, authenticationMethodId, businessObject, aspspConsentDataProvider);
@@ -230,7 +229,7 @@ public class PaymentAuthorisationSpiImpl implements PaymentAuthorisationSpi {
             default:
                 // throw unsupported payment type
                 return SpiResponse.<SpiAuthorisationStatus>builder()
-                               .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, String.format("Unknown payment type: %s", paymentType.getValue())))
+                               .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED_TYPE_UNKNOWN, (Object) paymentType.getValue()))
                                .build();
         }
     }

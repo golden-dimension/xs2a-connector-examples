@@ -85,7 +85,7 @@ public class SinglePaymentSpiImpl implements SinglePaymentSpi {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Initiate single payment failed: payment ID {}, devMessage {}", payment.getPaymentId(), devMessage);
             return SpiResponse.<SpiSinglePaymentInitiationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PAYMENT_FAILED, devMessage, "The payment initiation request failed during the initial process."))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PAYMENT_FAILED, devMessage))
                            .build();
         } catch (IllegalStateException e) {
             return SpiResponse.<SpiSinglePaymentInitiationResponse>builder()
