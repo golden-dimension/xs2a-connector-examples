@@ -45,7 +45,6 @@ import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse.VoidResponse;
 import de.adorsys.psd2.xs2a.spi.service.AisConsentSpi;
 import feign.FeignException;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -227,9 +226,8 @@ public class AisConsentSpiImpl implements AisConsentSpi {
                 psuLoginData, password, aisConsent.getId(), originalResponse, OpTypeTO.CONSENT, aspspConsentDataProvider);
 
         if (!authorisePsu.isSuccessful()) {
-            String spiErrorMessage = authorisePsu.getErrors().get(0).getMessageText();
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(PSU_CREDENTIALS_INVALID, StringUtils.defaultIfBlank(spiErrorMessage, "authorisation PSU for consent was failed")))
+                           .error(new TppMessage(PSU_CREDENTIALS_INVALID))
                            .build();
         }
 
@@ -239,7 +237,7 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             scaConsentResponse = mapToScaConsentResponse(aisConsent, aspspConsentDataProvider.loadAspspConsentData());
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(FORMAT_ERROR, "Unknown response type"))
+                           .error(new TppMessage(FORMAT_ERROR_RESPONSE_TYPE))
                            .build();
         }
 
@@ -325,9 +323,8 @@ public class AisConsentSpiImpl implements AisConsentSpi {
             } catch (FeignException feignException) {
                 String devMessage = feignExceptionReader.getErrorMessage(feignException);
                 logger.error("Request authorisation code failed: consent ID {}, devMessage {}", businessObject.getId(), devMessage);
-                TppMessage errorMessage = new TppMessage(getMessageErrorCodeByStatus(feignException.status()), StringUtils.defaultIfBlank(devMessage, "No message from Bank available."));
+                TppMessage errorMessage = new TppMessage(getMessageErrorCodeByStatus(feignException.status()));
                 return SpiResponse.<SpiAuthorizationCodeResult>builder()
-                               // TODO fix response form ledgers https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/185
                                .error(errorMessage)
                                .build();
             } finally {
