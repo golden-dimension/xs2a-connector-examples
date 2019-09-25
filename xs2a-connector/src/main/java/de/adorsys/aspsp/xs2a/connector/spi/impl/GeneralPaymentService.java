@@ -205,7 +205,7 @@ public class GeneralPaymentService {
             return buildSuccessResponse.apply(payment);
         }
 
-        Supplier<SpiResponse<P>> buildFailedResponse = () -> SpiResponse.<P>builder().error(new TppMessage(MessageErrorCode.PAYMENT_FAILED_INCORRECT_ID,)).build();
+        Supplier<SpiResponse<P>> buildFailedResponse = () -> SpiResponse.<P>builder().error(new TppMessage(MessageErrorCode.PAYMENT_FAILED_INCORRECT_ID)).build();
         Function<Object, TO> convertToTransferObject = o -> objectMapper.convertValue(o, clazz);
 
         return getPaymentFromLedgers(payment.getPaymentId(), payment.toString(), aspspConsentDataProvider.loadAspspConsentData(), paymentTypeTO)
