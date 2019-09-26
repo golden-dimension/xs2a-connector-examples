@@ -82,7 +82,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     @Override
     protected TppMessage getAuthorisePsuFailureMessage(SpiPayment businessObject) {
         logger.error("Initiate single payment failed: payment ID {}", businessObject.getPaymentId());
-        return new TppMessage(MessageErrorCode.PAYMENT_FAILED, "The payment initiation request failed during the initial process.");
+        return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
     }
 
     @Override
@@ -92,7 +92,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
             aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN, "Getting PSU token was failed"))
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
                            .build();
         }
 

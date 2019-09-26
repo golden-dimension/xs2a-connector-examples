@@ -185,7 +185,7 @@ public class PaymentAuthorisationSpiImplTest {
                                                                                    businessObject, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.FORMAT_ERROR, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.FORMAT_ERROR_RESPONSE_TYPE, actual.getErrors().get(0).getErrorCode());
 
         verify(spiAspspConsentDataProvider, times(2)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class);
@@ -229,7 +229,7 @@ public class PaymentAuthorisationSpiImplTest {
                                                                                    businessObject, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.TOKEN_UNKNOWN, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actual.getErrors().get(0).getErrorCode());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class);
@@ -271,7 +271,7 @@ public class PaymentAuthorisationSpiImplTest {
                                                                                                         businessObject, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.SCA_METHOD_UNKNOWN, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.SCA_METHOD_UNKNOWN_PROCESS_MISMATCH, actual.getErrors().get(0).getErrorCode());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class);
@@ -295,7 +295,7 @@ public class PaymentAuthorisationSpiImplTest {
                                                                                                         businessObject, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.FORMAT_ERROR, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.FORMAT_ERROR_SCA_METHODS, actual.getErrors().get(0).getErrorCode());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class);
@@ -349,7 +349,7 @@ public class PaymentAuthorisationSpiImplTest {
                                                                                                       businessObject, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals("message", actual.getErrors().get(0).getMessageText());
+        assertEquals("", actual.getErrors().get(0).getMessageText());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class);

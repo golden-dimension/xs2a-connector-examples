@@ -23,7 +23,6 @@ import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +39,6 @@ import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.*;
 @Slf4j
 @RequiredArgsConstructor
 public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
-    private static final String DECOUPLED_NOT_SUPPORTED_MESSAGE = "Service is not supported";
     private static final String DECOUPLED_PSU_MESSAGE = "Please check your app to continue...";
 
     private final AuthRequestInterceptor authRequestInterceptor;
@@ -59,7 +57,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             log.error("Read aspspConsentData in authorise PSU failed: consent ID {}, devMessage {}", getBusinessObjectId(businessObject), devMessage);
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(TOKEN_UNKNOWN, "Missing credentials. Expecting a bearer token in the consent data object."))
+                           .error(new TppMessage(PSU_CREDENTIALS_INVALID))
                            .build();
         }
 
@@ -67,9 +65,8 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                 psuLoginData, password, getBusinessObjectId(businessObject), originalResponse, getOtpType(), aspspConsentDataProvider);
 
         if (!authorisePsu.isSuccessful()) {
-            String spiErrorMessage = authorisePsu.getErrors().get(0).getMessageText();
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(PSU_CREDENTIALS_INVALID, StringUtils.defaultIfBlank(spiErrorMessage, "authorisation PSU for consent was failed")))
+                           .error(new TppMessage(PSU_CREDENTIALS_INVALID))
                            .build();
         }
 
@@ -79,7 +76,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
             scaBusinessObjectResponse = mapToScaResponse(businessObject, aspspConsentDataProvider.loadAspspConsentData(), originalResponse);
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(FORMAT_ERROR, "Unknown response type"))
+                           .error(new TppMessage(FORMAT_ERROR_RESPONSE_TYPE))
                            .build();
         }
 
@@ -117,14 +114,14 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
             } else {
                 log.error("Process mismatch. Current SCA Status is {}", sca.getScaStatus());
                 return SpiResponse.<List<SpiAuthenticationObject>>builder()
-                               .error(new TppMessage(SCA_METHOD_UNKNOWN, "Process mismatch. PSU does not have any SCA method"))
+                               .error(new TppMessage(SCA_METHOD_UNKNOWN_PROCESS_MISMATCH))
                                .build();
             }
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             log.error("Read available sca methods failed: consent ID {}, devMessage {}", getBusinessObjectId(businessObject), devMessage);
             return SpiResponse.<List<SpiAuthenticationObject>>builder()
-                           .error(new TppMessage(FORMAT_ERROR, "Getting SCA methods failed"))
+                           .error(new TppMessage(FORMAT_ERROR_SCA_METHODS))
                            .build();
         }
     }
@@ -148,9 +145,8 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
             } catch (FeignException feignException) {
                 String devMessage = feignExceptionReader.getErrorMessage(feignException);
                 log.error("Request authorisation code failed: consent ID {}, devMessage {}", getBusinessObjectId(businessObject), devMessage);
-                TppMessage errorMessage = new TppMessage(getMessageErrorCodeByStatus(feignException.status()), StringUtils.defaultIfBlank(devMessage, "No message from Bank available."));
+                TppMessage errorMessage = new TppMessage(getMessageErrorCodeByStatus(feignException.status()));
                 return SpiResponse.<SpiAuthorizationCodeResult>builder()
-                               // TODO fix response form ledgers https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/185
                                .error(errorMessage)
                                .build();
             } finally {
@@ -168,7 +164,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         if (authenticationMethodId == null) {
             return SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder()
-                           .error(new TppMessage(SERVICE_NOT_SUPPORTED, DECOUPLED_NOT_SUPPORTED_MESSAGE))
+                           .error(new TppMessage(SERVICE_NOT_SUPPORTED))
                            .build();
         }
 

@@ -113,7 +113,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Initiate AIS consent failed: consent ID {}, devMessage {}", accountConsent.getId(), devMessage);
             return SpiResponse.<SpiInitiateAisConsentResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR, "Addressed account is unknown to the ASPSP or not associated to the PSU."))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT))
                            .build();
         }
 
@@ -187,7 +187,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Verify sca authorisation failed: consent ID {}, devMessage {}", accountConsent.getId(), devMessage);
             return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage, "authorisation PSU for consent was failed"))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
                            .build();
         } finally {
             authRequestInterceptor.setAccessToken(null);
@@ -244,7 +244,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     @Override
     protected TppMessage getAuthorisePsuFailureMessage(SpiAccountConsent businessObject) {
         logger.error("Initiate consent failed: consent ID {}", businessObject.getId());
-        return new TppMessage(MessageErrorCode.FORMAT_ERROR, "Addressed account is unknown to the ASPSP or not associated to the PSU.");
+        return new TppMessage(MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT);
     }
 
     @Override

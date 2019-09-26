@@ -231,7 +231,7 @@ public class AisConsentSpiImplTest {
 
         // Then
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.FORMAT_ERROR, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT, actual.getErrors().get(0).getErrorCode());
 
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, scaConsentResponseTO, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
         verify(authRequestInterceptor).setAccessToken(scaConsentResponseTO.getBearerToken().getAccess_token());
@@ -266,7 +266,7 @@ public class AisConsentSpiImplTest {
 
         // Then
         assertTrue(actualResponse.hasError());
-        assertEquals(MessageErrorCode.TOKEN_UNKNOWN, actualResponse.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actualResponse.getErrors().get(0).getErrorCode());
     }
 
     @Test
@@ -333,7 +333,7 @@ public class AisConsentSpiImplTest {
 
         // Then
         assertTrue(actualResponse.hasError());
-        assertEquals(MessageErrorCode.FORMAT_ERROR, actualResponse.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.FORMAT_ERROR_RESPONSE_TYPE, actualResponse.getErrors().get(0).getErrorCode());
 
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, scaConsentResponseTO, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
     }
@@ -508,7 +508,7 @@ public class AisConsentSpiImplTest {
                                                                                            spiAccountConsent, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.SCA_METHOD_UNKNOWN, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.SCA_METHOD_UNKNOWN_PROCESS_MISMATCH, actual.getErrors().get(0).getErrorCode());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAConsentResponseTO.class);
@@ -532,7 +532,7 @@ public class AisConsentSpiImplTest {
                                                                                            spiAccountConsent, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.FORMAT_ERROR, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.FORMAT_ERROR_SCA_METHODS, actual.getErrors().get(0).getErrorCode());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAConsentResponseTO.class);
@@ -730,7 +730,7 @@ public class AisConsentSpiImplTest {
                                                                                          spiAccountConsent, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals("message", actual.getErrors().get(0).getMessageText());
+        assertEquals("", actual.getErrors().get(0).getMessageText());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAConsentResponseTO.class);

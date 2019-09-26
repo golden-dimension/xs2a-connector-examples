@@ -61,11 +61,11 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaym
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             log.error("Initiate payment failed: payment ID {}, devMessage {}", payment.getPaymentId(), devMessage);
             return SpiResponse.<R>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PAYMENT_FAILED, devMessage, "The payment initiation request failed during the initial process."))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PAYMENT_FAILED, devMessage))
                            .build();
         } catch (IllegalStateException e) {
             return SpiResponse.<R>builder()
-                           .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED, "The payment initiation request failed during the initial process."))
+                           .error(new TppMessage(MessageErrorCode.PAYMENT_FAILED))
                            .build();
         }
     }
