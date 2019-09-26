@@ -264,23 +264,27 @@ public class PaymentAuthorisationSpiImplTest {
     }
 
     @Test
-    public void requestAvailableScaMethods_scaMethodUnknown() {
+    public void requestAvailableScaMethods_noScaMethodsInResponseTO() {
         when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
         SCAPaymentResponseTO scaPaymentResponseTO = getScaPaymentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         scaPaymentResponseTO.setScaMethods(null);
         when(consentDataService.response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, true)).thenReturn(scaPaymentResponseTO);
 
+        when(authorisationService.validateToken(ACCESS_TOKEN)).thenReturn(scaPaymentResponseTO.getBearerToken());
+        byte[] responseBytes = "response_byte".getBytes();
+        when(consentDataService.store(scaPaymentResponseTO)).thenReturn(responseBytes);
+        doNothing().when(spiAspspConsentDataProvider).updateAspspConsentData(responseBytes);
+
         SpiResponse<List<SpiAuthenticationObject>> actual = authorisationSpi.requestAvailableScaMethods(SPI_CONTEXT_DATA,
                                                                                                         businessObject, spiAspspConsentDataProvider);
 
-        assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.SCA_METHOD_UNKNOWN_PROCESS_MISMATCH, actual.getErrors().get(0).getErrorCode());
+        assertFalse(actual.hasError());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, true);
-        verify(authorisationService, never()).validateToken(anyString());
-        verify(consentDataService, never()).store(any());
-        verify(spiAspspConsentDataProvider, never()).updateAspspConsentData(any());
+        verify(authorisationService, times(1)).validateToken(ACCESS_TOKEN);
+        verify(consentDataService, times(1)).store(scaPaymentResponseTO);
+        verify(spiAspspConsentDataProvider, times(1)).updateAspspConsentData(responseBytes);
     }
 
     @Test

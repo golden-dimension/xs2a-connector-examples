@@ -24,6 +24,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentProductTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
+import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
@@ -47,6 +48,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -224,5 +226,14 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     protected boolean validateStatuses(SpiPayment businessObject, SCAPaymentResponseTO sca) {
         return businessObject.getPaymentStatus() == TransactionStatus.RCVD ||
                        sca.getScaStatus() == ScaStatusTO.EXEMPTED;
+    }
+
+    @Override
+    protected Optional<List<ScaUserDataTO>> getScaMethods(SCAPaymentResponseTO sca) {
+        authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+        ResponseEntity<SCAPaymentResponseTO> cancelSCA = paymentRestClient.getCancelSCA(sca.getPaymentId(), sca.getAuthorisationId());
+
+        return Optional.ofNullable(cancelSCA.getBody())
+                       .map(SCAPaymentResponseTO::getScaMethods);
     }
 }

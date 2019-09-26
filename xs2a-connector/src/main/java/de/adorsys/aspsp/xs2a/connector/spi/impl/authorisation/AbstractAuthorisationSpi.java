@@ -28,10 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 import static de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO.*;
 import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.*;
@@ -93,20 +90,21 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
             R sca = getSCAConsentResponse(aspspConsentDataProvider, true);
-            if (sca.getScaMethods() != null) {
-                if (validateStatuses(businessObject, sca)) {
-                    return SpiResponse.<List<SpiAuthenticationObject>>builder()
-                                   .payload(Collections.emptyList())
-                                   .build();
-                }
 
+            if (validateStatuses(businessObject, sca)) {
+                return SpiResponse.<List<SpiAuthenticationObject>>builder()
+                               .payload(Collections.emptyList())
+                               .build();
+            }
+
+            Optional<List<ScaUserDataTO>> scaMethods = getScaMethods(sca);
+            if (scaMethods.isPresent()) {
                 // Validate the access token
                 BearerTokenTO bearerTokenTO = authorisationService.validateToken(sca.getBearerToken().getAccess_token());
                 sca.setBearerToken(bearerTokenTO);
 
                 // Return contained sca methods.
-                List<ScaUserDataTO> scaMethods = sca.getScaMethods();
-                List<SpiAuthenticationObject> authenticationObjects = scaMethodConverter.toSpiAuthenticationObjectList(scaMethods);
+                List<SpiAuthenticationObject> authenticationObjects = scaMethodConverter.toSpiAuthenticationObjectList(scaMethods.get());
                 aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(sca));
                 return SpiResponse.<List<SpiAuthenticationObject>>builder()
                                .payload(authenticationObjects)
@@ -124,6 +122,10 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                            .error(new TppMessage(FORMAT_ERROR_SCA_METHODS))
                            .build();
         }
+    }
+
+    protected Optional<List<ScaUserDataTO>> getScaMethods(R sca) {
+        return Optional.ofNullable(sca.getScaMethods());
     }
 
     public @NotNull SpiResponse<SpiAuthorizationCodeResult> requestAuthorisationCode(@NotNull SpiContextData contextData,
