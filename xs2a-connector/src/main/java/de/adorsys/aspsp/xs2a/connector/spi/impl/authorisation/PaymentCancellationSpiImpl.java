@@ -103,7 +103,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                            .build();
         }
 
-        SCAPaymentResponseTO sca = getSCAConsentResponse(aspspConsentDataProvider);
+        SCAPaymentResponseTO sca = getSCAConsentResponse(aspspConsentDataProvider, true);
         if (sca.getScaStatus() == ScaStatusTO.EXEMPTED) {
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
             try {
@@ -130,7 +130,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                                                                                  @NotNull SpiPayment payment,
                                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
-            SCAPaymentResponseTO sca = getSCAConsentResponse(aspspConsentDataProvider);
+            SCAPaymentResponseTO sca = getSCAConsentResponse(aspspConsentDataProvider, true);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             ResponseEntity<SCAPaymentResponseTO> response = paymentRestClient.authorizeCancelPayment(sca.getPaymentId(), sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
@@ -156,9 +156,9 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     @Override
-    protected SCAPaymentResponseTO getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    protected SCAPaymentResponseTO getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
-        return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
+        return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class, checkCredentials);
     }
 
     @Override

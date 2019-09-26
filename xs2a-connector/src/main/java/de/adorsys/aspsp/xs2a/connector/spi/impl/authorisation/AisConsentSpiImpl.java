@@ -253,9 +253,9 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     @Override
-    protected SCAConsentResponseTO getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    protected SCAConsentResponseTO getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
-        return consentDataService.response(aspspConsentData, SCAConsentResponseTO.class);
+        return consentDataService.response(aspspConsentData, SCAConsentResponseTO.class, checkCredentials);
     }
 
     @Override

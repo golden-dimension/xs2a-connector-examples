@@ -52,7 +52,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         R originalResponse;
         try {
-            originalResponse = getSCAConsentResponse(aspspConsentDataProvider);
+            originalResponse = getSCAConsentResponse(aspspConsentDataProvider, false);
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             log.error("Read aspspConsentData in authorise PSU failed: consent ID {}, devMessage {}", getBusinessObjectId(businessObject), devMessage);
@@ -92,7 +92,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                                                  T businessObject,
                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
-            R sca = getSCAConsentResponse(aspspConsentDataProvider);
+            R sca = getSCAConsentResponse(aspspConsentDataProvider, true);
             if (sca.getScaMethods() != null) {
                 if (validateStatuses(businessObject, sca)) {
                     return SpiResponse.<List<SpiAuthenticationObject>>builder()
@@ -130,7 +130,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                                                      @NotNull String authenticationMethodId,
                                                                                      @NotNull T businessObject,
                                                                                      @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        R sca = getSCAConsentResponse(aspspConsentDataProvider);
+        R sca = getSCAConsentResponse(aspspConsentDataProvider, true);
         if (EnumSet.of(PSUIDENTIFIED, PSUAUTHENTICATED).contains(sca.getScaStatus())) {
             try {
                 authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
@@ -182,7 +182,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
 
     protected abstract ResponseEntity<R> getSelectMethodResponse(@NotNull String authenticationMethodId, R sca);
 
-    protected abstract R getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider);
+    protected abstract R getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials);
 
     protected abstract String getBusinessObjectId(T businessObject);
 

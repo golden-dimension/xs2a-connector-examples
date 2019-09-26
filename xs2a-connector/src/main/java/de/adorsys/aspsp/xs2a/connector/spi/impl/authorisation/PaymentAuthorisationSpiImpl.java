@@ -110,9 +110,9 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    protected SCAPaymentResponseTO getSCAConsentResponse(SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    protected SCAPaymentResponseTO getSCAConsentResponse(SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
-        return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
+        return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class, checkCredentials);
     }
 
     @Override
