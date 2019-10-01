@@ -61,7 +61,6 @@ import java.util.List;
 
 import static java.lang.String.format;
 
-@Slf4j
 @Component
 public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsent, SCAConsentResponseTO> implements AisConsentSpi {
     private static final Logger logger = LoggerFactory.getLogger(AisConsentSpiImpl.class);
