@@ -111,9 +111,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                .build();
             } else {
                 log.error("Process mismatch. Current SCA Status is {}", sca.getScaStatus());
-                return SpiResponse.<List<SpiAuthenticationObject>>builder()
-                               .error(new TppMessage(SCA_METHOD_UNKNOWN_PROCESS_MISMATCH))
-                               .build();
+                return getForZeroScaMethods();
             }
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
@@ -122,6 +120,12 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                            .error(new TppMessage(FORMAT_ERROR_SCA_METHODS))
                            .build();
         }
+    }
+
+    SpiResponse<List<SpiAuthenticationObject>> getForZeroScaMethods() {
+        return SpiResponse.<List<SpiAuthenticationObject>>builder()
+                       .error(new TppMessage(SCA_METHOD_UNKNOWN_PROCESS_MISMATCH))
+                       .build();
     }
 
     protected Optional<List<ScaUserDataTO>> getScaMethods(R sca) {

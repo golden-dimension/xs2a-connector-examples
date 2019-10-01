@@ -34,6 +34,7 @@ import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountConsent;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthenticationObject;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiInitiateAisConsentResponse;
@@ -42,6 +43,7 @@ import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse.VoidResponse;
 import de.adorsys.psd2.xs2a.spi.service.AisConsentSpi;
 import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.jetbrains.annotations.NotNull;
@@ -54,10 +56,12 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static java.lang.String.format;
 
+@Slf4j
 @Component
 public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsent, SCAConsentResponseTO> implements AisConsentSpi {
     private static final Logger logger = LoggerFactory.getLogger(AisConsentSpiImpl.class);
@@ -277,7 +281,14 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         return consentResponse;
     }
 
-    private SCAConsentResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, byte[] initialAspspConsentData) throws FeignException {
+    @Override
+    SpiResponse<List<SpiAuthenticationObject>> getForZeroScaMethods() {
+        return SpiResponse.<List<SpiAuthenticationObject>>builder()
+                       .payload(Collections.emptyList())
+                       .build();
+    }
+
+    private SCAConsentResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, byte[] initialAspspConsentData) {
         try {
             SCAResponseTO sca = consentDataService.response(initialAspspConsentData);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
