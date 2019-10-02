@@ -280,7 +280,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     @Override
-    SpiResponse<List<SpiAuthenticationObject>> getForZeroScaMethods() {
+    SpiResponse<List<SpiAuthenticationObject>> getForZeroScaMethods(ScaStatusTO status) {
         return SpiResponse.<List<SpiAuthenticationObject>>builder()
                        .payload(Collections.emptyList())
                        .build();
