@@ -21,7 +21,7 @@ import java.util.Optional;
 @Service
 public class TokenStorageServiceImpl implements TokenStorageService {
     @Autowired
-    @Qualifier(value = "objectMapper")
+    @Qualifier(value = "xs2aObjectMapper")
     private ObjectMapper mapper;
 
     @Override

@@ -24,7 +24,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 public class FeignConfig {
 
     @Bean
-    public Encoder feignEncoder(@Qualifier(value = "objectMapper") ObjectMapper originalObjectMapper) {
+    public Encoder feignEncoder(@Qualifier(value = "xs2aObjectMapper") ObjectMapper originalObjectMapper) {
         ObjectMapper objectMapper = originalObjectMapper.copy();
         objectMapper.configure(SerializationFeature.WRAP_ROOT_VALUE, false);
         @SuppressWarnings("rawtypes")
@@ -41,5 +41,4 @@ public class FeignConfig {
             registrar.registerFormatters(formatterRegistry);
         };
     }
-
 }
