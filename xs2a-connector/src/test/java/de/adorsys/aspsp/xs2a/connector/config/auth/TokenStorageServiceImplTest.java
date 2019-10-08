@@ -24,7 +24,7 @@ public class TokenStorageServiceImplTest {
     @Autowired
     private TokenStorageServiceImpl tokenStorageService;
     @Autowired
-    @Qualifier(value = "xs2aObjectMapper")
+    @Qualifier(value = "objectMapper")
     private ObjectMapper mapper;
 
     private JsonReader jsonReader = new JsonReader();
