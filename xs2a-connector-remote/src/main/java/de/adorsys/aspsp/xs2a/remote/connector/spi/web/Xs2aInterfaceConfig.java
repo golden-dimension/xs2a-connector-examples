@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Import;
         "de.adorsys.psd2.xs2a.exception",
         "de.adorsys.psd2.aspsp.profile",
         "de.adorsys.psd2.consent",
-        "de.adorsys.psd2.mapper",
         "de.adorsys.ledgers"})
 @Import(WebConfig.class)
 public class Xs2aInterfaceConfig {
