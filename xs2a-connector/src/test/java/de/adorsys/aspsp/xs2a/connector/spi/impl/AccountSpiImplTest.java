@@ -3,6 +3,7 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl;
 import de.adorsys.aspsp.xs2a.util.JsonReader;
+import de.adorsys.aspsp.xs2a.util.SpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.account.AccountDetailsTO;
 import de.adorsys.ledgers.middleware.api.domain.account.TransactionTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
@@ -18,7 +19,6 @@ import de.adorsys.psd2.xs2a.core.tpp.TppRole;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.*;
-import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
 import feign.Request;
@@ -44,13 +44,10 @@ import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AccountSpiImplTest {
-    private static final TppInfo TPP_INFO = buildTppInfo();
-    private final static UUID X_REQUEST_ID = UUID.randomUUID();
-    private final static UUID INTERNAL_REQUEST_ID = UUID.randomUUID();
     private static final String CONSENT_ID = "c966f143-f6a2-41db-9036-8abaeeef3af7";
     private static final byte[] BYTES = "data".getBytes();
 
-    private static final SpiContextData SPI_CONTEXT_DATA = buildSpiContextData(null);
+    private static final SpiContextData SPI_CONTEXT_DATA = SpiDataProvider.getSpiContextData();
     private static final AspspConsentData ASPSP_CONSENT_DATA = new AspspConsentData(BYTES, CONSENT_ID);
     private static final String RESOURCE_ID = "11111-999999999";
     private static final String IBAN = "DE89370400440532013000";
@@ -237,10 +234,6 @@ public class AccountSpiImplTest {
         tppInfo.setTppRoles(Collections.singletonList(TppRole.PISP));
         tppInfo.setAuthorityId("authorityId");
         return tppInfo;
-    }
-
-    private static SpiContextData buildSpiContextData(SpiPsuData spiPsuData) {
-        return new SpiContextData(spiPsuData, TPP_INFO, X_REQUEST_ID, INTERNAL_REQUEST_ID);
     }
 
     @Test
