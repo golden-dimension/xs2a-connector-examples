@@ -7,7 +7,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.util.JsonReader;
-import de.adorsys.aspsp.xs2a.util.SpiDataProvider;
+import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.AccessTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.AisConsentTO;
@@ -58,7 +58,7 @@ public class AisConsentSpiImplTest {
     private static final String CONSENT_ID = "c966f143-f6a2-41db-9036-8abaeeef3af7";
     private static final byte[] CONSENT_DATA_BYTES = "consent_data".getBytes();
 
-    private static final SpiContextData SPI_CONTEXT_DATA = SpiDataProvider.getSpiContextData();
+    private static final SpiContextData SPI_CONTEXT_DATA = TestSpiDataProvider.getSpiContextData();
     private static final AspspConsentData ASPSP_CONSENT_DATA = new AspspConsentData(CONSENT_DATA_BYTES, CONSENT_ID);
     private static final String RESPONSE_STATUS_200_WITH_EMPTY_BODY = "Response status was 200, but the body was empty!";
     private static final String ONLINE_BANKING_URL_FIELD_NAME = "onlineBankingUrl";

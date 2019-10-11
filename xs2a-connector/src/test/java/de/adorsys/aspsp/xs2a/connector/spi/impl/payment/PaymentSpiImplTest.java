@@ -1,6 +1,6 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment;
 
-import de.adorsys.aspsp.xs2a.util.SpiDataProvider;
+import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
@@ -27,7 +27,7 @@ public class PaymentSpiImplTest {
 
     private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";
     private static final SpiPsuData PSU_ID_DATA = new SpiPsuData("1", "2", "3", "4", "5");
-    private static final SpiContextData SPI_CONTEXT_DATA = SpiDataProvider.getSpiContextData();
+    private static final SpiContextData SPI_CONTEXT_DATA = TestSpiDataProvider.getSpiContextData();
 
     @InjectMocks
     private PaymentSpiImpl paymentSpi;
