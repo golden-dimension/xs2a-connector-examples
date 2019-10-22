@@ -7,4 +7,4 @@
 == Incorrect response for Update PSU data request with incorrect PSU-ID in header
 
 From now on, when you try to update PSU data with wrong PSU-ID, you'll receive error `PSU_CREDENTIALS_INVALID`.
-Also, if after that you'll try to start authorisation again, authorisation will be successfully created.
+If you'll try to start authorisation after that again, authorisation will be successfully created.
