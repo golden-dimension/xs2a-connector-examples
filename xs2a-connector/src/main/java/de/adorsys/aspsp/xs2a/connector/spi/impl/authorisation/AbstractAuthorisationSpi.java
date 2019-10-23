@@ -223,8 +223,8 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                 aisConsentResponse = initiateBusinessObject(businessObject, aspspConsentDataProvider.loadAspspConsentData());
             } catch (FeignException feignException) {
                 return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(PSU_CREDENTIALS_INVALID))
-                           .build();
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, PSU_CREDENTIALS_INVALID))
+                               .build();
             }
 
             if (aisConsentResponse == null) {
