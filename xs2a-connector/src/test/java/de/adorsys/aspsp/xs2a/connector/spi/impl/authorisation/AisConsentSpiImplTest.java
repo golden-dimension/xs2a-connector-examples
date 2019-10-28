@@ -68,6 +68,7 @@ public class AisConsentSpiImplTest {
     private static final String RESPONSE_STATUS_200_WITH_EMPTY_BODY = "Response status was 200, but the body was empty!";
     private static final String ONLINE_BANKING_URL_FIELD_NAME = "onlineBankingUrl";
     private static final String ONLINE_BANKING_URL_VALUE = "some.url";
+    private static final SpiAuthorisationStatus SPI_AUTHORISATION_STATUS = SpiAuthorisationStatus.FAILURE;
 
     private JsonReader jsonReader = new JsonReader();
     private SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/spi-account-consent.json", SpiAccountConsent.class);
@@ -292,8 +293,8 @@ public class AisConsentSpiImplTest {
         SpiResponse<SpiAuthorisationStatus> actualResponse = spi.authorisePsu(SPI_CONTEXT_DATA, spiPsuData, password, spiAccountConsent, spiAspspConsentDataProvider);
 
         // Then
-        assertTrue(actualResponse.hasError());
-        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actualResponse.getErrors().get(0).getErrorCode());
+        assertFalse(actualResponse.hasError());
+        assertEquals(actualResponse.getPayload(), SPI_AUTHORISATION_STATUS);
 
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, scaConsentResponseTO, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
     }
