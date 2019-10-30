@@ -4,9 +4,9 @@ import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
-import de.adorsys.psd2.xs2a.exception.MessageCategory;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageBuilder;
 import de.adorsys.psd2.xs2a.web.filter.AbstractXs2aFilter;
+import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +24,9 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.UNAUTHORIZED_NO_TOKEN;
+import static de.adorsys.psd2.xs2a.exception.MessageCategory.ERROR;
 
 @Slf4j
 @Component
@@ -61,14 +64,14 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
 
         if (!aspspProfileService.getScaApproaches().contains(ScaApproach.OAUTH)) {
             log.info("Token authentication error: OAUTH SCA approach is not supported in the profile");
-            enrichError(response, HttpServletResponse.SC_BAD_REQUEST, MessageErrorCode.FORMAT_ERROR);
+            enrichError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
             return;
         }
 
         Optional<OauthType> oauthTypeOptional = OauthType.getByValue(oauthHeader);
         if (!oauthTypeOptional.isPresent()) {
             log.info("Token authentication error: unknown OAuth type {}", oauthHeader);
-            enrichError(response, HttpServletResponse.SC_BAD_REQUEST, MessageErrorCode.FORMAT_ERROR);
+            enrichError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
             return;
         }
 
@@ -76,9 +79,17 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         String bearerToken = resolveBearerToken(request);
         oauthDataHolder.setOauthTypeAndToken(oauthType, bearerToken);
 
-        if (isTokenRequired(oauthType, request.getServletPath()) && isTokenInvalid(bearerToken)) {
+        boolean tokenRequired = isTokenRequired(oauthType, request.getServletPath());
+        if (tokenRequired && oauthType == OauthType.PRE_STEP && StringUtils.isBlank(bearerToken)) {
+            log.info("Token authentication error: token is absent in pre-step OAuth");
+            String oauthConfigurationUrl = aspspProfileService.getAspspSettings().getCommon().getOauthConfigurationUrl();
+            enrichError(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(UNAUTHORIZED_NO_TOKEN, oauthConfigurationUrl));
+            return;
+        }
+
+        if (tokenRequired && isTokenInvalid(bearerToken)) {
             log.info("Token authentication error: token is invalid");
-            enrichError(response, HttpServletResponse.SC_FORBIDDEN, MessageErrorCode.TOKEN_INVALID);
+            enrichError(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(MessageErrorCode.TOKEN_INVALID));
             return;
         }
 
@@ -105,10 +116,10 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         return token == null;
     }
 
-    private void enrichError(HttpServletResponse response, int status, MessageErrorCode errorCode) throws IOException {
+    private void enrichError(HttpServletResponse response, int status, TppErrorMessage tppErrorMessage) throws IOException {
         response.setStatus(status);
         response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().print(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, errorCode).toString());
+        response.getWriter().print(tppErrorMessage.toString());
     }
 
     private String resolveBearerToken(HttpServletRequest request) {
@@ -127,5 +138,13 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         }
 
         return result;
+    }
+
+    private TppErrorMessage buildTppErrorMessage(MessageErrorCode messageErrorCode) {
+        return tppErrorMessageBuilder.buildTppErrorMessage(ERROR, messageErrorCode);
+    }
+
+    private TppErrorMessage buildTppErrorMessage(MessageErrorCode messageErrorCode, String placeHolder) {
+        return tppErrorMessageBuilder.buildTppErrorMessageWithPlaceholder(ERROR, messageErrorCode, placeHolder);
     }
 }
