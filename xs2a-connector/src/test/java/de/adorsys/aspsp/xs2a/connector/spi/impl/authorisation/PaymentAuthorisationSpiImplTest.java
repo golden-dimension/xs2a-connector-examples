@@ -54,7 +54,7 @@ public class PaymentAuthorisationSpiImplTest {
     private static final byte[] CONSENT_DATA_BYTES = "consent_data".getBytes();
     private static final String PAYMENT_ID = "c966f143-f6a2-41db-9036-8abaeeef3af7";
     private static final String SECRET = "12345";
-    private static final SpiPsuAuthorisationResponse SPI_PSU_AUTHORISATION_RESPONSE = new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE);
+    private static final SpiPsuAuthorisationResponse SPI_PSU_AUTHORISATION_FAILURE_RESPONSE = new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE);
 
     @InjectMocks
     private PaymentAuthorisationSpiImpl authorisationSpi;
@@ -229,7 +229,7 @@ public class PaymentAuthorisationSpiImplTest {
     }
 
     @Test
-    public void authorisePsu_failure() {
+    public void authorisePsu_failureResponse() {
         when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
         SCAPaymentResponseTO scaPaymentResponseTO = getScaPaymentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         scaPaymentResponseTO.setScaMethods(Collections.emptyList());
@@ -243,7 +243,7 @@ public class PaymentAuthorisationSpiImplTest {
                                                                                         businessObject, spiAspspConsentDataProvider);
 
         assertFalse(actual.hasError());
-        assertEquals(actual.getPayload(), SPI_PSU_AUTHORISATION_RESPONSE);
+        assertEquals(actual.getPayload(), SPI_PSU_AUTHORISATION_FAILURE_RESPONSE);
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, false);

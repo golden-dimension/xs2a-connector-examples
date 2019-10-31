@@ -63,7 +63,7 @@ public class AisConsentSpiImplTest {
     private static final String RESPONSE_STATUS_200_WITH_EMPTY_BODY = "Response status was 200, but the body was empty!";
     private static final String ONLINE_BANKING_URL_FIELD_NAME = "onlineBankingUrl";
     private static final String ONLINE_BANKING_URL_VALUE = "some.url";
-    private static final SpiPsuAuthorisationResponse SPI_PSU_AUTHORISATION_RESPONSE = new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE);
+    private static final SpiPsuAuthorisationResponse SPI_PSU_AUTHORISATION_FAILURE_RESPONSE = new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE);
 
     private JsonReader jsonReader = new JsonReader();
     private SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/spi-account-consent.json", SpiAccountConsent.class);
@@ -264,7 +264,7 @@ public class AisConsentSpiImplTest {
     }
 
     @Test
-    public void authorisePsu_errorOnAuthorisingPsuForConsent() {
+    public void authorisePsu_failureResponseOnAuthorisingPsuForConsent() {
         // Given
         SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null);
         SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
@@ -289,7 +289,7 @@ public class AisConsentSpiImplTest {
 
         // Then
         assertFalse(actualResponse.hasError());
-        assertEquals(actualResponse.getPayload(), SPI_PSU_AUTHORISATION_RESPONSE);
+        assertEquals(actualResponse.getPayload(), SPI_PSU_AUTHORISATION_FAILURE_RESPONSE);
 
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, scaConsentResponseTO, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
     }
