@@ -234,7 +234,7 @@ public class PaymentAuthorisationSpiImplTest {
     }
 
     @Test
-    public void authorisePsu_failureOnAuthorisePsu() {
+    public void authorisePsu_failureStatus() {
         when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
         SCAPaymentResponseTO scaPaymentResponseTO = getScaPaymentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         scaPaymentResponseTO.setScaMethods(Collections.emptyList());

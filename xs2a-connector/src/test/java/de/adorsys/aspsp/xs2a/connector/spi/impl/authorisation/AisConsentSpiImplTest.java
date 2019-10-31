@@ -269,7 +269,7 @@ public class AisConsentSpiImplTest {
     }
 
     @Test
-    public void authorisePsu_failureOnAuthorisingPsuForConsent() {
+    public void authorisePsu_failureStatus() {
         // Given
         SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null);
         SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
