@@ -16,10 +16,9 @@ import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiGetPaymentStatusResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
-import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.ResponseEntity;
@@ -33,9 +32,8 @@ public class GeneralPaymentServiceTest {
     private static final String ANY_MEDIA_TYPE = "*/*";
     private static final String JSON_MEDIA_TYPE = "application/json";
     private static final String XML_MEDIA_TYPE = "application/xml";
+    private static final String MOCK_XML_BODY = "<Document xmlns=\"urn:iso:std:iso:20022:tech:xsd:pain.002.001.03\"><CstmrPmtStsRpt><GrpHdr><MsgId>4572457256725689726906</MsgId><CreDtTm>2017-02-14T20:24:56.021Z</CreDtTm><DbtrAgt><FinInstnId><BIC>ABCDDEFF</BIC></FinInstnId></DbtrAgt><CdtrAgt><FinInstnId><BIC>DCBADEFF</BIC></FinInstnId></CdtrAgt></GrpHdr><OrgnlGrpInfAndSts><OrgnlMsgId>MIPI-123456789RI-123456789</OrgnlMsgId><OrgnlMsgNmId>pain.001.001.03</OrgnlMsgNmId><OrgnlCreDtTm>2017-02-14T20:23:34.000Z</OrgnlCreDtTm><OrgnlNbOfTxs>1</OrgnlNbOfTxs><OrgnlCtrlSum>123</OrgnlCtrlSum><GrpSts>ACCT</GrpSts></OrgnlGrpInfAndSts><OrgnlPmtInfAndSts><OrgnlPmtInfId>BIPI-123456789RI-123456789</OrgnlPmtInfId><OrgnlNbOfTxs>1</OrgnlNbOfTxs><OrgnlCtrlSum>123</OrgnlCtrlSum><PmtInfSts>ACCT</PmtInfSts></OrgnlPmtInfAndSts></CstmrPmtStsRpt></Document>";
 
-    @InjectMocks
-    private GeneralPaymentService generalPaymentService;
     @Mock
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     @Mock
@@ -49,11 +47,18 @@ public class GeneralPaymentServiceTest {
     @Mock
     private LedgersSpiPaymentMapper paymentMapper;
 
+    private GeneralPaymentService generalPaymentService;
+
+    @Before
+    public void setUp() {
+        generalPaymentService = new GeneralPaymentService(null, authRequestInterceptor, consentDataService, null, objectMapper, MOCK_XML_BODY);
+    }
+
     @Test
     public void getPaymentStatusById_withXmlMediaType_shouldReturnMockResponse() {
         // Given
+        byte[] xmlBody = MOCK_XML_BODY.getBytes();
         byte[] aspspConsentData = "".getBytes();
-        byte[] xmlBody = buildXmlBody().getBytes();
         SpiGetPaymentStatusResponse expectedResponse = new SpiGetPaymentStatusResponse(TransactionStatus.ACSP, null, XML_MEDIA_TYPE, xmlBody);
 
         // When
@@ -133,33 +138,5 @@ public class GeneralPaymentServiceTest {
         spiPayment.setCreditorAgent(agent);
         spiPayment.setPaymentStatus(transactionStatus);
         return spiPayment;
-    }
-
-    @NotNull
-    private String buildXmlBody() {
-        return "<Document xmlns=\"urn:iso:std:iso:20022:tech:xsd:pain.002.001.03\"> \n" +
-                       "  <CstmrPmtStsRpt>\n" +
-                       "    <GrpHdr>\n" +
-                       "      <MsgId>4572457256725689726906</MsgId> \n" +
-                       "      <CreDtTm>2017-02-14T20:24:56.021Z</CreDtTm> \n" +
-                       "      <DbtrAgt><FinInstnId><BIC>ABCDDEFF</BIC></FinInstnId></DbtrAgt> \n" +
-                       "      <CdtrAgt><FinInstnId><BIC>DCBADEFF</BIC></FinInstnId></CdtrAgt> \n" +
-                       "    </GrpHdr>\n" +
-                       "    <OrgnlGrpInfAndSts> \n" +
-                       "      <OrgnlMsgId>MIPI-123456789RI-123456789</OrgnlMsgId> \n" +
-                       "      <OrgnlMsgNmId>pain.001.001.03</OrgnlMsgNmId> \n" +
-                       "      <OrgnlCreDtTm>2017-02-14T20:23:34.000Z</OrgnlCreDtTm> \n" +
-                       "      <OrgnlNbOfTxs>1</OrgnlNbOfTxs> \n" +
-                       "      <OrgnlCtrlSum>123</OrgnlCtrlSum> \n" +
-                       "      <GrpSts>ACCT</GrpSts>\n" +
-                       "    </OrgnlGrpInfAndSts>\n" +
-                       "    <OrgnlPmtInfAndSts> \n" +
-                       "      <OrgnlPmtInfId>BIPI-123456789RI-123456789</OrgnlPmtInfId> \n" +
-                       "      <OrgnlNbOfTxs>1</OrgnlNbOfTxs> \n" +
-                       "      <OrgnlCtrlSum>123</OrgnlCtrlSum> \n" +
-                       "      <PmtInfSts>ACCT</PmtInfSts>\n" +
-                       "    </OrgnlPmtInfAndSts>\n" +
-                       "  </CstmrPmtStsRpt>\n" +
-                       "</Document>";
     }
 }

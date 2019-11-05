@@ -45,6 +45,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -54,6 +56,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Component
+@PropertySource("classpath:mock-data.properties")
 public class GeneralPaymentService {
     private static final Logger logger = LoggerFactory.getLogger(GeneralPaymentService.class);
     private static final String XML_MEDIA_TYPE = "application/xml";
@@ -63,14 +66,20 @@ public class GeneralPaymentService {
     private final AspspConsentDataService consentDataService;
     private final FeignExceptionReader feignExceptionReader;
     private final ObjectMapper objectMapper;
+    private final String transactionStatusXmlBody;
 
     public GeneralPaymentService(PaymentRestClient ledgersRestClient,
-                                 AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService, FeignExceptionReader feignExceptionReader, ObjectMapper objectMapper) {
+                                 AuthRequestInterceptor authRequestInterceptor,
+                                 AspspConsentDataService consentDataService,
+                                 FeignExceptionReader feignExceptionReader,
+                                 ObjectMapper objectMapper,
+                                 @Value("${test-transaction-status-xml-body}") String transactionStatusXmlBody) {
         this.paymentRestClient = ledgersRestClient;
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
         this.feignExceptionReader = feignExceptionReader;
         this.objectMapper = objectMapper;
+        this.transactionStatusXmlBody = transactionStatusXmlBody;
     }
 
     public SpiResponse<SpiGetPaymentStatusResponse> getPaymentStatusById(@NotNull PaymentTypeTO paymentType,
@@ -80,7 +89,7 @@ public class GeneralPaymentService {
                                                                          @NotNull byte[] aspspConsentData) {
         if (acceptMediaType.equals(XML_MEDIA_TYPE)) {
             return SpiResponse.<SpiGetPaymentStatusResponse>builder()
-                           .payload(new SpiGetPaymentStatusResponse(spiTransactionStatus, null, SpiGetPaymentStatusResponse.RESPONSE_TYPE_XML, buildMockXmlStatusBody()))
+                           .payload(new SpiGetPaymentStatusResponse(spiTransactionStatus, null, SpiGetPaymentStatusResponse.RESPONSE_TYPE_XML, transactionStatusXmlBody.getBytes()))
                            .build();
         }
 
@@ -268,33 +277,5 @@ public class GeneralPaymentService {
 
     private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {
         return new SpiPaymentExecutionResponse(TransactionStatus.valueOf(transactionStatus.name()));
-    }
-
-    private byte[] buildMockXmlStatusBody() {
-        String mockBody = "<Document xmlns=\"urn:iso:std:iso:20022:tech:xsd:pain.002.001.03\"> \n" +
-                                  "  <CstmrPmtStsRpt>\n" +
-                                  "    <GrpHdr>\n" +
-                                  "      <MsgId>4572457256725689726906</MsgId> \n" +
-                                  "      <CreDtTm>2017-02-14T20:24:56.021Z</CreDtTm> \n" +
-                                  "      <DbtrAgt><FinInstnId><BIC>ABCDDEFF</BIC></FinInstnId></DbtrAgt> \n" +
-                                  "      <CdtrAgt><FinInstnId><BIC>DCBADEFF</BIC></FinInstnId></CdtrAgt> \n" +
-                                  "    </GrpHdr>\n" +
-                                  "    <OrgnlGrpInfAndSts> \n" +
-                                  "      <OrgnlMsgId>MIPI-123456789RI-123456789</OrgnlMsgId> \n" +
-                                  "      <OrgnlMsgNmId>pain.001.001.03</OrgnlMsgNmId> \n" +
-                                  "      <OrgnlCreDtTm>2017-02-14T20:23:34.000Z</OrgnlCreDtTm> \n" +
-                                  "      <OrgnlNbOfTxs>1</OrgnlNbOfTxs> \n" +
-                                  "      <OrgnlCtrlSum>123</OrgnlCtrlSum> \n" +
-                                  "      <GrpSts>ACCT</GrpSts>\n" +
-                                  "    </OrgnlGrpInfAndSts>\n" +
-                                  "    <OrgnlPmtInfAndSts> \n" +
-                                  "      <OrgnlPmtInfId>BIPI-123456789RI-123456789</OrgnlPmtInfId> \n" +
-                                  "      <OrgnlNbOfTxs>1</OrgnlNbOfTxs> \n" +
-                                  "      <OrgnlCtrlSum>123</OrgnlCtrlSum> \n" +
-                                  "      <PmtInfSts>ACCT</PmtInfSts>\n" +
-                                  "    </OrgnlPmtInfAndSts>\n" +
-                                  "  </CstmrPmtStsRpt>\n" +
-                                  "</Document>";
-        return mockBody.getBytes();
     }
 }
