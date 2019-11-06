@@ -62,13 +62,8 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
             return;
         }
 
-        if (!aspspProfileService.getScaApproaches().contains(ScaApproach.OAUTH)) {
-            log.info("Token authentication error: OAUTH SCA approach is not supported in the profile");
-            enrichError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
-            return;
-        }
-
         Optional<OauthType> oauthTypeOptional = OauthType.getByValue(oauthHeader);
+
         if (!oauthTypeOptional.isPresent()) {
             log.info("Token authentication error: unknown OAuth type {}", oauthHeader);
             enrichError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
@@ -77,23 +72,38 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
 
         OauthType oauthType = oauthTypeOptional.get();
         String bearerToken = resolveBearerToken(request);
+
+        if (isInvalidOauthRequest(request, response, oauthType, bearerToken)) {
+            return;
+        }
+
         oauthDataHolder.setOauthTypeAndToken(oauthType, bearerToken);
 
-        boolean tokenRequired = isTokenRequired(oauthType, request.getServletPath());
-        if (tokenRequired && oauthType == OauthType.PRE_STEP && StringUtils.isBlank(bearerToken)) {
+        chain.doFilter(request, response);
+    }
+
+    private boolean isInvalidOauthRequest(HttpServletRequest request, @NotNull HttpServletResponse response, OauthType oauthType, String bearerToken) throws IOException {
+        if (!aspspProfileService.getScaApproaches().contains(ScaApproach.OAUTH)) {
+            log.info("Token authentication error: OAUTH SCA approach is not supported in the profile");
+            enrichError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
+            return true;
+        }
+
+        if (oauthType == OauthType.PRE_STEP && StringUtils.isBlank(bearerToken)) {
             log.info("Token authentication error: token is absent in pre-step OAuth");
             String oauthConfigurationUrl = aspspProfileService.getAspspSettings().getCommon().getOauthConfigurationUrl();
             enrichError(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(UNAUTHORIZED_NO_TOKEN, oauthConfigurationUrl));
-            return;
+            return true;
         }
 
+        boolean tokenRequired = isTokenRequired(oauthType, request.getServletPath());
         if (tokenRequired && isTokenInvalid(bearerToken)) {
             log.info("Token authentication error: token is invalid");
             enrichError(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(MessageErrorCode.TOKEN_INVALID));
-            return;
+            return true;
         }
 
-        chain.doFilter(request, response);
+        return false;
     }
 
     private boolean isTokenRequired(OauthType oauthType, String servletPath) {

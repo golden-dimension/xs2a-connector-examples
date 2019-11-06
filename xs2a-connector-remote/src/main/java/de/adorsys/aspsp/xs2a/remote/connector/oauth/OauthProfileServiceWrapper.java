@@ -11,7 +11,6 @@ import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
 import de.adorsys.psd2.xs2a.service.discovery.ServiceTypeDiscoveryService;
 import de.adorsys.psd2.xs2a.service.mapper.psd2.ServiceType;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
@@ -19,36 +18,49 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * ASPSP profile wrapper, responsible for substituting real scaRedirectFlow value and modifying redirect and oauth links from profile.
+ * Needed for dynamic resolution of scaRedirectFlow without changing the profile itself.
+ */
 @Primary
 @Service
-@RequiredArgsConstructor
 public class OauthProfileServiceWrapper implements AspspProfileService {
     private final AspspProfileService aspspProfileService;
     private final OauthDataHolder oauthDataHolder;
     private final ServiceTypeDiscoveryService serviceTypeDiscoveryService;
 
-    @Value("${oauth.integrated.ais.suffix:?consentId={encrypted-consent-id}&redirectId={redirect-id}}")
-    private String aisIntegratedOauthSuffix;
-    @Value("${oauth.integrated.pis.suffix:?paymentId={encrypted-payment-id}&redirectId={redirect-id}}")
-    private String pisIntegratedOauthSuffix;
-    @Value("${oauth.pre-step.ais.suffix:&token=}")
-    private String aisPreStepOauthSuffix;
-    @Value("${oauth.pre-step.pis.suffix:&token=}")
-    private String pisPreStepOauthSuffix;
+    private final String aisIntegratedOauthSuffix;
+    private final String pisIntegratedOauthSuffix;
+    private final String aisPreStepOauthSuffix;
+    private final String pisPreStepOauthSuffix;
+
+    public OauthProfileServiceWrapper(AspspProfileService aspspProfileService,
+                                      OauthDataHolder oauthDataHolder,
+                                      ServiceTypeDiscoveryService serviceTypeDiscoveryService,
+                                      @Value("${oauth.integrated.ais.suffix:?consentId={encrypted-consent-id}&redirectId={redirect-id}}") String aisIntegratedOauthSuffix,
+                                      @Value("${oauth.integrated.pis.suffix:?paymentId={encrypted-payment-id}&redirectId={redirect-id}}") String pisIntegratedOauthSuffix,
+                                      @Value("${oauth.pre-step.ais.suffix:&token=}") String aisPreStepOauthSuffix,
+                                      @Value("${oauth.pre-step.pis.suffix:&token=}") String pisPreStepOauthSuffix) {
+        this.aspspProfileService = aspspProfileService;
+        this.oauthDataHolder = oauthDataHolder;
+        this.serviceTypeDiscoveryService = serviceTypeDiscoveryService;
+        this.aisIntegratedOauthSuffix = aisIntegratedOauthSuffix;
+        this.pisIntegratedOauthSuffix = pisIntegratedOauthSuffix;
+        this.aisPreStepOauthSuffix = aisPreStepOauthSuffix;
+        this.pisPreStepOauthSuffix = pisPreStepOauthSuffix;
+    }
 
     @Override
     public AspspSettings getAspspSettings() {
         AspspSettings profileSettings = aspspProfileService.getAspspSettings();
         OauthType oauthType = oauthDataHolder.getOauthType();
 
+        CommonAspspProfileSetting existingCommonSetting = profileSettings.getCommon();
         if (oauthType == OauthType.INTEGRATED) {
-            CommonAspspProfileSetting existingCommonSetting = profileSettings.getCommon();
-            String existingOauthLink = existingCommonSetting.getOauthConfigurationUrl();
-            String customOauthLink = existingOauthLink + buildOauthLinkSuffix();
+            String customOauthLink = existingCommonSetting.getOauthConfigurationUrl() + buildOauthLinkSuffix();
             CommonAspspProfileSetting customCommonSettings = buildCustomCommonSetting(existingCommonSetting, ScaRedirectFlow.OAUTH, customOauthLink);
             return new AspspSettings(profileSettings.getAis(), profileSettings.getPis(), profileSettings.getPiis(), customCommonSettings);
         } else if (oauthType == OauthType.PRE_STEP) {
-            CommonAspspProfileSetting existingCommonSetting = profileSettings.getCommon();
             CommonAspspProfileSetting customCommonSetting = buildCustomCommonSetting(existingCommonSetting,
                                                                                      ScaRedirectFlow.OAUTH_PRE_STEP,
                                                                                      existingCommonSetting.getOauthConfigurationUrl());
@@ -94,7 +106,8 @@ public class OauthProfileServiceWrapper implements AspspProfileService {
                                              existingSetting.getSupportedAccountReferenceFields(),
                                              existingSetting.getMulticurrencyAccountLevelSupported(),
                                              existingSetting.isAisPisSessionsSupported(),
-                                             existingSetting.isSigningBasketSupported());
+                                             existingSetting.isSigningBasketSupported(),
+                                             existingSetting.isCheckTppRolesFromCertificateSupported());
     }
 
     private AisAspspProfileSetting buildCustomAisAspspProfileSetting(AisAspspProfileSetting existingSetting, String redirectUrlSuffix) {
@@ -108,6 +121,6 @@ public class OauthProfileServiceWrapper implements AspspProfileService {
 
         PisRedirectLinkSetting redirectLinkToOnlineBanking = existingSetting.getRedirectLinkToOnlineBanking();
         PisRedirectLinkSetting customRedirectLinkSetting = new PisRedirectLinkSetting(customInitiationRedirectUrl, customCancellationRedirectUrl, redirectLinkToOnlineBanking.getPaymentCancellationRedirectUrlExpirationTimeMs());
-        return new PisAspspProfileSetting(existingSetting.getSupportedPaymentTypeAndProductMatrix(), existingSetting.getMaxTransactionValidityDays(), existingSetting.getNotConfirmedPaymentExpirationTimeMs(), existingSetting.isPaymentCancellationAuthorisationMandated(), customRedirectLinkSetting, existingSetting.getCountryValidationSupported());
+        return new PisAspspProfileSetting(existingSetting.getSupportedPaymentTypeAndProductMatrix(), existingSetting.getMaxTransactionValidityDays(), existingSetting.getNotConfirmedPaymentExpirationTimeMs(), existingSetting.isPaymentCancellationAuthorisationMandated(), customRedirectLinkSetting, existingSetting.getCountryValidationSupported(), existingSetting.getSupportedTransactionStatusFormats());
     }
 }
