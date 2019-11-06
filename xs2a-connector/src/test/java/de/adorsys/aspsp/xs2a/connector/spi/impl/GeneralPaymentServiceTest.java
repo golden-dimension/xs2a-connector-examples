@@ -51,7 +51,7 @@ public class GeneralPaymentServiceTest {
 
     @Before
     public void setUp() {
-        generalPaymentService = new GeneralPaymentService(null, authRequestInterceptor, consentDataService, null, objectMapper, MOCK_XML_BODY);
+        generalPaymentService = new GeneralPaymentService(paymentRestClient, authRequestInterceptor, consentDataService, null, objectMapper, MOCK_XML_BODY);
     }
 
     @Test
