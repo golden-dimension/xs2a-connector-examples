@@ -97,8 +97,8 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                            .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
                            .build();
         }
-        SpiResponse<SpiAuthorisationStatus> response =  super.onSuccessfulAuthorisation(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
-        if (!response.hasError()) {
+        SpiResponse<SpiAuthorisationStatus> response = super.onSuccessfulAuthorisation(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
+        if (!response.hasError() && businessObject.getPsuDataList().size() == 1) {
             cmsPaymentStatusUpdateService.updatePaymentStatus(businessObject.getPaymentId(), aspspConsentDataProvider);
         }
         return response;
@@ -142,6 +142,11 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
         String unsupportedPaymentProductMessage = String.format("Unsupported payment product %s", paymentProduct);
         paymentResponse.setPaymentProduct(PaymentProductTO.getByValue(paymentProduct).orElseThrow(() -> new IOException(unsupportedPaymentProductMessage)));
         return paymentResponse;
+    }
+
+    @Override
+    protected boolean isFirstInitiationOfMultilevelSca(SpiPayment businessObject) {
+        return businessObject.getPsuDataList().size() <= 1;
     }
 
     @Override

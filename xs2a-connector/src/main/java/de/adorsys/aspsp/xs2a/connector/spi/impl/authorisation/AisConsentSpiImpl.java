@@ -226,6 +226,11 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         return format(DECOUPLED_USR_MSG, url);
     }
 
+    @Override
+    protected boolean isFirstInitiationOfMultilevelSca(SpiAccountConsent businessObject) {
+        return businessObject.getPsuData().size() <= 1;
+    }
+
     private <T extends SpiInitiateAisConsentResponse> SpiResponse<T> firstCallInstantiatingConsent(
             @NotNull SpiAccountConsent accountConsent,
             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, T responsePayload) {
