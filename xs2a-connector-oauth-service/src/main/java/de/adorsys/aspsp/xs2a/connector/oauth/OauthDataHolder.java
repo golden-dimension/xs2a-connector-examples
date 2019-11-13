@@ -1,10 +1,9 @@
-package de.adorsys.aspsp.xs2a.remote.connector.oauth;
+package de.adorsys.aspsp.xs2a.connector.oauth;
 
 import lombok.Data;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
-
 
 @Data
 @Component

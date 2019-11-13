@@ -1,4 +1,4 @@
-package de.adorsys.aspsp.xs2a.remote.connector.oauth;
+package de.adorsys.aspsp.xs2a.connector.oauth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;

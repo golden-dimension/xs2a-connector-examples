@@ -25,6 +25,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>de.adorsys.ledgers</groupId>
+            <artifactId>xs2a-connector-oauth-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- xs2a dependencies -->
         <dependency>
             <groupId>de.adorsys.psd2</groupId>

@@ -1,9 +1,12 @@
-package de.adorsys.aspsp.xs2a.remote.connector.oauth;
+package de.adorsys.aspsp.xs2a.connector.oauth;
 
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
@@ -14,9 +17,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.when;
+import java.util.Collections;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TokenValidationServiceTest {
@@ -33,14 +34,14 @@ public class TokenValidationServiceTest {
         // Given
         String token = "some token";
         BearerTokenTO expected = new BearerTokenTO();
-        when(userMgmtRestClient.validate(token))
+        Mockito.when(userMgmtRestClient.validate(token))
                 .thenReturn(ResponseEntity.ok(expected));
 
         // When
         BearerTokenTO actual = tokenValidationService.validate(token);
 
         // Then
-        assertEquals(expected, actual);
+        Assert.assertEquals(expected, actual);
 
         InOrder inOrder = Mockito.inOrder(authRequestInterceptor, userMgmtRestClient);
         inOrder.verify(authRequestInterceptor).setAccessToken(token);
@@ -52,14 +53,20 @@ public class TokenValidationServiceTest {
     public void validate_onFeignException_shouldReturnNull() {
         // Given
         String token = "some token";
-        when(userMgmtRestClient.validate(token))
-                .thenThrow(FeignExceptionHandler.getException(HttpStatus.BAD_REQUEST, "some message"));
+        Response feignResponse = Response.builder()
+                                         .status(HttpStatus.BAD_REQUEST.value())
+                                         .request(Request.create(Request.HttpMethod.GET, "", Collections.emptyMap(), null))
+                                         .headers(Collections.emptyMap())
+                                         .build();
+        FeignException feignException = FeignException.errorStatus("some message", feignResponse);
+        Mockito.when(userMgmtRestClient.validate(token))
+                .thenThrow(feignException);
 
         // When
         BearerTokenTO actual = tokenValidationService.validate(token);
 
         // Then
-        assertNull(actual);
+        Assert.assertNull(actual);
 
         InOrder inOrder = Mockito.inOrder(authRequestInterceptor, userMgmtRestClient);
         inOrder.verify(authRequestInterceptor).setAccessToken(token);

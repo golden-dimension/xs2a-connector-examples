@@ -1,4 +1,4 @@
-package de.adorsys.aspsp.xs2a.remote.connector.oauth;
+package de.adorsys.aspsp.xs2a.connector.oauth;
 
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.psd2.aspsp.profile.domain.AspspSettings;
@@ -12,6 +12,7 @@ import de.adorsys.xs2a.reader.JsonReader;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -26,9 +27,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TokenAuthenticationFilterTest {
@@ -72,340 +70,340 @@ public class TokenAuthenticationFilterTest {
     public void setUp() {
         tokenAuthenticationFilter = new TokenAuthenticationFilter(OAUTH_MODE_HEADER_NAME, tppErrorMessageBuilder, tokenValidationService, aspspProfileService, oauthDataHolder);
 
-        when(aspspProfileService.getScaApproaches())
+        Mockito.when(aspspProfileService.getScaApproaches())
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
-        when(aspspProfileService.getAspspSettings())
+        Mockito.when(aspspProfileService.getAspspSettings())
                 .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
     }
 
     @Test
     public void doFilter_withValidToken() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
-        when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
+        Mockito.when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
                 .thenReturn(new BearerTokenTO());
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
-        verify(oauthDataHolder).setOauthTypeAndToken(OauthType.INTEGRATED, BEARER_TOKEN_VALUE);
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
+        Mockito.verify(oauthDataHolder).setOauthTypeAndToken(OauthType.INTEGRATED, BEARER_TOKEN_VALUE);
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
 
-        verify(httpServletResponse, never()).setStatus(anyInt());
-        verify(tppErrorMessageBuilder, never()).buildTppErrorMessage(any(), any());
+        Mockito.verify(httpServletResponse, Mockito.never()).setStatus(ArgumentMatchers.anyInt());
+        Mockito.verify(tppErrorMessageBuilder, Mockito.never()).buildTppErrorMessage(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilter_withValidToken_preStep() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_PRE_STEP);
-        when(httpServletRequest.getServletPath()).thenReturn(PAYMENTS_PATH);
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_PRE_STEP);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(PAYMENTS_PATH);
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
-        when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
+        Mockito.when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
                 .thenReturn(new BearerTokenTO());
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
-        verify(oauthDataHolder).setOauthTypeAndToken(OauthType.PRE_STEP, BEARER_TOKEN_VALUE);
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
+        Mockito.verify(oauthDataHolder).setOauthTypeAndToken(OauthType.PRE_STEP, BEARER_TOKEN_VALUE);
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
 
-        verify(httpServletResponse, never()).setStatus(anyInt());
-        verify(tppErrorMessageBuilder, never()).buildTppErrorMessage(any(), any());
+        Mockito.verify(httpServletResponse, Mockito.never()).setStatus(ArgumentMatchers.anyInt());
+        Mockito.verify(tppErrorMessageBuilder, Mockito.never()).buildTppErrorMessage(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilter_withTrailingSlashesInPath() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH + "////");
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH + "////");
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
-        when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
+        Mockito.when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
                 .thenReturn(new BearerTokenTO());
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
 
-        verify(httpServletResponse, never()).setStatus(anyInt());
-        verify(tppErrorMessageBuilder, never()).buildTppErrorMessage(any(), any());
+        Mockito.verify(httpServletResponse, Mockito.never()).setStatus(ArgumentMatchers.anyInt());
+        Mockito.verify(tppErrorMessageBuilder, Mockito.never()).buildTppErrorMessage(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilter_withPaymentsPath() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath())
+        Mockito.when(httpServletRequest.getServletPath())
                 .thenReturn(PAYMENTS_PATH);
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
-        when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
+        Mockito.when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
                 .thenReturn(new BearerTokenTO());
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService).validate(BEARER_TOKEN_VALUE);
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
 
-        verify(httpServletResponse, never()).setStatus(anyInt());
-        verify(tppErrorMessageBuilder, never()).buildTppErrorMessage(any(), any());
+        Mockito.verify(httpServletResponse, Mockito.never()).setStatus(ArgumentMatchers.anyInt());
+        Mockito.verify(tppErrorMessageBuilder, Mockito.never()).buildTppErrorMessage(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilter_withoutOauthHeader_shouldSkipValidation() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(null);
-        when(httpServletRequest.getServletPath())
+        Mockito.when(httpServletRequest.getServletPath())
                 .thenReturn(ACCOUNTS_PATH);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
-        verify(tokenValidationService, never()).validate(anyString());
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService, Mockito.never()).validate(ArgumentMatchers.anyString());
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
     }
 
     @Test
     public void doFilter_withConsentsPath_shouldSkipValidation() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath())
+        Mockito.when(httpServletRequest.getServletPath())
                 .thenReturn(CONSENTS_PATH);
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService, never()).validate(anyString());
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService, Mockito.never()).validate(ArgumentMatchers.anyString());
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
     }
 
     @Test
     public void doFilter_withFundsConfirmationPath_shouldSkipValidation() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath())
+        Mockito.when(httpServletRequest.getServletPath())
                 .thenReturn(FUNDS_CONFIRMATION_PATH);
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
 
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService, never()).validate(anyString());
-        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+        Mockito.verify(tokenValidationService, Mockito.never()).validate(ArgumentMatchers.anyString());
+        Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
     }
 
     @Test
     public void doFilter_withoutOauthInProfile_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath())
+        Mockito.when(httpServletRequest.getServletPath())
                 .thenReturn(ACCOUNTS_PATH);
 
-        when(aspspProfileService.getScaApproaches())
+        Mockito.when(aspspProfileService.getScaApproaches())
                 .thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter())
+        Mockito.when(httpServletResponse.getWriter())
                 .thenReturn(mockWriter);
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR, "some message");
-        when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilter_withInvalidOauthHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INVALID_VALUE);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter()).thenReturn(mockWriter);
+        Mockito.when(httpServletResponse.getWriter()).thenReturn(mockWriter);
 
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR, "some message");
-        when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilterInternalTest_withNoTokenInHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter()).thenReturn(mockWriter);
+        Mockito.when(httpServletResponse.getWriter()).thenReturn(mockWriter);
 
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, ERROR_MESSAGE_TEXT);
-        when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilterInternalTest_withBlankTokenInHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn("");
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter()).thenReturn(mockWriter);
+        Mockito.when(httpServletResponse.getWriter()).thenReturn(mockWriter);
 
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, "some message");
-        when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilterInternalTest_withNoBearerPrefixInHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(BEARER_TOKEN_VALUE);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter()).thenReturn(mockWriter);
+        Mockito.when(httpServletResponse.getWriter()).thenReturn(mockWriter);
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, "some message");
-        when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilterInternalTest_withBlankToken_preStepOauth_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_PRE_STEP);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_PRE_STEP);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(null);
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter()).thenReturn(mockWriter);
+        Mockito.when(httpServletResponse.getWriter()).thenReturn(mockWriter);
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.UNAUTHORIZED_NO_TOKEN, IDP_CONFIGURATION_LINK);
-        when(tppErrorMessageBuilder.buildTppErrorMessageWithPlaceholder(MessageCategory.ERROR, MessageErrorCode.UNAUTHORIZED_NO_TOKEN, IDP_CONFIGURATION_LINK))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessageWithPlaceholder(MessageCategory.ERROR, MessageErrorCode.UNAUTHORIZED_NO_TOKEN, IDP_CONFIGURATION_LINK))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
     public void doFilter_withInvalidToken_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
-        when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
+        Mockito.when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        Mockito.when(httpServletRequest.getServletPath()).thenReturn(ACCOUNTS_PATH);
 
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_INVALID_VALUE;
-        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
+        Mockito.when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
-        when(tokenValidationService.validate(BEARER_TOKEN_INVALID_VALUE))
+        Mockito.when(tokenValidationService.validate(BEARER_TOKEN_INVALID_VALUE))
                 .thenReturn(null);
 
         PrintWriter mockWriter = Mockito.mock(PrintWriter.class);
-        when(httpServletResponse.getWriter()).thenReturn(mockWriter);
+        Mockito.when(httpServletResponse.getWriter()).thenReturn(mockWriter);
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, "some message");
-        when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
+        Mockito.when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         // Then
-        verify(tokenValidationService).validate(BEARER_TOKEN_INVALID_VALUE);
+        Mockito.verify(tokenValidationService).validate(BEARER_TOKEN_INVALID_VALUE);
 
-        verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
-        verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
-        verify(filterChain, never()).doFilter(any(), any());
+        Mockito.verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        Mockito.verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        Mockito.verify(mockWriter).print(tppErrorMessage.toString());
+        Mockito.verify(filterChain, Mockito.never()).doFilter(ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 }

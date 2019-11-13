@@ -1,5 +1,6 @@
-package de.adorsys.aspsp.xs2a.remote.connector.oauth;
+package de.adorsys.aspsp.xs2a.connector.oauth;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -21,7 +22,7 @@ public class OauthConfigTest {
     public void tokenAuthenticationFilterRegistration() {
         FilterRegistrationBean filterRegistrationBean = oauthConfig.tokenAuthenticationFilterRegistration();
 
-        assertEquals(0, filterRegistrationBean.getOrder());
+        Assert.assertEquals(0, filterRegistrationBean.getOrder());
         assertEquals(tokenAuthenticationFilter, filterRegistrationBean.getFilter());
     }
 }
