@@ -6,16 +6,18 @@ import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.service.discovery.ServiceTypeDiscoveryService;
 import de.adorsys.psd2.xs2a.service.mapper.psd2.ServiceType;
 import de.adorsys.xs2a.reader.JsonReader;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Collections;
 import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OauthProfileServiceWrapperTest {
@@ -49,7 +51,7 @@ public class OauthProfileServiceWrapperTest {
 
         realAspspSettings = jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class);
 
-        Mockito.when(aspspProfileService.getAspspSettings())
+        when(aspspProfileService.getAspspSettings())
                 .thenReturn(realAspspSettings);
     }
 
@@ -59,7 +61,7 @@ public class OauthProfileServiceWrapperTest {
         AspspSettings aspspSettings = oauthProfileServiceWrapper.getAspspSettings();
 
         // Then
-        Assert.assertEquals(realAspspSettings, aspspSettings);
+        assertEquals(realAspspSettings, aspspSettings);
     }
 
     @Test
@@ -67,16 +69,16 @@ public class OauthProfileServiceWrapperTest {
         // Given
         AspspSettings modifiedSettings = jsonReader.getObjectFromFile(ASPSP_SETTINGS_INTEGRATED_AIS_JSON_PATH, AspspSettings.class);
 
-        Mockito.when(oauthDataHolder.getOauthType())
+        when(oauthDataHolder.getOauthType())
                 .thenReturn(OauthType.INTEGRATED);
-        Mockito.when(serviceTypeDiscoveryService.getServiceType())
+        when(serviceTypeDiscoveryService.getServiceType())
                 .thenReturn(ServiceType.AIS);
 
         // When
         AspspSettings aspspSettings = oauthProfileServiceWrapper.getAspspSettings();
 
         // Then
-        Assert.assertEquals(modifiedSettings, aspspSettings);
+        assertEquals(modifiedSettings, aspspSettings);
     }
 
     @Test
@@ -84,16 +86,16 @@ public class OauthProfileServiceWrapperTest {
         // Given
         AspspSettings modifiedSettings = jsonReader.getObjectFromFile(ASPSP_SETTINGS_INTEGRATED_PIS_JSON_PATH, AspspSettings.class);
 
-        Mockito.when(oauthDataHolder.getOauthType())
+        when(oauthDataHolder.getOauthType())
                 .thenReturn(OauthType.INTEGRATED);
-        Mockito.when(serviceTypeDiscoveryService.getServiceType())
+        when(serviceTypeDiscoveryService.getServiceType())
                 .thenReturn(ServiceType.PIS);
 
         // When
         AspspSettings aspspSettings = oauthProfileServiceWrapper.getAspspSettings();
 
         // Then
-        Assert.assertEquals(modifiedSettings, aspspSettings);
+        assertEquals(modifiedSettings, aspspSettings);
     }
 
     @Test
@@ -101,16 +103,16 @@ public class OauthProfileServiceWrapperTest {
         // Given
         AspspSettings modifiedSettings = jsonReader.getObjectFromFile(ASPSP_SETTINGS_INTEGRATED_JSON_PATH, AspspSettings.class);
 
-        Mockito.when(oauthDataHolder.getOauthType())
+        when(oauthDataHolder.getOauthType())
                 .thenReturn(OauthType.INTEGRATED);
-        Mockito.when(serviceTypeDiscoveryService.getServiceType())
+        when(serviceTypeDiscoveryService.getServiceType())
                 .thenReturn(ServiceType.PIIS);
 
         // When
         AspspSettings aspspSettings = oauthProfileServiceWrapper.getAspspSettings();
 
         // Then
-        Assert.assertEquals(modifiedSettings, aspspSettings);
+        assertEquals(modifiedSettings, aspspSettings);
     }
 
     @Test
@@ -118,31 +120,31 @@ public class OauthProfileServiceWrapperTest {
         // Given
         AspspSettings modifiedSettings = jsonReader.getObjectFromFile(ASPSP_SETTINGS_PRESTEP_JSON_PATH, AspspSettings.class);
 
-        Mockito.when(oauthDataHolder.getOauthType())
+        when(oauthDataHolder.getOauthType())
                 .thenReturn(OauthType.PRE_STEP);
-        Mockito.when(oauthDataHolder.getToken())
+        when(oauthDataHolder.getToken())
                 .thenReturn(OAUTH_TOKEN_VALUE);
 
         // When
         AspspSettings aspspSettings = oauthProfileServiceWrapper.getAspspSettings();
 
         // Then
-        Assert.assertEquals(modifiedSettings, aspspSettings);
+        assertEquals(modifiedSettings, aspspSettings);
     }
 
     @Test
     public void getScaApproaches() {
         // Given
         List<ScaApproach> expectedScaApproaches = Collections.singletonList(ScaApproach.REDIRECT);
-        Mockito.when(aspspProfileService.getScaApproaches())
+        when(aspspProfileService.getScaApproaches())
                 .thenReturn(expectedScaApproaches);
 
         // When
         List<ScaApproach> actualScaApproaches = oauthProfileServiceWrapper.getScaApproaches();
 
         // Then
-        Assert.assertEquals(expectedScaApproaches, actualScaApproaches);
+        assertEquals(expectedScaApproaches, actualScaApproaches);
 
-        Mockito.verify(aspspProfileService).getScaApproaches();
+        verify(aspspProfileService).getScaApproaches();
     }
 }

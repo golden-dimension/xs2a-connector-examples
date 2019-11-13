@@ -6,7 +6,6 @@ import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import feign.FeignException;
 import feign.Request;
 import feign.Response;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
@@ -18,6 +17,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Collections;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TokenValidationServiceTest {
@@ -34,14 +37,14 @@ public class TokenValidationServiceTest {
         // Given
         String token = "some token";
         BearerTokenTO expected = new BearerTokenTO();
-        Mockito.when(userMgmtRestClient.validate(token))
+        when(userMgmtRestClient.validate(token))
                 .thenReturn(ResponseEntity.ok(expected));
 
         // When
         BearerTokenTO actual = tokenValidationService.validate(token);
 
         // Then
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
 
         InOrder inOrder = Mockito.inOrder(authRequestInterceptor, userMgmtRestClient);
         inOrder.verify(authRequestInterceptor).setAccessToken(token);
@@ -59,14 +62,14 @@ public class TokenValidationServiceTest {
                                          .headers(Collections.emptyMap())
                                          .build();
         FeignException feignException = FeignException.errorStatus("some message", feignResponse);
-        Mockito.when(userMgmtRestClient.validate(token))
+        when(userMgmtRestClient.validate(token))
                 .thenThrow(feignException);
 
         // When
         BearerTokenTO actual = tokenValidationService.validate(token);
 
         // Then
-        Assert.assertNull(actual);
+        assertNull(actual);
 
         InOrder inOrder = Mockito.inOrder(authRequestInterceptor, userMgmtRestClient);
         inOrder.verify(authRequestInterceptor).setAccessToken(token);
