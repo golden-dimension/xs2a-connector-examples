@@ -11,6 +11,10 @@
 
     <artifactId>xs2a-connector-oauth-service</artifactId>
 
+    <properties>
+        <ruleset.basedir>..</ruleset.basedir>
+    </properties>
+
     <dependencies>
         <!-- xs2a dependencies -->
         <dependency>
