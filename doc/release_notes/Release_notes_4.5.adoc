@@ -2,3 +2,8 @@
 
 == Table of Contents
 
+* Fixing multilevel sca for payment and consents in xs2a-connector-examples
+
+== Fixing multilevel sca for payment and consents in xs2a-connector-examples
+
+From now on, when you try to initiate a consent or a payment through multilevel sca it should be working.
