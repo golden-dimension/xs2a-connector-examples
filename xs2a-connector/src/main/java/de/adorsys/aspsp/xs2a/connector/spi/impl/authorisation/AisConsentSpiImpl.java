@@ -35,6 +35,7 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountConsent;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthenticationObject;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiInitiateAisConsentResponse;
@@ -42,6 +43,7 @@ import de.adorsys.psd2.xs2a.spi.domain.consent.SpiVerifyScaAuthorisationResponse
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse.VoidResponse;
 import de.adorsys.psd2.xs2a.spi.service.AisConsentSpi;
+import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import feign.FeignException;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -94,6 +96,18 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         this.consentDataService = consentDataService;
         this.scaLoginMapper = scaLoginMapper;
         this.feignExceptionReader = feignExceptionReader;
+    }
+
+    @Override
+    protected SpiResponse<SpiAuthorisationStatus> onSuccessfulAuthorisation(SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, SpiResponse<SpiAuthorisationStatus> authorisePsu, SCAConsentResponseTO scaBusinessObjectResponse) {
+        try {
+            aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
+        } catch (IOException e) {
+            return SpiResponse.<SpiAuthorisationStatus>builder()
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
+                           .build();
+        }
+        return super.onSuccessfulAuthorisation(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
     }
 
     /*
@@ -197,8 +211,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     ConsentStatus getConsentStatus(SCAConsentResponseTO consentResponse) {
+        //TODO: Ask ledgers about providing correct values for ScaResponseTO#isMultilevelScaRequired
         if (consentResponse != null
-                    && consentResponse.isMultilevelScaRequired()
                     && consentResponse.isPartiallyAuthorised()
                     && ScaStatusTO.FINALISED.equals(consentResponse.getScaStatus())) {
             return ConsentStatus.PARTIALLY_AUTHORISED;
