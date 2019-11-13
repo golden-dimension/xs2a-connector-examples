@@ -128,7 +128,7 @@ Unit Tests:
 Test Docker Image:
   stage: "Test"
   script:
-    - docker build -t "adorsys/xs2a-connector-examples:test" .
+    - docker build -t "adorsys/xs2a-connector-examples:test" gateway-app
 
 ###########
 # develop #
