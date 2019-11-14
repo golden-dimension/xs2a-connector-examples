@@ -170,6 +170,7 @@ public class AccountSpiImpl implements AccountSpi {
 
 
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+        // TODO https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1106
         // For dates there are alternative test values in case of receiving NULLs, ledgers must receive dates for retrieving transactions request
         // Will be deleted when Ledgers provides supporting getting transactions list without dates.
         LocalDate dateFrom = Optional.ofNullable(spiTransactionReportParameters.getDateFrom())

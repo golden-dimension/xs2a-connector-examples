@@ -28,4 +28,4 @@ All existing CMS and ASPSP Profile endpoints are exposed within the same applica
 Delta access parameters (`entryReferenceFrom` and `deltaList`) are provided to SPI level in `SpiTransactionReportParameters` object.
 Also `acceptMediaType`, `withBalance`, `dateFrom`, `dateTo`, `bookingStatus` parameters were moved from method parameters to `SpiTransactionReportParameters` object.
 Parameters `dateFrom` and `dateTo` are not mandatory from this moment.
-If any of period parameters is NULL in incoming request from XS2A it'll be initialised with test date before invoking get transactions list in Ledgers.
+If any of period parameters is NULL in incoming request from XS2A it'll be initialised with test date before getting transactions list from Ledgers.
