@@ -210,7 +210,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     ConsentStatus getConsentStatus(SCAConsentResponseTO consentResponse) {
-        //TODO: Ask ledgers about providing correct values for ScaResponseTO#isMultilevelScaRequired
+        //TODO: https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/440 -> Ask ledgers about providing correct values for ScaResponseTO#isMultilevelScaRequired
         if (consentResponse != null
                     && consentResponse.isPartiallyAuthorised()
                     && ScaStatusTO.FINALISED.equals(consentResponse.getScaStatus())) {
