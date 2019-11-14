@@ -46,5 +46,5 @@ Authorisation of such payments isn't possible either.
 
 == Fixed format of error response on invalid OAuth token
 
-From now on, the format of an error response returned on invalid OAuth token, is correct. This is done by wrapping
+From now on, the format of an error response returned on invalid OAuth token is correct. This is done by wrapping
 the response into a `tppMessages` array.
