@@ -19,9 +19,12 @@ package de.adorsys.aspsp.xs2a.connector.oauth;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.psd2.aspsp.profile.domain.AspspSettings;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
+import de.adorsys.psd2.mapper.Xs2aObjectMapper;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.exception.MessageCategory;
+import de.adorsys.psd2.xs2a.service.discovery.ServiceTypeDiscoveryService;
+import de.adorsys.psd2.xs2a.service.mapper.psd2.ErrorMapperContainer;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageBuilder;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
 import de.adorsys.xs2a.reader.JsonReader;
@@ -82,12 +85,18 @@ public class TokenAuthenticationFilterTest {
     private OauthDataHolder oauthDataHolder;
     @Mock
     private AspspProfileService aspspProfileService;
+    @Mock
+    private ServiceTypeDiscoveryService serviceTypeDiscoveryService;
+    @Mock
+    private ErrorMapperContainer errorMapperContainer;
+    @Mock
+    private Xs2aObjectMapper xs2aObjectMapper;
 
     private TokenAuthenticationFilter tokenAuthenticationFilter;
 
     @Before
     public void setUp() {
-        tokenAuthenticationFilter = new TokenAuthenticationFilter(OAUTH_MODE_HEADER_NAME, tppErrorMessageBuilder, tokenValidationService, aspspProfileService, oauthDataHolder);
+        tokenAuthenticationFilter = new TokenAuthenticationFilter(OAUTH_MODE_HEADER_NAME, tppErrorMessageBuilder, tokenValidationService, aspspProfileService, oauthDataHolder, serviceTypeDiscoveryService, errorMapperContainer, xs2aObjectMapper);
 
         when(aspspProfileService.getScaApproaches())
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
