@@ -35,6 +35,7 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountConsent;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthenticationObject;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiInitiateAisConsentResponse;
@@ -94,6 +95,18 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         this.consentDataService = consentDataService;
         this.scaLoginMapper = scaLoginMapper;
         this.feignExceptionReader = feignExceptionReader;
+    }
+
+    @Override
+    protected SpiResponse<SpiAuthorisationStatus> onSuccessfulAuthorisation(SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, SpiResponse<SpiAuthorisationStatus> authorisePsu, SCAConsentResponseTO scaBusinessObjectResponse) {
+        try {
+            aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
+        } catch (IOException e) {
+            return SpiResponse.<SpiAuthorisationStatus>builder()
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
+                           .build();
+        }
+        return super.onSuccessfulAuthorisation(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
     }
 
     /*
@@ -197,8 +210,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     ConsentStatus getConsentStatus(SCAConsentResponseTO consentResponse) {
+        //TODO: Ask ledgers about providing correct values for ScaResponseTO#isMultilevelScaRequired
         if (consentResponse != null
-                    && consentResponse.isMultilevelScaRequired()
                     && consentResponse.isPartiallyAuthorised()
                     && ScaStatusTO.FINALISED.equals(consentResponse.getScaStatus())) {
             return ConsentStatus.PARTIALLY_AUTHORISED;
@@ -224,6 +237,11 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                              .replace(TAN, challengeDataParts.get(indexOfTan));
 
         return format(DECOUPLED_USR_MSG, url);
+    }
+
+    @Override
+    protected boolean isFirstInitiationOfMultilevelSca(SpiAccountConsent businessObject) {
+        return businessObject.getPsuData().size() <= 1;
     }
 
     private <T extends SpiInitiateAisConsentResponse> SpiResponse<T> firstCallInstantiatingConsent(

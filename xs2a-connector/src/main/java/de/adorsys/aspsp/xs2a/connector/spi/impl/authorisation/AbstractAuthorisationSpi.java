@@ -61,7 +61,8 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
         }
 
         SpiResponse<SpiAuthorisationStatus> authorisePsu = authorisationService.authorisePsuForConsent(
-                psuLoginData, password, getBusinessObjectId(businessObject), originalResponse, getOtpType(), aspspConsentDataProvider);
+                psuLoginData, password, getBusinessObjectId(businessObject),
+                getOtpType(), aspspConsentDataProvider);
 
         if (!authorisePsu.isSuccessful()) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
@@ -213,11 +214,13 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
         return false;
     }
 
+    protected abstract boolean isFirstInitiationOfMultilevelSca(T businessObject);
+
     protected SpiResponse<SpiAuthorisationStatus> onSuccessfulAuthorisation(T businessObject,
                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                                                             SpiResponse<SpiAuthorisationStatus> authorisePsu,
                                                                             R scaBusinessObjectResponse) {
-        if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())) {
+        if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus()) && isFirstInitiationOfMultilevelSca(businessObject)) {
             SCAResponseTO aisConsentResponse;
             try {
                 aisConsentResponse = initiateBusinessObject(businessObject, aspspConsentDataProvider.loadAspspConsentData());

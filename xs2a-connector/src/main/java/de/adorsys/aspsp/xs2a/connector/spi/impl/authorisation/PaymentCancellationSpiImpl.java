@@ -229,6 +229,11 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     @Override
+    protected boolean isFirstInitiationOfMultilevelSca(SpiPayment businessObject) {
+        return true;
+    }
+
+    @Override
     protected Optional<List<ScaUserDataTO>> getScaMethods(SCAPaymentResponseTO sca) {
         authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
         ResponseEntity<SCAPaymentResponseTO> cancelSCA = paymentRestClient.getCancelSCA(sca.getPaymentId(), sca.getAuthorisationId());
