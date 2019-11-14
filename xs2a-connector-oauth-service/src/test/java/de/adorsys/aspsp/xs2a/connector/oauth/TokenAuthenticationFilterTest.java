@@ -22,9 +22,13 @@ import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.mapper.Xs2aObjectMapper;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
+import de.adorsys.psd2.xs2a.domain.TppMessageInformation;
 import de.adorsys.psd2.xs2a.exception.MessageCategory;
+import de.adorsys.psd2.xs2a.exception.MessageError;
 import de.adorsys.psd2.xs2a.service.discovery.ServiceTypeDiscoveryService;
 import de.adorsys.psd2.xs2a.service.mapper.psd2.ErrorMapperContainer;
+import de.adorsys.psd2.xs2a.service.mapper.psd2.ErrorType;
+import de.adorsys.psd2.xs2a.service.mapper.psd2.ServiceType;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageBuilder;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
 import de.adorsys.xs2a.reader.JsonReader;
@@ -36,6 +40,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 import javax.servlet.FilterChain;
@@ -71,6 +76,8 @@ public class TokenAuthenticationFilterTest {
     private static final String PAYMENTS_PATH = "/v1/payments/sepa-credits-transfer";
     private static final String IDP_CONFIGURATION_LINK = "http://localhost:4200/idp";
 
+    private static final ServiceType SERVICE_TYPE = ServiceType.AIS;
+
     @Mock
     private TppErrorMessageBuilder tppErrorMessageBuilder;
     @Mock
@@ -102,6 +109,8 @@ public class TokenAuthenticationFilterTest {
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
         when(aspspProfileService.getAspspSettings())
                 .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+        when(serviceTypeDiscoveryService.getServiceType())
+                .thenReturn(SERVICE_TYPE);
     }
 
     @Test
@@ -273,6 +282,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR, "some message");
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_400, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -280,7 +293,7 @@ public class TokenAuthenticationFilterTest {
         // Then
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -297,6 +310,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR, "some message");
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_400, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -304,7 +321,7 @@ public class TokenAuthenticationFilterTest {
         // Then
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_BAD_REQUEST);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -320,6 +337,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, ERROR_MESSAGE_TEXT);
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_401, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -327,7 +348,7 @@ public class TokenAuthenticationFilterTest {
         // Then
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -345,6 +366,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, "some message");
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_401, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -352,7 +377,7 @@ public class TokenAuthenticationFilterTest {
         // Then
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -369,6 +394,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, "some message");
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_401, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -376,7 +405,7 @@ public class TokenAuthenticationFilterTest {
         // Then
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -394,6 +423,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.UNAUTHORIZED_NO_TOKEN, IDP_CONFIGURATION_LINK);
         when(tppErrorMessageBuilder.buildTppErrorMessageWithPlaceholder(MessageCategory.ERROR, MessageErrorCode.UNAUTHORIZED_NO_TOKEN, IDP_CONFIGURATION_LINK))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_401, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -401,7 +434,7 @@ public class TokenAuthenticationFilterTest {
         // Then
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
     }
 
@@ -422,6 +455,10 @@ public class TokenAuthenticationFilterTest {
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID, "some message");
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.TOKEN_INVALID))
                 .thenReturn(tppErrorMessage);
+        MessageErrorCode messageErrorCode = tppErrorMessage.getCode();
+        MessageError messageError = buildMessageError(ErrorType.AIS_401, tppErrorMessage, messageErrorCode);
+        ErrorMapperContainer.ErrorBody errorBody = buildErrorBody(messageErrorCode.getCode());
+        when(errorMapperContainer.getErrorBody(messageError)).thenReturn(errorBody);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -431,7 +468,15 @@ public class TokenAuthenticationFilterTest {
 
         verify(httpServletResponse).setStatus(HttpServletResponse.SC_FORBIDDEN);
         verify(httpServletResponse).setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        verify(mockWriter).print(tppErrorMessage.toString());
+        verify(xs2aObjectMapper).writeValue(mockWriter, errorBody.getBody());
         verify(filterChain, never()).doFilter(any(), any());
+    }
+
+    private MessageError buildMessageError(ErrorType errorType, TppErrorMessage tppErrorMessage, MessageErrorCode messageErrorCode) {
+        return new MessageError(errorType, TppMessageInformation.of(tppErrorMessage.getCategory(), messageErrorCode));
+    }
+
+    private ErrorMapperContainer.ErrorBody buildErrorBody(int code) {
+        return new ErrorMapperContainer.ErrorBody(null, HttpStatus.valueOf(code));
     }
 }
