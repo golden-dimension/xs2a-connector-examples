@@ -67,7 +67,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                       AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService,
                                       GeneralAuthorisationService authorisationService,
                                       FeignExceptionReader feignExceptionReader, ScaLoginMapper scaLoginMapper) {
-        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader);
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
         this.paymentRestClient = ledgersRestClient;
         this.tokenStorageService = tokenStorageService;
         this.authRequestInterceptor = authRequestInterceptor;

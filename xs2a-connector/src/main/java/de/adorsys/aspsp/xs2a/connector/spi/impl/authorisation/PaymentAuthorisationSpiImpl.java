@@ -68,7 +68,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                                        AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService,
                                        PaymentRestClient paymentRestClient, CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService,
                                        FeignExceptionReader feignExceptionReader, PaymentInternalGeneral paymentInternalGeneral) {
-        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader);
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
         this.tokenStorageService = tokenStorageService;
         this.scaLoginMapper = scaLoginMapper;
         this.consentDataService = consentDataService;
@@ -90,13 +90,6 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
 
     @Override
     protected SpiResponse<SpiAuthorisationStatus> onSuccessfulAuthorisation(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, SpiResponse<SpiAuthorisationStatus> authorisePsu, SCAPaymentResponseTO scaBusinessObjectResponse) {
-        try {
-            aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
-        } catch (IOException e) {
-            return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
-                           .build();
-        }
         SpiResponse<SpiAuthorisationStatus> response = super.onSuccessfulAuthorisation(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
         if (!response.hasError() && businessObject.getPsuDataList().size() == 1) {
             cmsPaymentStatusUpdateService.updatePaymentStatus(businessObject.getPaymentId(), aspspConsentDataProvider);

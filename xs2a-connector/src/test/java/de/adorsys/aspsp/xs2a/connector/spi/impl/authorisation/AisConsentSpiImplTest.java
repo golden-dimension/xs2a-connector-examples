@@ -42,6 +42,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -186,13 +187,50 @@ public class AisConsentSpiImplTest {
         SpiResponse<SpiAuthorisationStatus> actualResponse = spi.authorisePsu(SPI_CONTEXT_DATA, spiPsuData, password, spiAccountConsent, spiAspspConsentDataProvider);
 
         // Then
+        // Then
         assertFalse(actualResponse.hasError());
         assertEquals(SpiAuthorisationStatus.SUCCESS, actualResponse.getPayload());
 
+        verify(spiAspspConsentDataProvider, times(2)).updateAspspConsentData(tokenStorageService.toBytes(scaConsentResponseTO));
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
         verify(authRequestInterceptor).setAccessToken(scaConsentResponseTO.getBearerToken().getAccess_token());
         verify(consentRestClient).startSCA(CONSENT_ID, aisConsentTO);
         verify(authRequestInterceptor).setAccessToken(null);
+    }
+
+    @Test
+    public void authorisePsu_multilevel() throws IOException {
+        // Given
+        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null);
+        SpiPsuData spiPsuData2 = new SpiPsuData("psu2", null, null, null, null);
+        spiAccountConsent.setPsuData(Arrays.asList(spiPsuData, spiPsuData2));
+        SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(PSUIDENTIFIED);
+        AisConsentTO aisConsentTO = new AisConsentTO();
+        String password = "password";
+        SCALoginResponseTO scaLoginResponseTO = new SCALoginResponseTO();
+
+        SCAConsentResponseTO scaConsentResponseFromLoginResponse = new SCAConsentResponseTO();
+        scaConsentResponseFromLoginResponse.setScaStatus(PSUAUTHENTICATED);
+
+        when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
+
+        when(consentDataService.response(CONSENT_DATA_BYTES, SCAConsentResponseTO.class, false))
+                .thenReturn(scaConsentResponseTO);
+        when(authorisationService.authorisePsuForConsent(spiPsuData, password, CONSENT_ID, OpTypeTO.CONSENT, spiAspspConsentDataProvider))
+                .thenReturn(SpiResponse.<SpiAuthorisationStatus>builder().payload(SpiAuthorisationStatus.SUCCESS).build());
+
+        when(tokenStorageService.fromBytes(CONSENT_DATA_BYTES, SCALoginResponseTO.class)).thenReturn(scaLoginResponseTO);
+        when(scaLoginMapper.toConsentResponse(scaLoginResponseTO)).thenReturn(scaConsentResponseFromLoginResponse);
+
+        // When
+        SpiResponse<SpiAuthorisationStatus> actualResponse = spi.authorisePsu(SPI_CONTEXT_DATA, spiPsuData, password, spiAccountConsent, spiAspspConsentDataProvider);
+
+        // Then
+        assertFalse(actualResponse.hasError());
+        assertEquals(SpiAuthorisationStatus.SUCCESS, actualResponse.getPayload());
+
+        verify(spiAspspConsentDataProvider).updateAspspConsentData(tokenStorageService.toBytes(scaConsentResponseTO));
+        verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
     }
 
     @Test

@@ -10,6 +10,7 @@ import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
+import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
@@ -45,6 +46,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
     private final GeneralAuthorisationService authorisationService;
     private final ScaMethodConverter scaMethodConverter;
     private final FeignExceptionReader feignExceptionReader;
+    private final TokenStorageService tokenStorageService;
 
     public SpiResponse<SpiAuthorisationStatus> authorisePsu(@NotNull SpiContextData contextData,
                                                             @NotNull SpiPsuData psuLoginData, String password, T businessObject,
@@ -220,6 +222,14 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                                                             SpiResponse<SpiAuthorisationStatus> authorisePsu,
                                                                             R scaBusinessObjectResponse) {
+        try {
+            aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
+        } catch (IOException e) {
+            return SpiResponse.<SpiAuthorisationStatus>builder()
+                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
+                           .build();
+        }
+
         if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus()) && isFirstInitiationOfMultilevelSca(businessObject)) {
             SCAResponseTO aisConsentResponse;
             try {
