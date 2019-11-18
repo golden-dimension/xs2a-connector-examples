@@ -226,7 +226,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
             aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
         } catch (IOException e) {
             return SpiResponse.<SpiAuthorisationStatus>builder()
-                           .error(new TppMessage(MessageErrorCode.TOKEN_UNKNOWN))
+                           .error(new TppMessage(TOKEN_UNKNOWN))
                            .build();
         }
 

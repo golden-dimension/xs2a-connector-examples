@@ -3,7 +3,7 @@
 == Table of Contents
 
 * Added application starter with embedded CMS and ASPSP Profile
-* Fixed multilevel sca for payment and consents
+* Fixed multilevel sca for payments and consents
 
 == Added application starter with embedded CMS and ASPSP Profile
 
