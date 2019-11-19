@@ -212,16 +212,12 @@ public class AisConsentSpiImplTest {
                 .thenReturn(scaConsentResponseTO);
         when(authorisationService.authorisePsuForConsent(spiPsuData, password, CONSENT_ID, OpTypeTO.CONSENT, spiAspspConsentDataProvider))
                 .thenReturn(SpiResponse.<SpiPsuAuthorisationResponse>builder().payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS)).build());
-        when(consentDataService.response(CONSENT_DATA_BYTES)).thenReturn(scaConsentResponseTO);
 
         when(tokenStorageService.fromBytes(CONSENT_DATA_BYTES, SCALoginResponseTO.class)).thenReturn(scaLoginResponseTO);
         when(scaLoginMapper.toConsentResponse(scaLoginResponseTO)).thenReturn(scaConsentResponseFromLoginResponse);
 
         SCAConsentResponseTO startScaResponse = new SCAConsentResponseTO();
         startScaResponse.setScaStatus(PSUAUTHENTICATED);
-
-        when(aisConsentMapper.mapToAisConsent(spiAccountConsent)).thenReturn(aisConsentTO);
-        when(consentRestClient.startSCA(spiAccountConsent.getId(), aisConsentTO)).thenReturn(ResponseEntity.ok(startScaResponse));
 
         // When
         SpiResponse<SpiPsuAuthorisationResponse> actualResponse = spi.authorisePsu(SPI_CONTEXT_DATA, spiPsuData, password, spiAccountConsent, spiAspspConsentDataProvider);
@@ -230,7 +226,7 @@ public class AisConsentSpiImplTest {
         assertFalse(actualResponse.hasError());
         assertEquals(SpiAuthorisationStatus.SUCCESS, actualResponse.getPayload().getSpiAuthorisationStatus());
 
-        verify(spiAspspConsentDataProvider, times(2)).updateAspspConsentData(tokenStorageService.toBytes(scaConsentResponseTO));
+        verify(spiAspspConsentDataProvider, times(1)).updateAspspConsentData(tokenStorageService.toBytes(scaConsentResponseTO));
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
     }
 
@@ -332,7 +328,7 @@ public class AisConsentSpiImplTest {
 
         // Then
         assertFalse(actualResponse.hasError());
-        assertEquals(actualResponse.getPayload(), SPI_PSU_AUTHORISATION_FAILURE_RESPONSE);
+        assertEquals(SPI_PSU_AUTHORISATION_FAILURE_RESPONSE, actualResponse.getPayload());
 
         verify(authorisationService).authorisePsuForConsent(spiPsuData, password, CONSENT_ID, OpTypeTO.CONSENT, spiAspspConsentDataProvider);
     }

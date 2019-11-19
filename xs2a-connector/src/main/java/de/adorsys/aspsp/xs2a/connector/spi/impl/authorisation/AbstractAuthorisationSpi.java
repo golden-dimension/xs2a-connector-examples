@@ -227,7 +227,8 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                            .build();
         }
 
-        if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())) {
+        if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())
+                    && isFirstInitiationOfMultilevelSca(businessObject)) {
             SCAResponseTO aisConsentResponse;
             try {
                 aisConsentResponse = initiateBusinessObject(businessObject, aspspConsentDataProvider.loadAspspConsentData());
