@@ -30,6 +30,7 @@ import de.adorsys.psd2.xs2a.service.mapper.psd2.ErrorMapperContainer;
 import de.adorsys.psd2.xs2a.service.mapper.psd2.ErrorType;
 import de.adorsys.psd2.xs2a.service.mapper.psd2.ServiceType;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageBuilder;
+import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
 import de.adorsys.xs2a.reader.JsonReader;
 import org.junit.Before;
@@ -103,8 +104,9 @@ public class TokenAuthenticationFilterTest {
 
     @Before
     public void setUp() {
-        tokenAuthenticationFilter = new TokenAuthenticationFilter(OAUTH_MODE_HEADER_NAME, tppErrorMessageBuilder, tokenValidationService, aspspProfileService, oauthDataHolder, serviceTypeDiscoveryService, errorMapperContainer, xs2aObjectMapper);
-
+        tokenAuthenticationFilter = new TokenAuthenticationFilter(OAUTH_MODE_HEADER_NAME, tppErrorMessageBuilder,
+                                                                  tokenValidationService, aspspProfileService, oauthDataHolder,
+                                                                  new TppErrorMessageWriter(serviceTypeDiscoveryService, errorMapperContainer, xs2aObjectMapper));
         when(aspspProfileService.getScaApproaches())
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
         when(aspspProfileService.getAspspSettings())
