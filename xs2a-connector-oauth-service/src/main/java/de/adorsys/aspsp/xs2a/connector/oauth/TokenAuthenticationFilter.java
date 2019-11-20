@@ -21,7 +21,7 @@ import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageBuilder;
-import de.adorsys.psd2.xs2a.web.error.TppErrorMessageLogger;
+import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
 import de.adorsys.psd2.xs2a.web.filter.AbstractXs2aFilter;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -55,19 +55,19 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     private final TokenValidationService tokenValidationService;
     private final AspspProfileService aspspProfileService;
     private final OauthDataHolder oauthDataHolder;
-    private final TppErrorMessageLogger tppErrorMessageLogger;
+    private final TppErrorMessageWriter tppErrorMessageWriter;
 
     public TokenAuthenticationFilter(@Value("${oauth.header-name:X-OAUTH-PREFERRED}") String oauthModeHeaderName,
                                      TppErrorMessageBuilder tppErrorMessageBuilder,
                                      TokenValidationService tokenValidationService,
                                      AspspProfileService aspspProfileService,
-                                     OauthDataHolder oauthDataHolder, TppErrorMessageLogger tppErrorMessageLogger) {
+                                     OauthDataHolder oauthDataHolder, TppErrorMessageWriter tppErrorMessageWriter) {
         this.oauthModeHeaderName = oauthModeHeaderName;
         this.tppErrorMessageBuilder = tppErrorMessageBuilder;
         this.tokenValidationService = tokenValidationService;
         this.aspspProfileService = aspspProfileService;
         this.oauthDataHolder = oauthDataHolder;
-        this.tppErrorMessageLogger = tppErrorMessageLogger;
+        this.tppErrorMessageWriter = tppErrorMessageWriter;
     }
 
     @Override
@@ -84,7 +84,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
 
         if (!oauthTypeOptional.isPresent()) {
             log.info("Token authentication error: unknown OAuth type {}", oauthHeader);
-            tppErrorMessageLogger.error(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
+            tppErrorMessageWriter.writeError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
             return;
         }
 
@@ -103,21 +103,21 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     private boolean isInvalidOauthRequest(HttpServletRequest request, @NotNull HttpServletResponse response, OauthType oauthType, String bearerToken) throws IOException {
         if (!aspspProfileService.getScaApproaches().contains(ScaApproach.OAUTH)) {
             log.info("Token authentication error: OAUTH SCA approach is not supported in the profile");
-            tppErrorMessageLogger.error(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
+            tppErrorMessageWriter.writeError(response, HttpServletResponse.SC_BAD_REQUEST, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
             return true;
         }
 
         if (oauthType == OauthType.PRE_STEP && StringUtils.isBlank(bearerToken)) {
             log.info("Token authentication error: token is absent in pre-step OAuth");
             String oauthConfigurationUrl = aspspProfileService.getAspspSettings().getCommon().getOauthConfigurationUrl();
-            tppErrorMessageLogger.error(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(UNAUTHORIZED_NO_TOKEN, oauthConfigurationUrl));
+            tppErrorMessageWriter.writeError(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(UNAUTHORIZED_NO_TOKEN, oauthConfigurationUrl));
             return true;
         }
 
         boolean tokenRequired = isTokenRequired(oauthType, request.getServletPath());
         if (tokenRequired && isTokenInvalid(bearerToken)) {
             log.info("Token authentication error: token is invalid");
-            tppErrorMessageLogger.error(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(MessageErrorCode.TOKEN_INVALID));
+            tppErrorMessageWriter.writeError(response, HttpServletResponse.SC_FORBIDDEN, buildTppErrorMessage(MessageErrorCode.TOKEN_INVALID));
             return true;
         }
 
