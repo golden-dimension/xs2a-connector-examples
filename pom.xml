@@ -76,6 +76,7 @@
 
 	<properties>
 		<!-- common properties -->
+		<java.version>11</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<ruleset.basedir>${project.basedir}</ruleset.basedir>
@@ -83,8 +84,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
-		<java.version>1.8</java.version>
-		<pmd.plugin.version>3.10.0</pmd.plugin.version>
+		<pmd.plugin.version>3.12.0</pmd.plugin.version>
 		<!-- xs2a version -->
         <xs2a.version>5.5-SNAPSHOT</xs2a.version>
 		<!-- ledgers version -->
@@ -364,7 +364,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.2</version>
+				<version>0.8.3</version>
 				<configuration>
 					<destFile>${sonar.jacoco.reportPath}</destFile>
 					<dataFile>${sonar.jacoco.reportPath}</dataFile>

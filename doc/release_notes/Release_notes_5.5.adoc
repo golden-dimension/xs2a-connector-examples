@@ -6,6 +6,7 @@
 * Added application starter with embedded CMS and ASPSP Profile
 * Provided implementation of delta access for transaction list request
 * Fixed multilevel sca for payments and consents
+* Added supporting of Java 11
 
 == Add supporting standing order report
 
@@ -34,3 +35,7 @@ If any of period parameters is NULL in incoming request from XS2A it'll be initi
 == Fixed multilevel sca for payments and consents
 
 From now on, multilevel SCA for payments and consents is working correctly.
+
+== Added supporting of Java 11
+
+From now on, Xs2A supports Java 11.
