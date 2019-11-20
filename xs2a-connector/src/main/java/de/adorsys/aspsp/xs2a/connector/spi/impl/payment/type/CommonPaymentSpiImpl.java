@@ -41,7 +41,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo, SpiPaymentInitiationResponse> implements CommonPaymentSpi {
-    private static final String XML_MEDIA_TYPE = MediaType.APPLICATION_XML_VALUE;
 
     private GeneralPaymentService generalPaymentService;
     private LedgersSpiPaymentMapper ledgersSpiPaymentMapper;
@@ -88,12 +87,12 @@ public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo, Spi
 
     @Override
     public @NotNull SpiResponse<SpiGetPaymentStatusResponse> getPaymentStatusById(@NotNull SpiContextData contextData, @NotNull String acceptMediaType, @NotNull SpiPaymentInfo payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        if (acceptMediaType.equals(XML_MEDIA_TYPE)) {
+        if (MediaType.APPLICATION_XML_VALUE.equals(acceptMediaType)) {
             return super.getPaymentStatusById(contextData, acceptMediaType, payment, aspspConsentDataProvider);
         }
 
         return SpiResponse.<SpiGetPaymentStatusResponse>builder()
-                       .payload(new SpiGetPaymentStatusResponse(TransactionStatus.ACSP, null, SpiGetPaymentStatusResponse.RESPONSE_TYPE_JSON, null))
+                       .payload(new SpiGetPaymentStatusResponse(TransactionStatus.ACSP, null, MediaType.APPLICATION_JSON_VALUE, null))
                        .build();
     }
 }
