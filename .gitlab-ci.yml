@@ -26,6 +26,7 @@ variables: &variables
   ###########################
 
   DOCKER_IMAGE_NAME_XS2A_CONNECTOR: "adorsys/xs2a-connector-examples"
+  DOCKER_IMAGE_NAME_XS2A_CONNECTOR_EMBEDDED: "adorsys/xs2a-connector-embedded"
 
   ###########################
   # Build variables         #
@@ -52,6 +53,8 @@ variables: &variables
     - docker login -u $DOCKER_HUB_LOGIN -p $DOCKER_HUB_PASS
     - docker build -t "adorsys/xs2a-connector-examples:$DOCKER_TAG" gateway-app
     - docker push "adorsys/xs2a-connector-examples:$DOCKER_TAG"
+    - docker build -t "adorsys/xs2a-connector-embedded:$DOCKER_TAG" gateway-app-embedded
+    - docker push "adorsys/xs2a-connector-embedded:$DOCKER_TAG"
     - docker logout
 
 .deploy_openshift: &deploy_openshift
@@ -162,6 +165,14 @@ Deploy Openshift (develop):
     DOCKER_TAG: develop
     OPENSHIFT_NAMESPACE: "${DEV_NAMESPACE}"
   <<: *deploy_openshift
+
+Push to DockerHub (test):
+  stage: "Package"
+  only:
+    - KOA_add_xs2a_connector_embedded_to_dockerhub
+  variables:
+    DOCKER_TAG: test
+  <<: *build_dockerhub_image
 
 ##########
 # master #
