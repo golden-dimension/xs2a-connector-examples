@@ -53,6 +53,11 @@ variables: &variables
     - docker login -u $DOCKER_HUB_LOGIN -p $DOCKER_HUB_PASS
     - docker build -t "adorsys/xs2a-connector-examples:$DOCKER_TAG" gateway-app
     - docker push "adorsys/xs2a-connector-examples:$DOCKER_TAG"
+    - docker logout
+
+.build_dockerhub_image_embedded: &build_dockerhub_image_embedded
+  script:
+    - docker login -u $DOCKER_HUB_LOGIN -p $DOCKER_HUB_PASS
     - docker build -t "adorsys/xs2a-connector-embedded:$DOCKER_TAG" gateway-app-embedded
     - docker push "adorsys/xs2a-connector-embedded:$DOCKER_TAG"
     - docker logout
@@ -167,14 +172,6 @@ Deploy Openshift (develop):
     OPENSHIFT_NAMESPACE: "${DEV_NAMESPACE}"
   <<: *deploy_openshift
 
-Push to DockerHub (test):
-  stage: "Package"
-  only:
-    - KOA_add_xs2a_connector_embedded_to_dockerhub
-  variables:
-    DOCKER_TAG: test
-  <<: *build_dockerhub_image
-
 ##########
 # master #
 ##########
@@ -186,16 +183,6 @@ Push to DockerHub (master):
   variables:
     DOCKER_TAG: latest
   <<: *build_dockerhub_image
-
-Deploy Openshift (master):
-  stage: "Deployment"
-  only:
-    - master
-  variables:
-    <<: *variables
-    DOCKER_TAG: latest
-    OPENSHIFT_NAMESPACE: "${DEMO_NAMESPACE}"
-  <<: *deploy_openshift
 
 ###########
 # release #
@@ -209,16 +196,13 @@ Push to DockerHub (Release):
     DOCKER_TAG: $CI_COMMIT_TAG
   <<: *build_dockerhub_image
 
-Deploy Openshift (Release):
-  stage: "Deployment"
-  when: manual
+Push to DockerHub (Embedded Release):
+  stage: "Package"
   only:
     - tags
   variables:
-    <<: *variables
     DOCKER_TAG: $CI_COMMIT_TAG
-    OPENSHIFT_NAMESPACE: "${DEMO_NAMESPACE}"
-  <<: *deploy_openshift
+  <<: *build_dockerhub_image_embedded
 
 ###########
 # nightly #
