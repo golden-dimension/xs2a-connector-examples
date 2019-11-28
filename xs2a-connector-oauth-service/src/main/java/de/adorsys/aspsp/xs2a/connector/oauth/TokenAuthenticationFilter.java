@@ -31,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -98,7 +99,15 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         OauthType oauthType = oauthTypeOptional.get();
         String bearerToken = resolveBearerToken(request);
 
-        if (isInvalidOauthRequest(request, response, oauthType, bearerToken)) {
+        boolean isInvalidOauthRequest;
+        try {
+            isInvalidOauthRequest = isInvalidOauthRequest(request, response, oauthType, bearerToken);
+        } catch (ResourceAccessException exception) {
+            tppErrorMessageWriter.writeServiceUnavailableError(response, exception);
+            return;
+        }
+
+        if (isInvalidOauthRequest) {
             return;
         }
 
