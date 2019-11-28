@@ -208,8 +208,6 @@ public class TokenAuthenticationFilterTest {
         // Given
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(null);
-        when(requestPathResolver.resolveRequestPath(httpServletRequest))
-                .thenReturn(ACCOUNTS_PATH);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -264,8 +262,6 @@ public class TokenAuthenticationFilterTest {
         // Given
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INTEGRATED);
-        when(requestPathResolver.resolveRequestPath(httpServletRequest))
-                .thenReturn(ACCOUNTS_PATH);
 
         when(aspspProfileService.getScaApproaches())
                 .thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
@@ -292,8 +288,6 @@ public class TokenAuthenticationFilterTest {
         // Given
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INVALID_VALUE);
-        when(requestPathResolver.resolveRequestPath(httpServletRequest))
-                .thenReturn(ACCOUNTS_PATH);
 
         TppErrorMessage tppErrorMessage = new TppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR, "some message");
         when(tppErrorMessageBuilder.buildTppErrorMessage(MessageCategory.ERROR, MessageErrorCode.FORMAT_ERROR))
@@ -390,8 +384,6 @@ public class TokenAuthenticationFilterTest {
     public void doFilterInternalTest_withBlankToken_preStepOauth_shouldReturnError() throws ServletException, IOException {
         // Given
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_PRE_STEP);
-        when(requestPathResolver.resolveRequestPath(httpServletRequest)).thenReturn(ACCOUNTS_PATH);
-
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(null);
 
@@ -446,8 +438,6 @@ public class TokenAuthenticationFilterTest {
     @Test
     public void doFilter_onCustomEndpoint_shouldSkipFilter() throws ServletException, IOException {
         // Given
-        when(requestPathResolver.resolveRequestPath(httpServletRequest))
-                .thenReturn(CUSTOM_PATH);
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
