@@ -1,0 +1,11 @@
+= Release notes v.5.6
+
+== Table of Contents
+
+* Recoverability of xs2a remote components
+
+== Recoverability of xs2a remote components
+
+From now on, filter `TokenAuthenticationFilter` extends `GlobalAbstractExceptionFilter` class that handles `ResourceAccessException` error
+which can be thrown when remote components are unavailable.
+

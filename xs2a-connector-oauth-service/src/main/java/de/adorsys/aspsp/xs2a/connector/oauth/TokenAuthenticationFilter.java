@@ -22,7 +22,7 @@ import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageBuilder;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
-import de.adorsys.psd2.xs2a.web.filter.GlobalAbstractExceptionFilter;
+import de.adorsys.psd2.xs2a.web.filter.AbstractXs2aFilter;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
 import de.adorsys.psd2.xs2a.web.request.RequestPathResolver;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ import static de.adorsys.psd2.xs2a.exception.MessageCategory.ERROR;
 
 @Slf4j
 @Component
-public class TokenAuthenticationFilter extends GlobalAbstractExceptionFilter {
+public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     private static final String BEARER_TOKEN_PREFIX = "Bearer ";
     private static final String CONSENT_ENP_ENDING = "consents";
     private static final String FUNDS_CONF_ENP_ENDING = "funds-confirmations";
@@ -67,7 +67,7 @@ public class TokenAuthenticationFilter extends GlobalAbstractExceptionFilter {
                                      AspspProfileService aspspProfileService,
                                      OauthDataHolder oauthDataHolder,
                                      TppErrorMessageWriter tppErrorMessageWriter) {
-        super(tppErrorMessageWriter);
+        super(tppErrorMessageWriter, requestPathResolver);
         this.requestPathResolver = requestPathResolver;
         this.oauthModeHeaderName = oauthModeHeaderName;
         this.tppErrorMessageBuilder = tppErrorMessageBuilder;
