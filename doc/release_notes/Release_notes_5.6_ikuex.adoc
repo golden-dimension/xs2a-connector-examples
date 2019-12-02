@@ -2,9 +2,9 @@
 
 == Table of Contents
 
-* Recoverability of xs2a remote components
+* Bugfix: Incorrect response when XS2A remote components are unavailable
 
-== Recoverability of xs2a remote components
+== Bugfix: Incorrect response when XS2A remote components are unavailable
 
 From now on, filter `TokenAuthenticationFilter` extends `GlobalAbstractExceptionFilter` class that handles `ResourceAccessException` error
 which can be thrown when remote components are unavailable.
