@@ -307,19 +307,16 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             SpiAccountAccess spiAccountAccess = accountConsent.getAccess();
+            boolean isAllAvailableAccounts = spiAccountAccess.getAvailableAccounts() != null;
+            boolean isAllPsd2 = spiAccountAccess.getAllPsd2() != null;
 
-            List<SpiAccountReference> references = Optional.ofNullable(accountRestClient.getListOfAccounts().getBody())
-                                                           .map(l -> l.stream().map(accountMapper::toSpiAccountDetails)
-                                                                             .map(SpiAccountReference::new).collect(Collectors.toList()))
-                                                           .orElseGet(Collections::emptyList);
-
-            if (spiAccountAccess.getAvailableAccounts() != null) {
+            if( isAllAvailableAccounts || isAllPsd2){
+                List<SpiAccountReference> references = getReferences();
                 spiAccountAccess.setAccounts(references);
-            }
-
-            if (spiAccountAccess.getAllPsd2() != null) {
-                spiAccountAccess.setBalances(references);
-                spiAccountAccess.setTransactions(references);
+                if( isAllPsd2 ){
+                    spiAccountAccess.setBalances(references);
+                    spiAccountAccess.setTransactions(references);
+                }
             }
 
             AisConsentTO aisConsent = aisConsentMapper.mapToAisConsent(accountConsent);
@@ -336,5 +333,12 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
+    }
+
+    private List<SpiAccountReference> getReferences() {
+        return Optional.ofNullable(accountRestClient.getListOfAccounts().getBody())
+                                                       .map(l -> l.stream().map(accountMapper::toSpiAccountDetails)
+                                                                         .map(SpiAccountReference::new).collect(Collectors.toList()))
+                                                       .orElseGet(Collections::emptyList);
     }
 }
