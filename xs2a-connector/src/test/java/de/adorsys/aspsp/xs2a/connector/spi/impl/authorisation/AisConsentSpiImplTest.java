@@ -929,6 +929,6 @@ public class AisConsentSpiImplTest {
     }
 
     private List<SpiAccountDetails> buildSpiAccountDetails() {
-        return Collections.singletonList(jsonReader.getObjectFromFile("json/spi/impl/abc.json", SpiAccountDetails.class));
+        return Collections.singletonList(jsonReader.getObjectFromFile("json/spi/impl/spi-account-details.json", SpiAccountDetails.class));
     }
 }
