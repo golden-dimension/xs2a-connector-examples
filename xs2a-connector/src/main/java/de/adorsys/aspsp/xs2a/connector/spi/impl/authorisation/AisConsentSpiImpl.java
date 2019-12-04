@@ -310,10 +310,10 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             boolean isAllAvailableAccounts = spiAccountAccess.getAvailableAccounts() != null;
             boolean isAllPsd2 = spiAccountAccess.getAllPsd2() != null;
 
-            if( isAllAvailableAccounts || isAllPsd2){
+            if (isAllAvailableAccounts || isAllPsd2) {
                 List<SpiAccountReference> references = getReferences();
                 spiAccountAccess.setAccounts(references);
-                if( isAllPsd2 ){
+                if (isAllPsd2) {
                     spiAccountAccess.setBalances(references);
                     spiAccountAccess.setTransactions(references);
                 }
@@ -337,8 +337,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
     private List<SpiAccountReference> getReferences() {
         return Optional.ofNullable(accountRestClient.getListOfAccounts().getBody())
-                                                       .map(l -> l.stream().map(accountMapper::toSpiAccountDetails)
-                                                                         .map(SpiAccountReference::new).collect(Collectors.toList()))
-                                                       .orElseGet(Collections::emptyList);
+                       .map(l -> l.stream().map(accountMapper::toSpiAccountDetails)
+                                         .map(SpiAccountReference::new).collect(Collectors.toList()))
+                       .orElseGet(Collections::emptyList);
     }
 }
