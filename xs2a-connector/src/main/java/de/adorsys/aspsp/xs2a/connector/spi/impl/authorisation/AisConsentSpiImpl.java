@@ -314,8 +314,12 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             if (isAllAvailableAccounts || isAllAvailableAccountsWithBalance || isAllPsd2) {
                 List<SpiAccountReference> references = getReferences();
                 spiAccountAccess.setAccounts(references);
-                if (isAllPsd2) {
+
+                if(isAllAvailableAccountsWithBalance || isAllPsd2 ){
                     spiAccountAccess.setBalances(references);
+                }
+
+                if (isAllPsd2) {
                     spiAccountAccess.setTransactions(references);
                 }
             }
