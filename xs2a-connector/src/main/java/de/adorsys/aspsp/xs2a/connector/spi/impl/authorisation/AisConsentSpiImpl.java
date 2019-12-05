@@ -308,9 +308,10 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
             SpiAccountAccess spiAccountAccess = accountConsent.getAccess();
             boolean isAllAvailableAccounts = spiAccountAccess.getAvailableAccounts() != null;
+            boolean isAllAvailableAccountsWithBalance = spiAccountAccess.getAvailableAccountsWithBalance() != null;
             boolean isAllPsd2 = spiAccountAccess.getAllPsd2() != null;
 
-            if (isAllAvailableAccounts || isAllPsd2) {
+            if (isAllAvailableAccounts || isAllAvailableAccountsWithBalance || isAllPsd2) {
                 List<SpiAccountReference> references = getReferences();
                 spiAccountAccess.setAccounts(references);
                 if (isAllPsd2) {
