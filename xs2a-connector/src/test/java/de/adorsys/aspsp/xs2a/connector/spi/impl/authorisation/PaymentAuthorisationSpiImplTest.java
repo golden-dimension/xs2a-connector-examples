@@ -48,8 +48,8 @@ import static org.mockito.Mockito.*;
 public class PaymentAuthorisationSpiImplTest {
 
     private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";
-    private static final SpiPsuData PSU_ID_DATA_1 = new SpiPsuData("1", "2", "3", "4", "5");
-    private static final SpiPsuData PSU_ID_DATA_2 = new SpiPsuData("11", "22", "33", "44", "55");
+    private static final SpiPsuData PSU_ID_DATA_1 = new SpiPsuData("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", UUID.randomUUID());
+    private static final SpiPsuData PSU_ID_DATA_2 = new SpiPsuData("11", "22", "33", "44", "55", "66", "77", "88", "99", "1010", "1111", "1212", "1313", UUID.randomUUID());
     private static final String ACCESS_TOKEN = "access_token";
     private static final SpiContextData SPI_CONTEXT_DATA = new SpiContextData(PSU_ID_DATA_1, new TppInfo(), UUID.randomUUID(), UUID.randomUUID(), ACCESS_TOKEN);
     private static final String AUTHORISATION_ID = "6f3c444d-c664-4cfc-aff3-576651000726";

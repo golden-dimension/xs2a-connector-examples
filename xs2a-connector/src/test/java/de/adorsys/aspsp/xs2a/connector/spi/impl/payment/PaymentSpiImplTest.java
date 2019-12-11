@@ -20,13 +20,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.UUID;
+
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PaymentSpiImplTest {
 
     private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";
-    private static final SpiPsuData PSU_ID_DATA = new SpiPsuData("1", "2", "3", "4", "5");
+    private static final SpiPsuData PSU_ID_DATA = new SpiPsuData("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", UUID.randomUUID());
     private static final SpiContextData SPI_CONTEXT_DATA = TestSpiDataProvider.getSpiContextData();
 
     @InjectMocks
