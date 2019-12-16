@@ -98,6 +98,8 @@ public class AccountSpiImpl implements AccountSpi {
 
             aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
 
+            accountDetailsList.forEach(sad -> enrichSpiAccountDetailsWithOwnerName(sad, accountConsent.getAccess()));
+
             return SpiResponse.<List<SpiAccountDetails>>builder()
                            .payload(filterAccountDetailsByWithBalance(withBalance, accountDetailsList, accountConsent.getAccess()))
                            .build();
@@ -465,4 +467,20 @@ public class AccountSpiImpl implements AccountSpi {
                                                             null, additionalInformationStructured));
     }
 
+    private void enrichSpiAccountDetailsWithOwnerName(SpiAccountDetails accountDetails, SpiAccountAccess access) {
+        SpiAdditionalInformationAccess spiAdditionalInformationAccess = access.getSpiAdditionalInformationAccess();
+        if (spiAdditionalInformationAccess != null && spiAdditionalInformationAccess.getOwnerName() != null) {
+            accountDetails.setOwnerName(getOwnerName(accountDetails.getName()));
+        } else {
+            AccountAccessType allAccountsWithOwnerName = AccountAccessType.ALL_ACCOUNTS_WITH_OWNER_NAME;
+            List<AccountAccessType> accountAccessTypes = Arrays.asList(access.getAvailableAccounts(), access.getAvailableAccountsWithBalance(), access.getAllPsd2());
+            if (accountAccessTypes.contains(allAccountsWithOwnerName)) {
+                accountDetails.setOwnerName(getOwnerName(accountDetails.getName()));
+            }
+        }
+    }
+
+    private String getOwnerName(String name) {
+        return "additional information for: " + name;
+    }
 }
