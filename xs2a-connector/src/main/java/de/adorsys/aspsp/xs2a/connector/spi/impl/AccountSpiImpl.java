@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
 public class AccountSpiImpl implements AccountSpi {
 
     private static final String RESPONSE_STATUS_200_WITH_EMPTY_BODY = "Response status was 200, but the body was empty!";
-    public static final String ADDITIONAL_INFORMATION_PREFIX = "additional information for: ";
+    private static final String ADDITIONAL_INFORMATION_PREFIX = "additional information for: ";
     @Value("${test-download-transaction-list}")
     private String transactionList;
 
