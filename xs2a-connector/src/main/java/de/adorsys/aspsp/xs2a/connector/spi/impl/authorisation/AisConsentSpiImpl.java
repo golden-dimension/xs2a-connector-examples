@@ -216,6 +216,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     public @NotNull SpiResponse<SpiConfirmationCodeCheckingResponse> checkConfirmationCode(@NotNull SpiContextData spiContextData, @NotNull SpiConfirmationCode spiConfirmationCode, @NotNull SpiAccountConsent spiAccountConsent, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
 
         // TODO: This stub for happy-path should be removed after implementing this flow in ledgers.
+        //  https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/500
         return SpiResponse.<SpiConfirmationCodeCheckingResponse>builder()
                        .payload(new SpiConfirmationCodeCheckingResponse(ScaStatus.FINALISED))
                        .build();
