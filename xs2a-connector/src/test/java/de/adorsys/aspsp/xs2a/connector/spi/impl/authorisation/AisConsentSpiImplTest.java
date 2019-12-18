@@ -285,7 +285,7 @@ public class AisConsentSpiImplTest {
     @Test
     public void authorisePsu() throws IOException {
         // Given
-        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        SpiPsuData spiPsuData = SpiPsuData.builder().psuId("psuId").build();
         SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         AisConsentTO aisConsentTO = new AisConsentTO();
         String password = "password";
@@ -330,8 +330,8 @@ public class AisConsentSpiImplTest {
     @Test
     public void authorisePsu_multilevel() throws IOException {
         // Given
-        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null, null, null, null, null, null, null, null, null, null);
-        SpiPsuData spiPsuData2 = new SpiPsuData("psu2", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        SpiPsuData spiPsuData = SpiPsuData.builder().psuId("psu").build();
+        SpiPsuData spiPsuData2 = SpiPsuData.builder().psuId("psu2").build();
         spiAccountConsent.setPsuData(Arrays.asList(spiPsuData, spiPsuData2));
         SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(PSUIDENTIFIED);
         String password = "password";
@@ -369,7 +369,7 @@ public class AisConsentSpiImplTest {
     @Test
     public void authorisePsu_consentInternalError() throws IOException {
         // Given
-        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        SpiPsuData spiPsuData = SpiPsuData.builder().psuId("psuId").build();
         SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         AisConsentTO aisConsentTO = new AisConsentTO();
         String password = "password";
@@ -412,7 +412,7 @@ public class AisConsentSpiImplTest {
     @Test
     public void authorisePsu_feignExceptionOnGetSCAConsentResponse() {
         // Given
-        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        SpiPsuData spiPsuData = SpiPsuData.builder().psuId("psuId").build();
 
         String password = "password";
 
@@ -441,7 +441,7 @@ public class AisConsentSpiImplTest {
     @Test
     public void authorisePsu_failureResponseOnAuthorisingPsuForConsent() {
         // Given
-        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        SpiPsuData spiPsuData = SpiPsuData.builder().psuId("psuId").build();
         SCAConsentResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
 
         String password = "password";
@@ -472,7 +472,7 @@ public class AisConsentSpiImplTest {
     @Test
     public void authorisePsu_errorOnRetrievingTokenWhenMappingToScaResponse() throws IOException {
         // Given
-        SpiPsuData spiPsuData = new SpiPsuData("psu", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        SpiPsuData spiPsuData = SpiPsuData.builder().psuId("psuId").build();
         SCAConsentResponseTO scaConsentResponseTO = new SCAConsentResponseTO();
         BearerTokenTO bearerTokenTO = new BearerTokenTO();
         bearerTokenTO.setAccess_token("some token");

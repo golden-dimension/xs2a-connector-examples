@@ -28,7 +28,22 @@ public class TestSpiDataProvider {
 
     public static SpiContextData getSpiContextData() {
         return new SpiContextData(
-                new SpiPsuData(PSU_ID, PSU_ID_TYPE, PSU_CORPORATE_ID, PSU_CORPORATE_ID_TYPE, PSU_IP_ADDRESS, PSU_IP_PORT, PSU_USER_AGENT, PSU_GEO_LOCATION, PSU_ACCEPT, PSU_ACCEPT_CHARSET, PSU_ACCEPT_ENCODING, PSU_ACCEPT_LANGUAGE, PSU_HTTP_METHOD, PSU_DEVICE_ID),
+                SpiPsuData.builder()
+                        .psuId(PSU_ID)
+                        .psuIdType(PSU_ID_TYPE)
+                        .psuCorporateId(PSU_CORPORATE_ID)
+                        .psuCorporateIdType(PSU_CORPORATE_ID_TYPE)
+                        .psuIpAddress(PSU_IP_ADDRESS)
+                        .psuIpPort(PSU_IP_PORT)
+                        .psuUserAgent(PSU_USER_AGENT)
+                        .psuGeoLocation(PSU_GEO_LOCATION)
+                        .psuAccept(PSU_ACCEPT)
+                        .psuAcceptCharset(PSU_ACCEPT_CHARSET)
+                        .psuAcceptEncoding(PSU_ACCEPT_ENCODING)
+                        .psuAcceptLanguage(PSU_ACCEPT_LANGUAGE)
+                        .psuHttpMethod(PSU_HTTP_METHOD)
+                        .psuDeviceId(UUID.randomUUID())
+                        .build(),
                 new TppInfo(),
                 X_REQUEST_ID,
                 INTERNAL_REQUEST_ID,
