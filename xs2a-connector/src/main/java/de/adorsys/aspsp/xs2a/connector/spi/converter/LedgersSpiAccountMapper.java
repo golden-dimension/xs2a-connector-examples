@@ -115,6 +115,10 @@ public abstract class LedgersSpiAccountMapper {
     public abstract FundsConfirmationRequestTO toFundsConfirmationTO(SpiPsuData psuData, SpiFundsConfirmationRequest spiFundsConfirmationRequest);
 
     private String mapRemittanceInformationToString(RemittanceInformationStructuredTO remittanceInformationStructuredTO) {
+        if (remittanceInformationStructuredTO == null) {
+            return null;
+        }
+
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.writeValueAsString(remittanceInformationStructuredTO);
