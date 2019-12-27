@@ -67,10 +67,10 @@ public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo, Spi
         return SpiResponse.<SpiPaymentExecutionResponse>builder().error(new TppMessage(MessageErrorCode.SERVICE_NOT_SUPPORTED)).build();
     }
 
-    @Override
-    protected SCAPaymentResponseTO initiatePaymentInternal(SpiPaymentInfo payment, byte[] initialAspspConsentData) {
-        return new SCAPaymentResponseTO();
-    }
+//    @Override
+//    protected SCAPaymentResponseTO initiatePaymentInternal(SpiPaymentInfo payment, byte[] initialAspspConsentData) {
+//        return new SCAPaymentResponseTO();
+//    }
 
     @Override
     protected SpiResponse<SpiPaymentInitiationResponse> processEmptyAspspConsentData(@NotNull SpiPaymentInfo payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, @NotNull SpiPsuData spiPsuData) {

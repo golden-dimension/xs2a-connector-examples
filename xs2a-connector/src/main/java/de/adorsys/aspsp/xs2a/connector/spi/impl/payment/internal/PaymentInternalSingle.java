@@ -10,7 +10,7 @@ import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-@Service
+//@Service
 @RequiredArgsConstructor
 public class PaymentInternalSingle implements PaymentInternal<SpiSinglePayment> {
     private final LedgersSpiPaymentMapper paymentMapper;

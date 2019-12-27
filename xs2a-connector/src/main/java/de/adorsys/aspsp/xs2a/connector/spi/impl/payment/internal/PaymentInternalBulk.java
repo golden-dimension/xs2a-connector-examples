@@ -8,9 +8,8 @@ import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
-@Service
+//@Service
 @RequiredArgsConstructor
 public class PaymentInternalBulk implements PaymentInternal<SpiBulkPayment> {
     private final LedgersSpiPaymentMapper paymentMapper;

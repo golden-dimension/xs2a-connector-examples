@@ -1,37 +1,44 @@
 package de.adorsys.aspsp.xs2a.connector.spi.converter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import de.adorsys.ledgers.middleware.api.domain.account.AccountReferenceTO;
 import de.adorsys.ledgers.middleware.api.domain.general.AddressTO;
-import de.adorsys.ledgers.middleware.api.domain.payment.BulkPaymentTO;
-import de.adorsys.ledgers.middleware.api.domain.payment.PaymentProductTO;
-import de.adorsys.ledgers.middleware.api.domain.payment.PeriodicPaymentTO;
-import de.adorsys.ledgers.middleware.api.domain.payment.SinglePaymentTO;
+import de.adorsys.ledgers.middleware.api.domain.payment.*;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
+import de.adorsys.psd2.models.*;
 import de.adorsys.psd2.xs2a.core.pis.FrequencyCode;
 import de.adorsys.psd2.xs2a.core.pis.PisDayOfExecution;
 import de.adorsys.psd2.xs2a.core.pis.PisExecutionRule;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
-import de.adorsys.psd2.xs2a.spi.domain.payment.SpiAddress;
-import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
-import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPeriodicPayment;
-import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
+import de.adorsys.psd2.xs2a.core.profile.PaymentType;
+import de.adorsys.psd2.xs2a.spi.domain.payment.*;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiBulkPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentCancellationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPeriodicPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiSinglePaymentInitiationResponse;
+import org.apache.commons.lang3.ArrayUtils;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.*;
+import java.util.Collections;
+import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring", uses = {LedgersSpiAccountMapper.class, ChallengeDataMapper.class, AddressMapper.class},
         imports = {LedgersSpiPaymentMapperHelper.class, ScaMethodUtils.class})
 public abstract class LedgersSpiPaymentMapper {
 
     private LedgersSpiAccountMapper accountMapper = Mappers.getMapper(LedgersSpiAccountMapper.class);
+    @Autowired
+    protected ObjectMapper objectMapper;
 
     @Mapping(target = "requestedExecutionTime", expression = "java(toTime(payment.getRequestedExecutionTime()))")
     @Mapping(target = "paymentProduct", expression = "java(toPaymentProduct(payment.getPaymentProduct()))")
@@ -39,9 +46,216 @@ public abstract class LedgersSpiPaymentMapper {
 
     @Mapping(target = "executionRule", expression = "java(LedgersSpiPaymentMapperHelper.mapPisExecutionRule(payment.getExecutionRule()))")
     @Mapping(target = "dayOfExecution", expression = "java(LedgersSpiPaymentMapperHelper.mapPisDayOfExecution(payment.getDayOfExecution()))")
-    @Mapping(target = "frequency", expression = "java(LedgersSpiPaymentMapperHelper.mapFrequencyCode(payment.getFrequency()))")     // TODO Remove it https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1100
-
+    @Mapping(target = "frequency", expression = "java(LedgersSpiPaymentMapperHelper.mapFrequencyCode(payment.getFrequency()))")
+    // TODO Remove it https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1100
     public abstract PeriodicPaymentTO toPeriodicPaymentTO(SpiPeriodicPayment payment);
+
+    public PaymentTO toCommonPaymentTO(SpiPaymentInfo spiPaymentInfo) {
+        PaymentTO paymentTO = new PaymentTO();
+        PaymentType paymentType = spiPaymentInfo.getPaymentType();
+
+        return paymentTO;
+    }
+
+    public PaymentTO toPaymentTO_Single(SpiPaymentInfo spiPaymentInfo) {
+        return Optional.ofNullable(spiPaymentInfo.getPaymentData())
+                       .filter(ArrayUtils::isNotEmpty)
+                       .map(paymentData -> convert(paymentData, PaymentInitiationJson.class))
+                       .map(payment -> {
+
+                           PaymentTO paymentTO = new PaymentTO();
+                           paymentTO.setPaymentId(spiPaymentInfo.getPaymentId());
+                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(spiPaymentInfo.getPaymentType().toString()));
+                           paymentTO.setPaymentProduct(spiPaymentInfo.getPaymentProduct());
+                           paymentTO.setDebtorAccount(mapToAccountReferenceTO(payment.getDebtorAccount()));
+                           paymentTO.setDebtorName(payment.getUltimateDebtor());
+                           paymentTO.setTargets(Collections.singletonList(mapToPaymentTargetTO(payment, spiPaymentInfo)));
+                           return paymentTO;
+
+                       })
+                       .orElse(null);
+    }
+
+    public PaymentTO toPaymentTO_Bulk(SpiPaymentInfo spiPaymentInfo) {
+        return Optional.ofNullable(spiPaymentInfo.getPaymentData())
+                       .filter(ArrayUtils::isNotEmpty)
+                       .map(paymentData -> convert(paymentData, BulkPaymentInitiationJson.class))
+                       .map(payment -> {
+
+                           PaymentTO paymentTO = new PaymentTO();
+                           paymentTO.setPaymentId(spiPaymentInfo.getPaymentId());
+                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(spiPaymentInfo.getPaymentType().toString()));
+                           paymentTO.setPaymentProduct(spiPaymentInfo.getPaymentProduct());
+                           paymentTO.setDebtorAccount(mapToAccountReferenceTO(payment.getDebtorAccount()));
+                           paymentTO.setBatchBookingPreferred(payment.getBatchBookingPreferred());
+                           paymentTO.setRequestedExecutionDate(payment.getRequestedExecutionDate());
+                           paymentTO.setRequestedExecutionTime(Optional.ofNullable(payment.getRequestedExecutionTime()).map(OffsetDateTime::toLocalTime).orElse(null));
+                           paymentTO.setTargets(payment.getPayments().stream()
+                                                        .map(bulk -> mapToPaymentTargetTO(bulk, spiPaymentInfo))
+                                                        .collect(Collectors.toList()));
+                           return paymentTO;
+                       })
+                       .orElse(null);
+
+    }
+
+    public PaymentTO toPaymentTO_Periodic(SpiPaymentInfo spiPaymentInfo) {
+        return Optional.ofNullable(spiPaymentInfo.getPaymentData())
+                       .filter(ArrayUtils::isNotEmpty)
+                       .map(paymentData -> convert(paymentData, PeriodicPaymentInitiationJson.class))
+                       .map(payment -> {
+
+                           PaymentTO paymentTO = new PaymentTO();
+                           paymentTO.setPaymentId(spiPaymentInfo.getPaymentId());
+                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(spiPaymentInfo.getPaymentType().toString()));
+                           paymentTO.setPaymentProduct(spiPaymentInfo.getPaymentProduct());
+                           paymentTO.setDebtorAccount(mapToAccountReferenceTO(payment.getDebtorAccount()));
+                           paymentTO.setStartDate(payment.getStartDate());
+                           paymentTO.setEndDate(payment.getEndDate());
+                           paymentTO.setExecutionRule(payment.getExecutionRule().toString());
+                           paymentTO.setFrequency(FrequencyCodeTO.valueOf(payment.getFrequency().toString()));
+                           paymentTO.setDayOfExecution(Integer.valueOf(payment.getDayOfExecution().toString()));
+                           paymentTO.setDebtorName(payment.getUltimateDebtor());
+                           paymentTO.setTargets(Collections.singletonList(mapToPaymentTargetTO(payment, spiPaymentInfo)));
+
+                           return paymentTO;
+
+                       })
+                       .orElse(null);
+    }
+
+    private <T> T convert(byte[] paymentData, Class<T> tClass) {
+        try {
+            return objectMapper.readValue(paymentData, tClass);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private AccountReferenceTO mapToAccountReferenceTO(AccountReference accountReference) {
+        if (accountReference == null) {
+            return null;
+        }
+        AccountReferenceTO accountReferenceTO = new AccountReferenceTO();
+
+        accountReferenceTO.setIban(accountReference.getIban());
+        accountReferenceTO.setBban(accountReference.getBban());
+        accountReferenceTO.setPan(accountReference.getPan());
+        accountReferenceTO.setMaskedPan(accountReference.getMaskedPan());
+        accountReferenceTO.setMsisdn(accountReference.getMsisdn());
+        accountReferenceTO.setCurrency(Currency.getInstance(accountReference.getCurrency()));
+
+        return accountReferenceTO;
+    }
+
+    private PaymentTargetTO mapToPaymentTargetTO(PeriodicPaymentInitiationJson payment, SpiPaymentInfo spiPaymentInfo) {
+        if (payment == null) {
+            return null;
+        }
+
+        PaymentTargetTO paymentTargetTO = new PaymentTargetTO();
+
+        paymentTargetTO.setPaymentId(spiPaymentInfo.getPaymentId());
+        paymentTargetTO.setEndToEndIdentification(payment.getEndToEndIdentification());
+        paymentTargetTO.setInstructedAmount(mapToAmountTO(payment.getInstructedAmount()));
+        paymentTargetTO.setCreditorAccount(mapToAccountReferenceTO(payment.getCreditorAccount()));
+        paymentTargetTO.setCreditorAgent(payment.getCreditorAgent());
+        paymentTargetTO.setCreditorName(payment.getCreditorName());
+        paymentTargetTO.setCreditorAddress(mapToAddressTO(payment.getCreditorAddress()));
+        paymentTargetTO.setPurposeCode(Optional.ofNullable(payment.getPurposeCode()).map(PurposeCode::toString).map(PurposeCodeTO::valueOf).orElse(null));
+        paymentTargetTO.setRemittanceInformationUnstructured(payment.getRemittanceInformationUnstructured());
+        paymentTargetTO.setRemittanceInformationStructured(mapToRemittanceInformationStructuredTO(payment.getRemittanceInformationStructured()));
+
+        return paymentTargetTO;
+    }
+
+    private PaymentTargetTO mapToPaymentTargetTO(PaymentInitiationBulkElementJson payment, SpiPaymentInfo spiPaymentInfo) {
+        if (payment == null) {
+            return null;
+        }
+
+        PaymentTargetTO paymentTargetTO = new PaymentTargetTO();
+
+        paymentTargetTO.setPaymentId(spiPaymentInfo.getPaymentId());
+        paymentTargetTO.setEndToEndIdentification(payment.getEndToEndIdentification());
+        paymentTargetTO.setInstructedAmount(mapToAmountTO(payment.getInstructedAmount()));
+        paymentTargetTO.setCreditorAccount(mapToAccountReferenceTO(payment.getCreditorAccount()));
+        paymentTargetTO.setCreditorAgent(payment.getCreditorAgent());
+        paymentTargetTO.setCreditorName(payment.getCreditorName());
+        paymentTargetTO.setCreditorAddress(mapToAddressTO(payment.getCreditorAddress()));
+        paymentTargetTO.setPurposeCode(Optional.ofNullable(payment.getPurposeCode()).map(PurposeCode::toString).map(PurposeCodeTO::valueOf).orElse(null));
+        paymentTargetTO.setRemittanceInformationUnstructured(payment.getRemittanceInformationUnstructured());
+        paymentTargetTO.setRemittanceInformationStructured(mapToRemittanceInformationStructuredTO(payment.getRemittanceInformationStructured()));
+
+        return paymentTargetTO;
+    }
+
+    private PaymentTargetTO mapToPaymentTargetTO(PaymentInitiationJson payment, SpiPaymentInfo spiPaymentInfo) {
+        if (payment == null) {
+            return null;
+        }
+
+        PaymentTargetTO paymentTargetTO = new PaymentTargetTO();
+
+        paymentTargetTO.setPaymentId(spiPaymentInfo.getPaymentId());
+        paymentTargetTO.setEndToEndIdentification(payment.getEndToEndIdentification());
+        paymentTargetTO.setInstructedAmount(mapToAmountTO(payment.getInstructedAmount()));
+        paymentTargetTO.setCreditorAccount(mapToAccountReferenceTO(payment.getCreditorAccount()));
+        paymentTargetTO.setCreditorAgent(payment.getCreditorAgent());
+        paymentTargetTO.setCreditorName(payment.getCreditorName());
+        paymentTargetTO.setCreditorAddress(mapToAddressTO(payment.getCreditorAddress()));
+        paymentTargetTO.setPurposeCode(Optional.ofNullable(payment.getPurposeCode()).map(PurposeCode::toString).map(PurposeCodeTO::valueOf).orElse(null));
+        paymentTargetTO.setRemittanceInformationUnstructured(payment.getRemittanceInformationUnstructured());
+        paymentTargetTO.setRemittanceInformationStructured(mapToRemittanceInformationStructuredTO(payment.getRemittanceInformationStructured()));
+
+        return paymentTargetTO;
+    }
+
+    protected RemittanceInformationStructuredTO mapToRemittanceInformationStructuredTO(RemittanceInformationStructured remittanceInformationStructured) {
+        if (remittanceInformationStructured == null) {
+            return null;
+        }
+
+        RemittanceInformationStructuredTO remittanceInformationStructuredTO = new RemittanceInformationStructuredTO();
+
+        remittanceInformationStructuredTO.setReference(remittanceInformationStructured.getReference());
+        remittanceInformationStructuredTO.setReferenceType(remittanceInformationStructured.getReferenceType());
+        remittanceInformationStructuredTO.setReferenceIssuer(remittanceInformationStructured.getReferenceIssuer());
+
+        return remittanceInformationStructuredTO;
+    }
+
+    private AmountTO mapToAmountTO(Amount amount) {
+        if (amount == null) {
+            return null;
+        }
+
+        AmountTO amountTO = new AmountTO();
+        amountTO.setCurrency(Currency.getInstance(amount.getCurrency()));
+        amountTO.setAmount(BigDecimal.valueOf(Double.parseDouble(amount.getAmount())));
+
+        return amountTO;
+    }
+
+    private AddressTO mapToAddressTO(Address address) {
+        if (address == null) {
+            return null;
+        }
+
+        AddressTO addressTO = new AddressTO();
+
+        addressTO.setStreet(address.getStreetName());
+        addressTO.setBuildingNumber(address.getBuildingNumber());
+        addressTO.setCity(address.getTownName());
+        addressTO.setPostalCode(address.getPostCode());
+        addressTO.setCountry(address.getCountry());
+//        addressTO.setLine1();
+//        addressTO.setLine2();
+
+        return addressTO;
+    }
+
 
     public abstract BulkPaymentTO toBulkPaymentTO(SpiBulkPayment payment);
 
