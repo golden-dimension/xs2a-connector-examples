@@ -60,7 +60,7 @@
 		<dependency>
 			<groupId>de.adorsys.psd2</groupId>
 			<artifactId>xs2a-payment-support-impl</artifactId>
-			<version>${project.version}</version>
+			<version>${xs2a.version}</version>
 		</dependency>
 
 		<dependency>
