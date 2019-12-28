@@ -1,6 +1,6 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.internal;
 
-import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentToMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.StandardPaymentProductsResolverConnector;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTO;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class PaymentInternalGeneral {
     private final StandardPaymentProductsResolverConnector standardPaymentProductsResolverConnector;
-    private final LedgersSpiPaymentMapper ledgersSpiPaymentMapper;
+    private final LedgersSpiPaymentToMapper ledgersSpiPaymentToMapper;
     private final GeneralPaymentService paymentService;
 
     public SCAPaymentResponseTO initiatePaymentInternal(SpiPayment payment, byte[] initialAspspConsentData) {
@@ -28,12 +28,12 @@ public class PaymentInternalGeneral {
 
     private PaymentTO buildPaymentTO(PaymentType paymentType, SpiPaymentInfo spiPaymentInfo) {
         if (standardPaymentProductsResolverConnector.isRawPaymentProduct(spiPaymentInfo.getPaymentProduct())) {
-            return ledgersSpiPaymentMapper.toCommonPaymentTO(spiPaymentInfo);
+            return ledgersSpiPaymentToMapper.toCommonPaymentTO(spiPaymentInfo);
         } else {
             switch (paymentType) {
-                case SINGLE: return ledgersSpiPaymentMapper.toPaymentTO_Single(spiPaymentInfo);
-                case BULK: return ledgersSpiPaymentMapper.toPaymentTO_Bulk(spiPaymentInfo);
-                case PERIODIC: return ledgersSpiPaymentMapper.toPaymentTO_Periodic(spiPaymentInfo);
+                case SINGLE: return ledgersSpiPaymentToMapper.toPaymentTO_Single(spiPaymentInfo);
+                case BULK: return ledgersSpiPaymentToMapper.toPaymentTO_Bulk(spiPaymentInfo);
+                case PERIODIC: return ledgersSpiPaymentToMapper.toPaymentTO_Periodic(spiPaymentInfo);
                 default:
                     throw new IllegalArgumentException(String.format("Unknown payment type: %s", paymentType.getValue()));
             }
