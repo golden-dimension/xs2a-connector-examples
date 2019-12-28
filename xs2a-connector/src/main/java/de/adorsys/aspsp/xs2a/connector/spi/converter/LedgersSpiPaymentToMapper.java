@@ -106,7 +106,7 @@ public class LedgersSpiPaymentToMapper {
 
                            paymentTO.setStartDate(payment.getStartDate());
                            paymentTO.setEndDate(payment.getEndDate());
-                           paymentTO.setExecutionRule(payment.getExecutionRule().toString());
+                           paymentTO.setExecutionRule(Optional.ofNullable(payment.getExecutionRule()).map(ExecutionRule::toString).orElse(null));
                            paymentTO.setFrequency(mapToFrequencyCodeTO(payment.getFrequency()));
                            paymentTO.setDayOfExecution(Integer.valueOf(payment.getDayOfExecution().toString()));
                            paymentTO.setDebtorName(payment.getUltimateDebtor());
