@@ -120,7 +120,7 @@ public class LedgersSpiPaymentToMapper {
 
     private FrequencyCodeTO mapToFrequencyCodeTO(FrequencyCode frequencyCode) {
         return Optional.ofNullable(frequencyCode)
-                       .map(FrequencyCode::toString)
+                       .map(FrequencyCode::name)
                        .map(FrequencyCodeTO::valueOf)
                        .orElse(null);
     }
