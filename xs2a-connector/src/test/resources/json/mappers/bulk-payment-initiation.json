@@ -7,19 +7,7 @@
   "psuDataList": [
     {
       "psuId": "max.musterman",
-      "psuIdType": null,
-      "psuCorporateId": null,
-      "psuCorporateIdType": null,
-      "psuIpAddress": "1.1.1.1",
-      "psuIpPort": null,
-      "psuUserAgent": null,
-      "psuGeoLocation": null,
-      "psuAccept": null,
-      "psuAcceptCharset": null,
-      "psuAcceptEncoding": null,
-      "psuAcceptLanguage": null,
-      "psuHttpMethod": null,
-      "psuDeviceId": null
+      "psuIpAddress": "1.1.1.1"
     }
   ],
   "statusChangeTimestamp": null,
