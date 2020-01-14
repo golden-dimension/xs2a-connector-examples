@@ -18,7 +18,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = {FeignExceptionReader.class, TestConfiguration.class})
@@ -50,7 +51,7 @@ public class FeignExceptionReaderTest {
         //When
         String errorMessage = feignExceptionReader.getErrorMessage(feignException);
         //Then
-        assertNotNull(errorMessage);
+        assertNull(errorMessage);
     }
 
     @Test

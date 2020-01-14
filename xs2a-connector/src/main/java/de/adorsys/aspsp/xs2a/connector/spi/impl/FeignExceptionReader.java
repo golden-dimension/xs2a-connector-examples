@@ -19,17 +19,13 @@ public class FeignExceptionReader {
     public String getErrorMessage(FeignException feignException) {
         return Optional.ofNullable(feignException.content())
                        .map(this::readTree)
-                       .map(this::getMessage)
+                       .map(this::getDevMessage)
                        .map(JsonNode::asText)
                        .orElse(null);
     }
 
-    private JsonNode getMessage(JsonNode jsonNode) {
-        JsonNode devMessage = jsonNode.get("devMessage");
-        if (devMessage == null) {
-            return jsonNode.get("message");
-        }
-        return devMessage;
+    private JsonNode getDevMessage(JsonNode jsonNode) {
+        return jsonNode.get("devMessage");
     }
 
     private JsonNode readTree(byte[] content) {
