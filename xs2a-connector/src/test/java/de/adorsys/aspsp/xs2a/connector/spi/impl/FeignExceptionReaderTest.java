@@ -54,6 +54,17 @@ public class FeignExceptionReaderTest {
     }
 
     @Test
+    public void getErrorMessageNoDevMessageAndNoMessage() throws JsonProcessingException {
+        //Given
+        String feignBodyString = buildFeignBodyMessage("other message", DEV_MESSAGE);
+        FeignException feignException = FeignException.errorStatus("", buildErrorResponse(feignBodyString));
+        //When
+        String errorMessage = feignExceptionReader.getErrorMessage(feignException);
+        //Then
+        assertNull(errorMessage);
+    }
+
+    @Test
     public void getErrorMessageNoContent() {
         //Given
         FeignException feignException = FeignException.errorStatus("", FeignExceptionHandler.error(HttpStatus.BAD_REQUEST));
