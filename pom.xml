@@ -108,6 +108,9 @@
 		<jackson.version>2.10.1</jackson.version>
         <liquibase.version>3.6.2</liquibase.version>
 
+		<junit-jupiter.version>5.5.2</junit-jupiter.version>
+		<mockito.version>3.2.4</mockito.version>
+
 		<!--Sonar -->
 		<maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
 		<sonar.core.coveragePlugin>jacoco</sonar.core.coveragePlugin>
@@ -301,6 +304,19 @@
 				<version>${lombok.version}</version>
 				<scope>provided</scope>
 			</dependency>
+
+            <!-- test dependencies -->
+			<dependency>
+				<groupId>org.junit.jupiter</groupId>
+				<artifactId>junit-jupiter</artifactId>
+				<version>${junit-jupiter.version}</version>
+			</dependency>
+
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+            </dependency>
 		</dependencies>
 	</dependencyManagement>
 
