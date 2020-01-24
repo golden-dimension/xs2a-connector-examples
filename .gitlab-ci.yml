@@ -193,7 +193,6 @@ Notify Slack channel (support-4.x):
   cache: {}
   only:
     - support-4.x
-    - feature/4.x/KOA_add_slack_notification
   variables:
     HELM_RELEASE: support4x-psd2
     ENV_JSON_FILE: scripts/notifications/psd2-support4x.json
