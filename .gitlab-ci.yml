@@ -179,7 +179,6 @@ Notify Slack channel (develop):
   cache: {}
   only:
     - develop
-    - feature/5.x/KOA_slack_notification
   variables:
     HELM_RELEASE: dev-psd2
     ENV_JSON_FILE: scripts/notifications/psd2-dev.json
@@ -251,7 +250,6 @@ Notify Slack channel (Integ):
   cache: {}
   only:
     - schedules
-    - feature/5.x/KOA_slack_notification
   variables:
     HELM_RELEASE: integ-psd2
     ENV_JSON_FILE: scripts/notifications/psd2-integ.json
