@@ -418,7 +418,7 @@ public class AccountSpiImpl implements AccountSpi {
     private boolean filterAccountDetailsByIbanAndCurrency(List<SpiAccountReference> references, AccountDetailsTO account) {
         return references.stream()
                        .filter(reference -> Optional.ofNullable(reference.getIban())
-                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference)) // TODO support card account consent in Ledgers
+                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference)) // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
                                                     .equals(account.getIban()))
 
                        .anyMatch(reference -> reference.getCurrency() == null || reference.getCurrency().equals(account.getCurrency()));

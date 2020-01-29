@@ -25,7 +25,7 @@ public abstract class AisConsentMapper {
 	public abstract AisConsentTO mapToAisConsent(SpiAccountConsent consent);
 
 	protected String mapSpiAccountReferenceToString(SpiAccountReference s) {
-		return Optional.ofNullable(s.getIban()) // TODO support card account consent in Ledgers
+		return Optional.ofNullable(s.getIban()) // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
 				       .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(s));
 	}
 

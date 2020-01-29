@@ -306,7 +306,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                                                                 .flatMap(Collection::stream)
                                                                 .collect(Collectors.toSet());
 
-        if (isCardAccountConsent(spiAccountReferences)) { // TODO support card account consent in Ledgers
+        if (isCardAccountConsent(spiAccountReferences)) { // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
             return false;
         }
 

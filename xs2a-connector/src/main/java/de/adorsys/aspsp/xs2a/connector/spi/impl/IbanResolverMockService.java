@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-// TODO support card account consent in Ledgers
+// Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
 @Service
 public class IbanResolverMockService {
     private Map<String, String> ibanMap = new HashMap<>();

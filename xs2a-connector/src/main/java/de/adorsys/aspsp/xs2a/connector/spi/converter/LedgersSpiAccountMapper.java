@@ -61,7 +61,7 @@ public abstract class LedgersSpiAccountMapper {
                                SpiAccountType.valueOf(d.getAccountType().name()),
                                SpiUsageType.valueOf(d.getUsageType().name()),
                                d.getDetails(),
-                               new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(10000)), // TODO support card account consent in Ledgers
+                               new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(10000)), // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
                                toSpiAccountBalancesList(d.getBalances()),
                                null))
                        .orElse(null);

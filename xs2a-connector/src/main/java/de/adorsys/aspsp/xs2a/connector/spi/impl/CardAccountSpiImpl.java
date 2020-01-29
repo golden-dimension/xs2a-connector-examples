@@ -128,6 +128,8 @@ public class CardAccountSpiImpl implements CardAccountSpi {
                                                                .map(accountMapper::toSpiCardAccountDetails)
                                                                .orElseThrow(() -> FeignExceptionHandler.getException(HttpStatus.NOT_FOUND, RESPONSE_STATUS_200_WITH_EMPTY_BODY));
 
+            cardAccountDetails.setMaskedPan("525412******3241"); // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
+
             aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
             enrichSpiCardAccountDetailsWithOwnerName(cardAccountDetails, accountConsent.getAccess());
 
@@ -330,7 +332,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
     private boolean filterAccountDetailsByIbanAndCurrency(List<SpiAccountReference> references, AccountDetailsTO account) {
         return references.stream()
                        .filter(reference -> Optional.ofNullable(reference.getIban())
-                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference)) // TODO support card account consent in Ledgers
+                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference)) // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
                                                     .equals(account.getIban()))
 
                        .anyMatch(reference -> reference.getCurrency() == null || reference.getCurrency().equals(account.getCurrency()));
@@ -384,7 +386,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
     }
 
     private List<SpiCardAccountDetails> mapToCardAccountList(List<SpiCardAccountDetails> details) {
-        details.forEach(det -> det.setMaskedPan("525412******3241")); // TODO support card account consent in Ledgers
+        details.forEach(det -> det.setMaskedPan("525412******3241")); // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
         return details;
     }
 
