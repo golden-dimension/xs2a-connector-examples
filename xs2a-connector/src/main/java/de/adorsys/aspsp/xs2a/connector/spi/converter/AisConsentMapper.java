@@ -10,8 +10,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @Mapper(componentModel = "spring")
