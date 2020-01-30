@@ -20,6 +20,4 @@ public class PaymentInternalSingle implements PaymentInternal<SpiSinglePayment> 
         PaymentTO request = paymentMapper.mapToPaymentTO(payment);
         return paymentService.initiatePaymentInternal(payment, initialAspspConsentData, PaymentTypeTO.SINGLE, request);
     }
-
-
 }

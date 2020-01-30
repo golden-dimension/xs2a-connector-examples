@@ -121,9 +121,9 @@ public abstract class LedgersSpiPaymentMapper {
                        .map(payment -> {
 
                            PaymentTO paymentTO = new PaymentTO();
-                           paymentTO.setPaymentId(spiPeriodicPayment.getPaymentId());
-                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(spiPeriodicPayment.getPaymentType().name()));
-                           paymentTO.setPaymentProduct(spiPeriodicPayment.getPaymentProduct());
+                           paymentTO.setPaymentId(payment.getPaymentId());
+                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(payment.getPaymentType().name()));
+                           paymentTO.setPaymentProduct(payment.getPaymentProduct());
                            paymentTO.setDebtorAccount(mapToAccountReferenceTO(payment.getDebtorAccount()));
 
                            paymentTO.setStartDate(payment.getStartDate());
@@ -146,9 +146,9 @@ public abstract class LedgersSpiPaymentMapper {
                        .map(payment -> {
 
                            PaymentTO paymentTO = new PaymentTO();
-                           paymentTO.setPaymentId(spiBulkPayment.getPaymentId());
-                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(spiBulkPayment.getPaymentType().name()));
-                           paymentTO.setPaymentProduct(spiBulkPayment.getPaymentProduct());
+                           paymentTO.setPaymentId(payment.getPaymentId());
+                           paymentTO.setPaymentType(PaymentTypeTO.valueOf(payment.getPaymentType().name()));
+                           paymentTO.setPaymentProduct(payment.getPaymentProduct());
                            paymentTO.setDebtorAccount(mapToAccountReferenceTO(payment.getDebtorAccount()));
                            paymentTO.setBatchBookingPreferred(payment.getBatchBookingPreferred());
                            paymentTO.setRequestedExecutionDate(payment.getRequestedExecutionDate());
