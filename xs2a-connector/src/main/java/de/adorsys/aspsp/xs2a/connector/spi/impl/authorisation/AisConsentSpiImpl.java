@@ -24,6 +24,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.MultilevelScaService;
+import de.adorsys.ledgers.middleware.api.domain.payment.TransactionStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.AisConsentTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
@@ -31,9 +32,11 @@ import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.ConsentRestClient;
+import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
+import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
@@ -93,6 +96,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     private final FeignExceptionReader feignExceptionReader;
     private final MultilevelScaService multilevelScaService;
 
+    private final UserMgmtRestClient userMgmtRestClient;
+
     @Value("${online-banking.url}")
     private String onlineBankingUrl;
 
@@ -100,7 +105,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                              AisConsentMapper aisConsentMapper, AuthRequestInterceptor authRequestInterceptor,
                              AspspConsentDataService consentDataService, GeneralAuthorisationService authorisationService,
                              ScaMethodConverter scaMethodConverter, ScaLoginMapper scaLoginMapper, FeignExceptionReader feignExceptionReader,
-                             AccountRestClient accountRestClient, LedgersSpiAccountMapper accountMapper, MultilevelScaService multilevelScaService) {
+                             AccountRestClient accountRestClient, LedgersSpiAccountMapper accountMapper, MultilevelScaService multilevelScaService, UserMgmtRestClient userMgmtRestClient) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
         this.consentRestClient = consentRestClient;
         this.tokenStorageService = tokenStorageService;
@@ -112,6 +117,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         this.accountRestClient = accountRestClient;
         this.accountMapper = accountMapper;
         this.multilevelScaService = multilevelScaService;
+        this.userMgmtRestClient = userMgmtRestClient;
     }
 
     /*
@@ -215,13 +221,40 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     @Override
-    public @NotNull SpiResponse<SpiConfirmationCodeCheckingResponse> checkConfirmationCode(@NotNull SpiContextData spiContextData, @NotNull SpiConfirmationCode spiConfirmationCode, @NotNull SpiAccountConsent spiAccountConsent, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
+    public @NotNull SpiResponse<SpiConfirmationCodeCheckingResponse> checkConfirmationCode(@NotNull SpiContextData spiContextData, @NotNull SpiConfirmationCode spiConfirmationCode, @NotNull String authorisationId, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
 
-        // TODO: This stub for happy-path should be removed after implementing this flow in ledgers.
-        //  https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/500
-        return SpiResponse.<SpiConfirmationCodeCheckingResponse>builder()
-                       .payload(new SpiConfirmationCodeCheckingResponse(ScaStatus.FINALISED))
-                       .build();
+
+
+        try {
+            SCAConsentResponseTO sca = consentDataService.response(spiAspspConsentDataProvider.loadAspspConsentData(), SCAConsentResponseTO.class);
+            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            ResponseEntity<AuthConfirmationTO> authConfirmationTO = userMgmtRestClient.verifyAuthConfirmationCode(authorisationId, spiConfirmationCode.getConfirmationCode());
+
+            AuthConfirmationTO code = authConfirmationTO.getBody();
+
+
+            return SpiResponse.<SpiConfirmationCodeCheckingResponse>builder()
+                           .payload(null)
+                           .build();
+        } catch (FeignException feignException) {
+            String devMessage = feignExceptionReader.getErrorMessage(feignException);
+            return SpiResponse.<SpiConfirmationCodeCheckingResponse>builder()
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                           .build();
+        } finally {
+            authRequestInterceptor.setAccessToken(null);
+        }
+
+
+
+
+
+//        // TODO: This stub for happy-path should be removed after implementing this flow in ledgers.
+//        //  https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/500
+//        return SpiResponse.<SpiConfirmationCodeCheckingResponse>builder()
+//                       .payload(new SpiConfirmationCodeCheckingResponse(ScaStatus.FINALISED))
+//                       .build();
     }
 
     @Override
