@@ -9,7 +9,10 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiConfirmationCode;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
-import de.adorsys.psd2.xs2a.spi.domain.payment.response.*;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiGetPaymentStatusResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentExecutionResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
@@ -62,11 +65,11 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaym
         return paymentService.verifyScaAuthorisationAndExecutePayment(spiScaConfirmation, aspspConsentDataProvider);
     }
 
-    public @NotNull SpiResponse<SpiConfirmationCodeCheckingResponse> checkConfirmationCode(@NotNull SpiContextData contextData,
+    public @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiContextData contextData,
                                                                                            @NotNull SpiConfirmationCode spiConfirmationCode,
-                                                                                           @NotNull P payment,
+                                                                                           @NotNull String authorisationId,
                                                                                            @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        return paymentService.checkConfirmationCode(spiConfirmationCode, aspspConsentDataProvider);
+        return paymentService.checkConfirmationCode(spiConfirmationCode, authorisationId, aspspConsentDataProvider);
     }
 
     protected abstract SpiResponse<R> processEmptyAspspConsentData(@NotNull P payment,
