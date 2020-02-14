@@ -39,7 +39,7 @@ import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiConfirmationCode;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiGetPaymentStatusResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
@@ -175,8 +175,7 @@ public class GeneralPaymentService {
         }
     }
 
-    public SpiResponse<SpiPaymentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiConfirmationCode spiConfirmationCode,
-                                                                                           String authorisationId,
+    public SpiResponse<SpiPaymentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest,
                                                                                            @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
         try {
@@ -184,7 +183,7 @@ public class GeneralPaymentService {
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             ResponseEntity<AuthConfirmationTO> authConfirmationTOResponse =
-                    userMgmtRestClient.verifyAuthConfirmationCode(authorisationId, spiConfirmationCode.getConfirmationCode());
+                    userMgmtRestClient.verifyAuthConfirmationCode(spiCheckConfirmationCodeRequest.getAuthorisationId(), spiCheckConfirmationCodeRequest.getConfirmationCode());
 
             AuthConfirmationTO authConfirmationTO = authConfirmationTOResponse.getBody();
 

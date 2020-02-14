@@ -7,7 +7,7 @@ import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiConfirmationCode;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiGetPaymentStatusResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
@@ -66,10 +66,9 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaym
     }
 
     public @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiContextData contextData,
-                                                                                           @NotNull SpiConfirmationCode spiConfirmationCode,
-                                                                                           @NotNull String authorisationId,
+                                                                                           @NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest,
                                                                                            @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        return paymentService.checkConfirmationCode(spiConfirmationCode, authorisationId, aspspConsentDataProvider);
+        return paymentService.checkConfirmationCode(spiCheckConfirmationCodeRequest, aspspConsentDataProvider);
     }
 
     protected abstract SpiResponse<R> processEmptyAspspConsentData(@NotNull P payment,
