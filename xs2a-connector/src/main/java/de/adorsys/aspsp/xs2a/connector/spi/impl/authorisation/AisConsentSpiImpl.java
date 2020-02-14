@@ -228,12 +228,13 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
             AuthConfirmationTO authConfirmationTO = authConfirmationTOResponse.getBody();
 
-            if (authConfirmationTO == null || !authConfirmationTO.isSuccess()) {
+            // ToDo also check whether verification was successful https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1207
+            if (authConfirmationTO == null) {
                 // No response in payload from ASPSP or confirmation code verification failed.
                 return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, ConsentStatus.REJECTED);
             }
 
-            if (authConfirmationTO.getPartiallyAuthorised()) {
+            if (authConfirmationTO.isPartiallyAuthorised()) {
                 // This authorisation is finished, but others are left.
                 return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.PARTIALLY_AUTHORISED);
             }
