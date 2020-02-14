@@ -187,22 +187,27 @@ public class GeneralPaymentService {
 
             AuthConfirmationTO authConfirmationTO = authConfirmationTOResponse.getBody();
 
+            if (authConfirmationTO == null || !authConfirmationTO.isSuccess()) {
+                // No response in payload from ASPSP or confirmation code verification failed.
+                return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, TransactionStatus.RJCT);
+            }
+
+            if (authConfirmationTO.getPartiallyAuthorised()) {
+                // This authorisation is finished, but others are left.
+                return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, TransactionStatus.PATC);
+            }
+
             TransactionStatus xs2aTransactionStatus = Optional.ofNullable(authConfirmationTO.getTransactionStatus())
                                                               .map(TransactionStatusTO::getName)
                                                               .map(TransactionStatus::getByValue)
-                                                              .orElse(null);
+                                                              .orElse(TransactionStatus.RJCT);
 
-            // TODO: https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/500
-            //  Implement after providing the flag about validation in ledgers 2.9
             ScaStatus authorisationStatus = EnumSet.of(TransactionStatus.CANC, TransactionStatus.RJCT).contains(xs2aTransactionStatus)
                                                     ? ScaStatus.FAILED
                                                     : ScaStatus.FINALISED;
 
-            SpiPaymentConfirmationCodeValidationResponse response = new SpiPaymentConfirmationCodeValidationResponse(authorisationStatus, xs2aTransactionStatus);
+            return getConfirmationCodeResponseForXs2a(authorisationStatus, xs2aTransactionStatus);
 
-            return SpiResponse.<SpiPaymentConfirmationCodeValidationResponse>builder()
-                           .payload(response)
-                           .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             return SpiResponse.<SpiPaymentConfirmationCodeValidationResponse>builder()
@@ -314,6 +319,14 @@ public class GeneralPaymentService {
                        .map(buildSuccessResponse)
                        .orElseGet(buildFailedResponse);
 
+    }
+
+    private SpiResponse<SpiPaymentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(ScaStatus scaStatus, TransactionStatus transactionStatus) {
+        SpiPaymentConfirmationCodeValidationResponse response = new SpiPaymentConfirmationCodeValidationResponse(scaStatus, transactionStatus);
+
+        return SpiResponse.<SpiPaymentConfirmationCodeValidationResponse>builder()
+                       .payload(response)
+                       .build();
     }
 
     private Optional<Object> getPaymentFromLedgers(String paymentId, String toString, byte[] aspspConsentData, PaymentTypeTO paymentTypeTO) {

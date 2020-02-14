@@ -226,15 +226,21 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             ResponseEntity<AuthConfirmationTO> authConfirmationTOResponse =
                     userMgmtRestClient.verifyAuthConfirmationCode(spiCheckConfirmationCodeRequest.getAuthorisationId(), spiCheckConfirmationCodeRequest.getConfirmationCode());
 
-            // TODO: https://git.adorsys.de/adorsys/xs2a/psd2-dynamic-sandbox/issues/500
-            //  Implement after providing the flag about validation in ledgers 2.9
             AuthConfirmationTO authConfirmationTO = authConfirmationTOResponse.getBody();
 
-            SpiConsentConfirmationCodeValidationResponse response = new SpiConsentConfirmationCodeValidationResponse(ScaStatus.FINALISED, ConsentStatus.VALID);
+            if (authConfirmationTO == null || !authConfirmationTO.isSuccess()) {
+                // No response in payload from ASPSP or confirmation code verification failed.
+                return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, ConsentStatus.REJECTED);
+            }
 
-            return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
-                           .payload(response)
-                           .build();
+            if (authConfirmationTO.getPartiallyAuthorised()) {
+                // This authorisation is finished, but others are left.
+                return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.PARTIALLY_AUTHORISED);
+            }
+
+            // Authorisation is finalised and consent becomes valid.
+            return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.VALID);
+
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
@@ -290,6 +296,14 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     @Override
     protected boolean isFirstInitiationOfMultilevelSca(SpiAccountConsent businessObject, SCAConsentResponseTO scaConsentResponseTO) {
         return !scaConsentResponseTO.isMultilevelScaRequired() || businessObject.getPsuData().size() <= 1;
+    }
+
+    private SpiResponse<SpiConsentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(ScaStatus scaStatus, ConsentStatus consentStatus) {
+        SpiConsentConfirmationCodeValidationResponse response = new SpiConsentConfirmationCodeValidationResponse(scaStatus, consentStatus);
+
+        return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
+                       .payload(response)
+                       .build();
     }
 
     private <T extends SpiInitiateAisConsentResponse> SpiResponse<T> firstCallInstantiatingConsent(
