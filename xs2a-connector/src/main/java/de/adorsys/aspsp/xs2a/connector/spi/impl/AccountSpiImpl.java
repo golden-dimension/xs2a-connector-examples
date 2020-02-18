@@ -140,6 +140,8 @@ public class AccountSpiImpl implements AccountSpi {
                                                        .map(accountMapper::toSpiAccountDetails)
                                                        .orElseThrow(() -> FeignExceptionHandler.getException(HttpStatus.NOT_FOUND, RESPONSE_STATUS_200_WITH_EMPTY_BODY));
 
+            enrichSpiAccountDetailsWithOwnerName(accountDetails, accountConsent.getAccess());
+
             if (!withBalance) {
                 accountDetails.emptyBalances();
             }
@@ -415,6 +417,15 @@ public class AccountSpiImpl implements AccountSpi {
         }
     }
 
+    private boolean filterAccountDetailsByIbanAndCurrency(List<SpiAccountReference> references, SpiAccountDetails spiAccountDetails) {
+        return references.stream()
+                       .filter(reference -> Optional.ofNullable(reference.getIban())
+                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference))
+                                                    .equals(spiAccountDetails.getIban()))
+
+                       .anyMatch(reference -> reference.getCurrency() == null || reference.getCurrency().equals(spiAccountDetails.getCurrency()));
+    }
+
     private boolean filterAccountDetailsByIbanAndCurrency(List<SpiAccountReference> references, AccountDetailsTO account) {
         return references.stream()
                        .filter(reference -> Optional.ofNullable(reference.getIban())
@@ -480,7 +491,7 @@ public class AccountSpiImpl implements AccountSpi {
 
     private void enrichSpiAccountDetailsWithOwnerName(SpiAccountDetails accountDetails, SpiAccountAccess access) {
         SpiAdditionalInformationAccess spiAdditionalInformationAccess = access.getSpiAdditionalInformationAccess();
-        if (spiAdditionalInformationAccess != null && spiAdditionalInformationAccess.getOwnerName() != null) {
+        if (spiAdditionalInformationAccess != null && spiAdditionalInformationAccess.getOwnerName() != null && filterAccountDetailsByIbanAndCurrency(spiAdditionalInformationAccess.getOwnerName(), accountDetails)) {
             accountDetails.setOwnerName(ADDITIONAL_INFORMATION_MOCK);
         } else {
             AccountAccessType allAccountsWithOwnerName = AccountAccessType.ALL_ACCOUNTS_WITH_OWNER_NAME;
@@ -490,7 +501,6 @@ public class AccountSpiImpl implements AccountSpi {
             }
         }
     }
-
     private SpiAccountBalance buildSpiAccountBalance() {
         SpiAccountBalance accountBalance = new SpiAccountBalance();
         accountBalance.setSpiBalanceAmount(new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(1000)));
