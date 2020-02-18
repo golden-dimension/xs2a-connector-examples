@@ -421,7 +421,7 @@ public class AccountSpiImpl implements AccountSpi {
     private boolean filterAccountDetailsByIbanAndCurrency(List<SpiAccountReference> references, String iban, Currency currency) {
         return references.stream()
                        .filter(reference -> Optional.ofNullable(reference.getIban())
-                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference))
+                                                    .orElseGet(() -> ibanResolverMockService.handleIbanByAccountReference(reference)) // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
                                                     .equals(iban))
 
                        .anyMatch(reference -> reference.getCurrency() == null || reference.getCurrency().equals(currency));
