@@ -22,7 +22,7 @@ import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
-import de.adorsys.psd2.xs2a.core.piis.PiisConsent;
+import de.adorsys.psd2.xs2a.core.piis.SpiPiisConsent;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.fund.SpiFundsConfirmationRequest;
@@ -61,7 +61,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
      */
     @Override
     public @NotNull SpiResponse<SpiFundsConfirmationResponse> performFundsSufficientCheck(@NotNull SpiContextData contextData,
-                                                                                          @Nullable PiisConsent piisConsent,
+                                                                                          @Nullable SpiPiisConsent piisConsent,
                                                                                           @NotNull SpiFundsConfirmationRequest spiFundsConfirmationRequest,
                                                                                           @Nullable SpiAspspConsentDataProvider aspspConsentDataProvider) {
         byte[] aspspConsentData = piisConsent == null || aspspConsentDataProvider == null
