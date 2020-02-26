@@ -386,7 +386,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
     }
 
     private List<SpiCardAccountDetails> mapToCardAccountList(List<SpiCardAccountDetails> details) {
-        details.forEach(det -> det.setMaskedPan("525412******3241")); // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
+        details.forEach(det -> det.setMaskedPan(ibanResolverMockService.getMaskedPanByIban(det.getAspspAccountId()))); // Currently mocked data is used here. https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1152
         return details;
     }
 
