@@ -33,7 +33,7 @@ variables: &variables
   # Build variables         #
   ###########################
 
-  JAVA_TOOL_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAM=3G -XX:MaxRAMFraction=3"
+  JAVA_TOOL_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:MaxRAM=3G -XX:MaxRAMFraction=3"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
   ###########################
@@ -93,6 +93,7 @@ Compile:
 PMD Report:
   stage: "Compile"
   script:
+    - jabba use "system@1.11"
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
     - mvn -Dmaven.test.skip=true package pmd:pmd
@@ -107,6 +108,7 @@ PMD Report:
 PMD Check:
   stage: "Test"
   script:
+    - jabba use "system@1.11"
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
     - mvn -Dmaven.test.skip=true package pmd:check
@@ -114,6 +116,7 @@ PMD Check:
 Javadoc Check:
   stage: "Test"
   script:
+    - jabba use "system@1.11"
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
     - mvn -Dmaven.test.skip=true package javadoc:javadoc
@@ -126,6 +129,7 @@ Javadoc Check:
 Unit Tests:
   stage: "Test"
   script:
+    - jabba use "system@1.11"
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
     - mvn --fail-at-end clean install
@@ -147,7 +151,7 @@ Test Docker Image:
 Sonarcube:
   stage: "Test"
   script:
-    - jabba use system@1.8
+    - jabba use "system@1.11"
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
     - mvn --fail-at-end clean install
