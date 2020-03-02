@@ -77,6 +77,9 @@ variables: &variables
 
 Compile:
   stage: "Compile"
+  variables:
+    JAVA_VERSION: "system@1.11"
+    JAVA_TOOL_OPTIONS: "-Djavax.net.ssl.trustStorePassword=changeit -XX:MaxRAM=3G"
   script:
     - cat /sys/fs/cgroup/memory/memory.limit_in_bytes
     - java -XX:+PrintFlagsFinal -version | grep -Ei "maxheapsize|maxram"
