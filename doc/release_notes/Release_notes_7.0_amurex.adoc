@@ -1,9 +1,9 @@
 = Release notes v.7.0
 
 == Table of Contents
-* Added supporting of Java 11
+* Support of Java 11
 
-== Added supporting of Java 11
+== Support of Java 11
 
 From now on, XS2A-Connector-example supports Java 11.
 
