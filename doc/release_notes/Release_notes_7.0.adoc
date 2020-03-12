@@ -3,17 +3,17 @@
 == Table of Contents
 
 * Support of Java 11
-* Update Ledgers to 2.9
-* Adjust confirmation code check according to the changes in Ledgers response
+* Updated Ledgers to v.2.9
+* Adjusted confirmation code check according to the changes in Ledgers response
 
 == Support of Java 11
 
 From now on, XS2A-Connector-example supports Java 11.
 
-== Update Ledgers to 2.9
+== Updated Ledgers to v.2.9
 
-Update currently supported Ledgers version to 2.9
+Updated currently supported Ledgers version to v.2.9
 
-== Adjust confirmation code check according to the changes in Ledgers response
+== Adjusted confirmation code check according to the changes in Ledgers response
 
 Confirmation code check has been adjusted to use `success` property, provided in `AuthConfirmationTO` from Ledgers.
