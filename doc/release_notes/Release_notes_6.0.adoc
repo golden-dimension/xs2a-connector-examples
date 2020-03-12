@@ -1,3 +1,14 @@
 = Release notes v. 6.0
 
 == Table of Contents
+
+* Update Ledgers to 2.9
+* Adjust confirmation code check according to the changes in Ledgers response
+
+== Update Ledgers to 2.9
+
+Update currently supported Ledgers version to 2.9
+
+== Adjust confirmation code check according to the changes in Ledgers response
+
+Confirmation code check has been adjusted to use `success` property, provided in `AuthConfirmationTO` from Ledgers.
