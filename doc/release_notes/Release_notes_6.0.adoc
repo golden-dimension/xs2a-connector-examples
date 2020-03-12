@@ -1,14 +1,9 @@
-= Release notes v.7.0
+= Release notes v. 6.0
 
 == Table of Contents
 
-* Support of Java 11
 * Update Ledgers to 2.9
 * Adjust confirmation code check according to the changes in Ledgers response
-
-== Support of Java 11
-
-From now on, XS2A-Connector-example supports Java 11.
 
 == Update Ledgers to 2.9
 
