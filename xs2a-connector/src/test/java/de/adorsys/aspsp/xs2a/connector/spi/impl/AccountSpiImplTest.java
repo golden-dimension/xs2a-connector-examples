@@ -1,5 +1,7 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
+import de.adorsys.aspsp.xs2a.connector.account.IbanAccountReference;
+import de.adorsys.aspsp.xs2a.connector.account.OwnerNameService;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl;
 import de.adorsys.aspsp.xs2a.util.JsonReader;
@@ -19,11 +21,11 @@ import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.*;
+import de.adorsys.psd2.xs2a.spi.domain.consent.SpiAccountAccess;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
 import feign.Request;
 import feign.Response;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -65,6 +68,8 @@ class AccountSpiImplTest {
     private static final String ACCOUNT_OWNER_NAME = "account owner name";
     private static final String ACCOUNT_OWNER_NAME_SECOND_ACCOUNT = "account owner name 2";
     private static final String IBAN = "DE89370400440532013000";
+    private static final String IBAN_SECOND_ACCOUNT = "DE32760700240271232100";
+    private static final Currency CURRENCY_EUR = Currency.getInstance("EUR");
 
     @InjectMocks
     private AccountSpiImpl accountSpi;
@@ -83,6 +88,8 @@ class AccountSpiImplTest {
     private SCAResponseTO scaResponseTO;
     @Mock
     private FeignExceptionReader feignExceptionReader;
+    @Mock
+    private OwnerNameService ownerNameService;
 
     private JsonReader jsonReader = new JsonReader();
     private SpiAccountConsent spiAccountConsent;
@@ -253,10 +260,6 @@ class AccountSpiImplTest {
         when(tokenService.response(BYTES)).thenReturn(scaResponseTO);
         when(tokenService.store(scaResponseTO)).thenReturn(BYTES);
 
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_THIRD_ACCOUNT))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-
         AccountDetailsTO accountDetails_1 = jsonReader.getObjectFromFile("json/spi/impl/account-details.json", AccountDetailsTO.class);
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Collections.singletonList(accountDetails_1)));
 
@@ -317,7 +320,6 @@ class AccountSpiImplTest {
         accountDetails_2.setCurrency(Currency.getInstance("USD"));
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Arrays.asList(accountDetails_1, accountDetails_2)));
 
-
         spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/spi-account-consent-no-currency.json", SpiAccountConsent.class);
 
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
@@ -354,76 +356,55 @@ class AccountSpiImplTest {
     }
 
     @Test
-    void requestAccountList_additionalInformationOwnerName_allAccounts() {
+    void requestAccountList_additionalInformationOwnerName_ownerNameForAllAccounts() {
         //Given
         SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(Collections.emptyList()));
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+        accountAccess.setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(Collections.emptyList()));
 
-        List<AccountDetailsTO> accountDetailsTOList = spiAccountConsent.getAccess().getAccounts().stream()
+        List<AccountDetailsTO> accountDetailsTOList = accountAccess.getAccounts().stream()
                                                               .map(account -> buildAccountDetailsTO(account.getIban(), account.getResourceId()))
                                                               .collect(Collectors.toList());
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(accountDetailsTOList));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-        AdditionalAccountInformationTO additionalAccountInformationTO2 = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME_SECOND_ACCOUNT);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_SECOND_ACCOUNT))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO2)));
+
+        SpiAccountDetails spiAccountDetailsFirstAccount = buildSpiAccountDetails(IBAN, RESOURCE_ID);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess)).thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsFirstAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN, RESOURCE_ID, ACCOUNT_OWNER_NAME));
+        SpiAccountDetails spiAccountDetailsSecondAccount = buildSpiAccountDetails(IBAN_SECOND_ACCOUNT, RESOURCE_ID_SECOND_ACCOUNT);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN_SECOND_ACCOUNT, CURRENCY_EUR), accountAccess)).thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsSecondAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN_SECOND_ACCOUNT, RESOURCE_ID_SECOND_ACCOUNT, ACCOUNT_OWNER_NAME_SECOND_ACCOUNT));
 
         //When
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
                                                                                             spiAccountConsent, aspspConsentDataProvider);
         //Then
         assertTrue(actualResponse.getErrors().isEmpty());
-        List<SpiAccountDetails> spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        spiAccountDetails.forEach(ad -> assertNotNull(ad.getOwnerName()));
+        List<SpiAccountDetails> actualSpiAccountDetailsList = actualResponse.getPayload();
+        assertNotNull(actualSpiAccountDetailsList);
+        actualSpiAccountDetailsList.forEach(ad -> assertNotNull(ad.getOwnerName()));
+        assertEquals(ACCOUNT_OWNER_NAME, actualSpiAccountDetailsList.get(0).getOwnerName());
+        assertEquals(ACCOUNT_OWNER_NAME_SECOND_ACCOUNT, actualSpiAccountDetailsList.get(1).getOwnerName());
     }
 
     @Test
-    void requestAccountList_additionalInformationOwnerName_allDedicatedAccounts() {
+    void requestAccountList_additionalInformationOwnerName_withoutEnrichingWithOwnerName() {
         //Given
         SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        List<SpiAccountReference> accounts = spiAccountConsent.getAccess().getAccounts();
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(accounts));
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+        List<SpiAccountReference> accounts = accountAccess.getAccounts();
+        accountAccess.setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(accounts));
 
         List<AccountDetailsTO> accountDetailsTOList = accounts.stream()
                                                               .map(account -> buildAccountDetailsTO(account.getIban(), account.getResourceId()))
                                                               .collect(Collectors.toList());
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(accountDetailsTOList));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-        AdditionalAccountInformationTO additionalAccountInformationTO2 = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME_SECOND_ACCOUNT);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_SECOND_ACCOUNT))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO2)));
 
-        //When
-        SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
-                                                                                            spiAccountConsent, aspspConsentDataProvider);
-        //Then
-        assertTrue(actualResponse.getErrors().isEmpty());
-        List<SpiAccountDetails> spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        assertEquals(ACCOUNT_OWNER_NAME, spiAccountDetails.get(0).getOwnerName());
-        assertEquals(ACCOUNT_OWNER_NAME_SECOND_ACCOUNT, spiAccountDetails.get(1).getOwnerName());
-    }
-
-    @Test
-    void requestAccountList_additionalInformationOwnerName_allDedicatedAccounts_noAdditionalInformationInLedgers() {
-        //Given
-        SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        List<SpiAccountReference> accounts = spiAccountConsent.getAccess().getAccounts();
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(accounts));
-
-        List<AccountDetailsTO> accountDetailsTOList = accounts.stream()
-                                                              .map(account -> buildAccountDetailsTO(account.getIban(), account.getResourceId()))
-                                                              .collect(Collectors.toList());
-        when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(accountDetailsTOList));
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_SECOND_ACCOUNT))
-                .thenReturn(ResponseEntity.ok(Collections.emptyList()));
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess))
+                .thenReturn(false);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN_SECOND_ACCOUNT, CURRENCY_EUR), accountAccess))
+                .thenReturn(false);
 
         //When
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
@@ -434,54 +415,32 @@ class AccountSpiImplTest {
         assertNotNull(spiAccountDetails);
         assertNull(spiAccountDetails.get(0).getOwnerName());
         assertNull(spiAccountDetails.get(1).getOwnerName());
+        verify(ownerNameService, never()).enrichAccountDetailsWithOwnerName(any());
     }
 
     @Test
-    void requestAccountList_additionalInformationOwnerName_allDedicatedAccountsWithMultipleOwners() {
+    void requestAccountList_additionalInformationOwnerName_ownerNameOneAccount() {
         //Given
         SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        List<SpiAccountReference> accounts = spiAccountConsent.getAccess().getAccounts();
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(accounts));
-
-        List<AccountDetailsTO> accountDetailsTOList = accounts.stream()
-                                                              .map(account -> buildAccountDetailsTO(account.getIban(), account.getResourceId()))
-                                                              .collect(Collectors.toList());
-        when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(accountDetailsTOList));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        AdditionalAccountInformationTO additionalAccountInformationTO2 = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME_SECOND_ACCOUNT);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Arrays.asList(additionalAccountInformationTO, additionalAccountInformationTO2)));
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_SECOND_ACCOUNT))
-                .thenReturn(ResponseEntity.ok(Arrays.asList(additionalAccountInformationTO, additionalAccountInformationTO2)));
-
-        //When
-        SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
-                                                                                            spiAccountConsent, aspspConsentDataProvider);
-        //Then
-        assertTrue(actualResponse.getErrors().isEmpty());
-        List<SpiAccountDetails> spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        String expectedOwnerName = String.format("%s, %s", ACCOUNT_OWNER_NAME, ACCOUNT_OWNER_NAME_SECOND_ACCOUNT);
-        assertEquals(expectedOwnerName, spiAccountDetails.get(0).getOwnerName());
-        assertEquals(expectedOwnerName, spiAccountDetails.get(1).getOwnerName());
-    }
-
-    @Test
-    void requestAccountList_additionalInformationOwnerName_oneDedicatedAccount() {
-        //Given
-        SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        List<SpiAccountReference> accounts = spiAccountConsent.getAccess().getAccounts();
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+        List<SpiAccountReference> accounts = accountAccess.getAccounts();
         SpiAccountReference spiAccountReference = accounts.get(0);
         SpiAdditionalInformationAccess spiAdditionalInformationAccess = new SpiAdditionalInformationAccess(Collections.singletonList(spiAccountReference));
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(spiAdditionalInformationAccess);
+        accountAccess.setSpiAdditionalInformationAccess(spiAdditionalInformationAccess);
 
-        List<AccountDetailsTO> accountDetailsTOList = spiAccountConsent.getAccess().getAccounts().stream()
+        List<AccountDetailsTO> accountDetailsTOList = accountAccess.getAccounts().stream()
                                                               .map(account -> buildAccountDetailsTO(account.getIban(), account.getResourceId()))
                                                               .collect(Collectors.toList());
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(accountDetailsTOList));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
+
+        SpiAccountDetails spiAccountDetailsFirstAccount = buildSpiAccountDetails(IBAN, RESOURCE_ID);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess))
+                .thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsFirstAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN, RESOURCE_ID, ACCOUNT_OWNER_NAME));
+        SpiAccountDetails spiAccountDetailsSecondAccount = buildSpiAccountDetails(IBAN_SECOND_ACCOUNT, RESOURCE_ID_SECOND_ACCOUNT);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN_SECOND_ACCOUNT, CURRENCY_EUR), accountAccess))
+                .thenReturn(false);
 
         //When
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
@@ -492,16 +451,21 @@ class AccountSpiImplTest {
         assertNotNull(spiAccountDetails);
         assertNotNull(spiAccountDetails.get(0).getOwnerName());
         assertNull(spiAccountDetails.get(1).getOwnerName());
+        verify(ownerNameService, never()).enrichAccountDetailsWithOwnerName(spiAccountDetailsSecondAccount);
     }
 
     @Test
     void requestAccountList_availableAccountsConsent_withOwnerName() {
         //Given
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Collections.singletonList(buildAccountDetailsTO(IBAN, RESOURCE_ID))));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
         SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-consent-available-accounts-owner-name.json", SpiAccountConsent.class);
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+
+        SpiAccountDetails spiAccountDetailsFirstAccount = buildSpiAccountDetails(IBAN, RESOURCE_ID);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess))
+                .thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsFirstAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN, RESOURCE_ID, ACCOUNT_OWNER_NAME));
 
         //When
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
@@ -517,10 +481,14 @@ class AccountSpiImplTest {
     void requestAccountList_availableAccountsWithBalanceConsent_withOwnerName() {
         //Given
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Collections.singletonList(buildAccountDetailsTO(IBAN, RESOURCE_ID))));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
         SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-consent-available-accounts-balance-owner-name.json", SpiAccountConsent.class);
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+
+        SpiAccountDetails spiAccountDetailsFirstAccount = buildSpiAccountDetails(IBAN, RESOURCE_ID);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess))
+                .thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsFirstAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN, RESOURCE_ID, ACCOUNT_OWNER_NAME));
 
         //When
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
@@ -536,10 +504,14 @@ class AccountSpiImplTest {
     void requestAccountList_globalConsent_withOwnerName() {
         //Given
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Collections.singletonList(buildAccountDetailsTO(IBAN, RESOURCE_ID))));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
         SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-consent-global-owner-name.json", SpiAccountConsent.class);
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+
+        SpiAccountDetails spiAccountDetailsFirstAccount = buildSpiAccountDetails(IBAN, RESOURCE_ID);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess))
+                .thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsFirstAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN, RESOURCE_ID, ACCOUNT_OWNER_NAME));
 
         //When
         SpiResponse<List<SpiAccountDetails>> actualResponse = accountSpi.requestAccountList(SPI_CONTEXT_DATA, false,
@@ -552,14 +524,17 @@ class AccountSpiImplTest {
     }
 
     @Test
-    void requestAccountDetailForAccount_additionalInformationOwnerName_allAccounts() {
+    void requestAccountDetailForAccount_additionalInformationOwnerName_withOwnerName() {
         //Given
         SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(Collections.emptyList()));
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+        accountAccess.setSpiAdditionalInformationAccess(new SpiAdditionalInformationAccess(Collections.emptyList()));
         when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(buildAccountDetailsTO(IBAN, RESOURCE_ID)));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
+        SpiAccountDetails spiAccountDetailsFirstAccount = buildSpiAccountDetails(IBAN, RESOURCE_ID);
+        when(ownerNameService.shouldContainOwnerName(new IbanAccountReference(IBAN, CURRENCY_EUR), accountAccess))
+                .thenReturn(true);
+        when(ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetailsFirstAccount))
+                .thenReturn(buildSpiAccountDetailsWithOwnerName(IBAN, RESOURCE_ID, ACCOUNT_OWNER_NAME));
 
         //when
         SpiResponse<SpiAccountDetails> actualResponse = accountSpi.requestAccountDetailForAccount(SPI_CONTEXT_DATA, false, accountReference,
@@ -572,35 +547,15 @@ class AccountSpiImplTest {
     }
 
     @Test
-    void requestAccountDetailForAccount_additionalInformationOwnerName_oneDedicatedAccount() {
+    void requestAccountDetailForAccount_additionalInformationOwnerName_withoutEnrichingWithOwnerName() {
         //Given
         SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        List<SpiAccountReference> accounts = spiAccountConsent.getAccess().getAccounts();
-        SpiAdditionalInformationAccess spiAdditionalInformationAccess = new SpiAdditionalInformationAccess(Collections.singletonList(accounts.get(0)));
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(spiAdditionalInformationAccess);
-        when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(this.accountDetailsTO));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, "33333-999999999"))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-
-        //when
-        SpiResponse<SpiAccountDetails> actualResponse = accountSpi.requestAccountDetailForAccount(SPI_CONTEXT_DATA, false, accountReference,
-                                                                                                  spiAccountConsent, aspspConsentDataProvider);
-        //Then
-        assertTrue(actualResponse.getErrors().isEmpty());
-        SpiAccountDetails spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        assertNotNull(spiAccountDetails.getOwnerName());
-    }
-
-    @Test
-    void requestAccountDetailForAccount_additionalInformationOwnerName_forAnotherDedicatedAccount() {
-        //Given
-        SpiAccountConsent spiAccountConsent = buildSpiAccountConsent();
-        List<SpiAccountReference> accounts = spiAccountConsent.getAccess().getAccounts();
+        SpiAccountAccess accountAccess = spiAccountConsent.getAccess();
+        List<SpiAccountReference> accounts = accountAccess.getAccounts();
         SpiAdditionalInformationAccess spiAdditionalInformationAccess = new SpiAdditionalInformationAccess(Collections.singletonList(accounts.get(1)));
-        spiAccountConsent.getAccess().setSpiAdditionalInformationAccess(spiAdditionalInformationAccess);
+        accountAccess.setSpiAdditionalInformationAccess(spiAdditionalInformationAccess);
         when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(this.accountDetailsTO));
+
         //when
         SpiResponse<SpiAccountDetails> actualResponse = accountSpi.requestAccountDetailForAccount(SPI_CONTEXT_DATA, false, accountReference,
                                                                                                   spiAccountConsent, aspspConsentDataProvider);
@@ -609,63 +564,7 @@ class AccountSpiImplTest {
         SpiAccountDetails spiAccountDetails = actualResponse.getPayload();
         assertNotNull(spiAccountDetails);
         assertNull(spiAccountDetails.getOwnerName());
-    }
-
-    @Test
-    void requestAccountDetailForAccount_availableAccountsConsent_withOwnerName() {
-        //Given
-        when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(buildAccountDetailsTO(IBAN, RESOURCE_ID)));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-        SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-consent-available-accounts-owner-name.json", SpiAccountConsent.class);
-
-        //when
-        SpiResponse<SpiAccountDetails> actualResponse = accountSpi.requestAccountDetailForAccount(SPI_CONTEXT_DATA, false, accountReference,
-                                                                                                  spiAccountConsent, aspspConsentDataProvider);
-        //Then
-        assertTrue(actualResponse.getErrors().isEmpty());
-        SpiAccountDetails spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        assertEquals(ACCOUNT_OWNER_NAME, spiAccountDetails.getOwnerName());
-    }
-
-    @Test
-    void requestAccountDetailForAccount_availableAccountsWithBalanceConsent_withOwnerName() {
-        //Given
-        when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(buildAccountDetailsTO(IBAN, RESOURCE_ID)));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-        SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-consent-available-accounts-balance-owner-name.json", SpiAccountConsent.class);
-
-        //when
-        SpiResponse<SpiAccountDetails> actualResponse = accountSpi.requestAccountDetailForAccount(SPI_CONTEXT_DATA, false, accountReference,
-                                                                                                  spiAccountConsent, aspspConsentDataProvider);
-        //Then
-        assertTrue(actualResponse.getErrors().isEmpty());
-        SpiAccountDetails spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        assertEquals(ACCOUNT_OWNER_NAME, spiAccountDetails.getOwnerName());
-    }
-
-    @Test
-    void requestAccountDetailForAccount_globalConsent_withOwnerName() {
-        //Given
-        when(accountRestClient.getAccountDetailsById(RESOURCE_ID)).thenReturn(ResponseEntity.ok(buildAccountDetailsTO(IBAN, RESOURCE_ID)));
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
-        SpiAccountConsent spiAccountConsent = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-consent-global-owner-name.json", SpiAccountConsent.class);
-
-        //when
-        SpiResponse<SpiAccountDetails> actualResponse = accountSpi.requestAccountDetailForAccount(SPI_CONTEXT_DATA, false, accountReference,
-                                                                                                  spiAccountConsent, aspspConsentDataProvider);
-        //Then
-        assertTrue(actualResponse.getErrors().isEmpty());
-        SpiAccountDetails spiAccountDetails = actualResponse.getPayload();
-        assertNotNull(spiAccountDetails);
-        assertEquals(ACCOUNT_OWNER_NAME, spiAccountDetails.getOwnerName());
+        verify(ownerNameService, never()).enrichAccountDetailsWithOwnerName(any());
     }
 
     private void verifyGetListOfAccounts() {
@@ -841,6 +740,19 @@ class AccountSpiImplTest {
         accountDetailsTO.setIban(iban);
         accountDetailsTO.setId(resourceId);
         return accountDetailsTO;
+    }
+
+    private SpiAccountDetails buildSpiAccountDetails(String iban, String resourceId) {
+        return buildSpiAccountDetailsWithOwnerName(iban, resourceId, null);
+    }
+
+    private SpiAccountDetails buildSpiAccountDetailsWithOwnerName(String iban, String resourceId, String ownerName) {
+        SpiAccountDetails spiAccountDetails = jsonReader.getObjectFromFile("json/spi/impl/account-spi/spi-account-details.json", SpiAccountDetails.class);
+        spiAccountDetails.setAspspAccountId(iban);
+        spiAccountDetails.setIban(iban);
+        spiAccountDetails.setResourceId(resourceId);
+        spiAccountDetails.setOwnerName(ownerName);
+        return spiAccountDetails;
     }
 
     private SpiAccountConsent buildSpiAccountConsent() {
