@@ -54,6 +54,7 @@ class AccountSpiImplTest {
     private static final AspspConsentData ASPSP_CONSENT_DATA = new AspspConsentData(BYTES, CONSENT_ID);
     private static final String RESOURCE_ID = "11111-999999999";
     private static final String RESOURCE_ID_SECOND_ACCOUNT = "11111-999999998";
+    private static final String RESOURCE_ID_THIRD_ACCOUNT = "33333-999999999";
 
     private final static LocalDate DATE_FROM = LocalDate.of(2019, 1, 1);
     private final static LocalDate DATE_TO = LocalDate.of(2020, 1, 1);
@@ -251,6 +252,10 @@ class AccountSpiImplTest {
         when(scaResponseTO.getBearerToken()).thenReturn(bearerTokenTO);
         when(tokenService.response(BYTES)).thenReturn(scaResponseTO);
         when(tokenService.store(scaResponseTO)).thenReturn(BYTES);
+
+        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
+        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_THIRD_ACCOUNT))
+                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
 
         AccountDetailsTO accountDetails_1 = jsonReader.getObjectFromFile("json/spi/impl/account-details.json", AccountDetailsTO.class);
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Collections.singletonList(accountDetails_1)));
