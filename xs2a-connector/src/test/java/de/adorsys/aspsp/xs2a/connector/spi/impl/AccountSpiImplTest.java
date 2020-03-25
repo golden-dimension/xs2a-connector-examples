@@ -7,6 +7,8 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl
 import de.adorsys.aspsp.xs2a.util.JsonReader;
 import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.account.AccountDetailsTO;
+import de.adorsys.ledgers.middleware.api.domain.account.AccountIdentifierTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.account.AdditionalAccountInformationTO;
 import de.adorsys.ledgers.middleware.api.domain.account.TransactionTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
@@ -34,6 +36,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -256,10 +259,6 @@ class AccountSpiImplTest {
         when(scaResponseTO.getBearerToken()).thenReturn(bearerTokenTO);
         when(tokenService.response(BYTES)).thenReturn(scaResponseTO);
         when(tokenService.store(scaResponseTO)).thenReturn(BYTES);
-
-        AdditionalAccountInformationTO additionalAccountInformationTO = buildAdditionalAccountInformationTO(ACCOUNT_OWNER_NAME);
-        when(accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, RESOURCE_ID_THIRD_ACCOUNT))
-                .thenReturn(ResponseEntity.ok(Collections.singletonList(additionalAccountInformationTO)));
 
         AccountDetailsTO accountDetails_1 = jsonReader.getObjectFromFile("json/spi/impl/account-details.json", AccountDetailsTO.class);
         when(accountRestClient.getListOfAccounts()).thenReturn(ResponseEntity.ok(Collections.singletonList(accountDetails_1)));
@@ -758,5 +757,12 @@ class AccountSpiImplTest {
 
     private SpiAccountConsent buildSpiAccountConsent() {
         return jsonReader.getObjectFromFile("json/spi/impl/spi-account-consent-with-2-accounts.json", SpiAccountConsent.class);
+    }
+
+    @NotNull
+    private AdditionalAccountInformationTO buildAdditionalAccountInformationTO(String ownerName) {
+        AdditionalAccountInformationTO additionalAccountInformationTO = new AdditionalAccountInformationTO();
+        additionalAccountInformationTO.setAccountOwnerName(ownerName);
+        return additionalAccountInformationTO;
     }
 }
