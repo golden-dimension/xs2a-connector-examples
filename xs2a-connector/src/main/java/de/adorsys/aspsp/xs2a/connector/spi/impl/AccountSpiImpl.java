@@ -16,15 +16,14 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
+import de.adorsys.aspsp.xs2a.connector.account.IbanAccountReference;
+import de.adorsys.aspsp.xs2a.connector.account.OwnerNameService;
 import de.adorsys.aspsp.xs2a.connector.mock.IbanResolverMockService;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.ledgers.middleware.api.domain.account.AccountDetailsTO;
-import de.adorsys.ledgers.middleware.api.domain.account.AccountIdentifierTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.account.AdditionalAccountInformationTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
-import de.adorsys.psd2.xs2a.core.ais.AccountAccessType;
 import de.adorsys.psd2.xs2a.core.ais.BookingStatus;
 import de.adorsys.psd2.xs2a.core.consent.AisConsentRequestType;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
@@ -50,7 +49,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
@@ -77,18 +75,22 @@ public class AccountSpiImpl implements AccountSpi {
     private final AspspConsentDataService tokenService;
     private final FeignExceptionReader feignExceptionReader;
     private final IbanResolverMockService ibanResolverMockService;
+    private final OwnerNameService ownerNameService;
 
     @Value("${test-download-transaction-list}")
     private String transactionList;
 
     public AccountSpiImpl(AccountRestClient restClient, LedgersSpiAccountMapper accountMapper,
-                          AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService tokenService, FeignExceptionReader feignExceptionReader, IbanResolverMockService ibanResolverMockService) {
+                          AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService tokenService,
+                          FeignExceptionReader feignExceptionReader, IbanResolverMockService ibanResolverMockService,
+                          OwnerNameService ownerNameService) {
         this.accountRestClient = restClient;
         this.accountMapper = accountMapper;
         this.authRequestInterceptor = authRequestInterceptor;
         this.tokenService = tokenService;
         this.feignExceptionReader = feignExceptionReader;
         this.ibanResolverMockService = ibanResolverMockService;
+        this.ownerNameService = ownerNameService;
     }
 
     @Override
@@ -107,9 +109,11 @@ public class AccountSpiImpl implements AccountSpi {
 
             aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
 
-            accountDetailsList.forEach(sad -> enrichSpiAccountDetailsWithOwnerName(sad, accountConsent.getAccess()));
+            List<SpiAccountDetails> accountDetailsListWithOwnerName = accountDetailsList.stream()
+                                                                              .map(accountDetail -> enrichWithOwnerName(accountDetail, accountConsent.getAccess()))
+                                                                              .collect(Collectors.toList());
 
-            List<SpiAccountDetails> payload = filterAccountDetailsByWithBalance(withBalance, accountDetailsList, accountConsent.getAccess());
+            List<SpiAccountDetails> payload = filterAccountDetailsByWithBalance(withBalance, accountDetailsListWithOwnerName, accountConsent.getAccess());
 
             return SpiResponse.<List<SpiAccountDetails>>builder()
                            .payload(payload)
@@ -138,22 +142,21 @@ public class AccountSpiImpl implements AccountSpi {
 
             logger.info("Requested details for account, ACCOUNT-ID: {}, withBalance: {}",
                         accountReference.getResourceId(), withBalance);
-            SpiAccountDetails accountDetails = Optional
-                                                       .ofNullable(accountRestClient.getAccountDetailsById(accountReference.getResourceId()).getBody())
+            SpiAccountDetails accountDetails = Optional.ofNullable(accountRestClient.getAccountDetailsById(accountReference.getResourceId()).getBody())
                                                        .map(accountMapper::toSpiAccountDetails)
                                                        .orElseThrow(() -> FeignExceptionHandler.getException(HttpStatus.NOT_FOUND, RESPONSE_STATUS_200_WITH_EMPTY_BODY));
 
-            enrichSpiAccountDetailsWithOwnerName(accountDetails, accountConsent.getAccess());
+            SpiAccountDetails accountDetailsWithOwnerName = enrichWithOwnerName(accountDetails, accountConsent.getAccess());
 
             if (!withBalance) {
-                accountDetails.emptyBalances();
+                accountDetailsWithOwnerName.emptyBalances();
             }
-            logger.info("The responded account RESOURCE-ID: {}", accountDetails.getResourceId());
+            logger.info("The responded account RESOURCE-ID: {}", accountDetailsWithOwnerName.getResourceId());
 
             aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
 
             return SpiResponse.<SpiAccountDetails>builder()
-                           .payload(accountDetails)
+                           .payload(accountDetailsWithOwnerName)
                            .build();
 
         } catch (FeignException feignException) {
@@ -464,26 +467,6 @@ public class AccountSpiImpl implements AccountSpi {
                                                             null, null, additionalInformationStructured, buildSpiAccountBalance()));
     }
 
-    private void enrichSpiAccountDetailsWithOwnerName(SpiAccountDetails accountDetails, SpiAccountAccess access) {
-        if (isOwnerNameAllowed(accountDetails, access)) {
-            String accountOwnerNameFromLedgers = getAccountOwnerNameFromLedgers(accountDetails);
-            accountDetails.setOwnerName(accountOwnerNameFromLedgers);
-        }
-    }
-
-    private String getAccountOwnerNameFromLedgers(SpiAccountDetails accountDetails) {
-        ResponseEntity<List<AdditionalAccountInformationTO>> additionalAccountInfo = accountRestClient.getAdditionalAccountInfo(AccountIdentifierTypeTO.ACCOUNT_ID, accountDetails.getResourceId());
-
-        List<AdditionalAccountInformationTO> additionalAccountInformationList = additionalAccountInfo.getBody();
-        if (CollectionUtils.isEmpty(additionalAccountInformationList)) {
-            return null;
-        }
-
-        return additionalAccountInformationList.stream()
-                       .map(AdditionalAccountInformationTO::getAccountOwnerName)
-                       .collect(Collectors.joining(", "));
-    }
-
     private SpiAccountBalance buildSpiAccountBalance() {
         SpiAccountBalance accountBalance = new SpiAccountBalance();
         accountBalance.setSpiBalanceAmount(new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(1000)));
@@ -494,16 +477,12 @@ public class AccountSpiImpl implements AccountSpi {
         return accountBalance;
     }
 
-    private boolean isOwnerNameAllowed(SpiAccountDetails accountDetails, SpiAccountAccess accountAccess) {
-        SpiAdditionalInformationAccess spiAdditionalInformationAccess = accountAccess.getSpiAdditionalInformationAccess();
-        if (spiAdditionalInformationAccess != null && spiAdditionalInformationAccess.getOwnerName() != null) {
-            List<SpiAccountReference> ownerName = spiAdditionalInformationAccess.getOwnerName();
-            return ownerName.isEmpty() || containsAccountReferenceWithIban(ownerName, accountDetails.getIban(), accountDetails.getCurrency());
+    private SpiAccountDetails enrichWithOwnerName(SpiAccountDetails spiAccountDetails, SpiAccountAccess accountAccess) {
+        IbanAccountReference ibanAccountReference = new IbanAccountReference(spiAccountDetails.getIban(), spiAccountDetails.getCurrency());
+        if (ownerNameService.shouldContainOwnerName(ibanAccountReference, accountAccess)) {
+            return ownerNameService.enrichAccountDetailsWithOwnerName(spiAccountDetails);
         }
 
-        AccountAccessType allAccountsWithOwnerName = AccountAccessType.ALL_ACCOUNTS_WITH_OWNER_NAME;
-        List<AccountAccessType> accountAccessTypes = Arrays.asList(accountAccess.getAvailableAccounts(), accountAccess.getAvailableAccountsWithBalance(), accountAccess.getAllPsd2());
-        return accountAccessTypes.contains(allAccountsWithOwnerName);
+        return spiAccountDetails;
     }
-
 }
