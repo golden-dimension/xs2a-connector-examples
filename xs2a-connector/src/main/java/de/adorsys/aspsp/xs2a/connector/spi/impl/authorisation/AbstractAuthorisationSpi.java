@@ -47,6 +47,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
     private final TokenStorageService tokenStorageService;
 
     public SpiResponse<SpiPsuAuthorisationResponse> authorisePsu(@NotNull SpiContextData contextData,
+                                                                 @NotNull String authorisationId,
                                                                  @NotNull SpiPsuData psuLoginData, String password, T businessObject,
                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         R originalResponse;
@@ -62,9 +63,13 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
 
         SpiResponse<SpiPsuAuthorisationResponse> authorisePsu = authorisationService.authorisePsuForConsent(
                 psuLoginData, password, getBusinessObjectId(businessObject),
-                getOtpType(), aspspConsentDataProvider);
+                authorisationId, getOtpType(), aspspConsentDataProvider);
 
         if (!authorisePsu.isSuccessful()) {
+            SpiPsuAuthorisationResponse spiResponse = authorisePsu.getPayload();
+            if (spiResponse != null && spiResponse.getSpiAuthorisationStatus() == SpiAuthorisationStatus.ATTEMPT_FAILURE) {
+                return authorisePsu;
+            }
             return SpiResponse.<SpiPsuAuthorisationResponse>builder()
                            .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
                            .build();

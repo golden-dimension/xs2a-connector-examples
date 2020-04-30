@@ -28,7 +28,6 @@ import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
-import de.adorsys.ledgers.util.Ids;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
@@ -54,6 +53,7 @@ import static de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO.SCAMETHOD
 
 @Component
 public class GeneralAuthorisationService {
+    private static final String ATTEMPT_FAILURE = "PSU_AUTH_ATTEMPT_INVALID";
     private static final Logger logger = LoggerFactory.getLogger(GeneralAuthorisationService.class);
     private final UserMgmtRestClient userMgmtRestClient;
     private final AuthRequestInterceptor authRequestInterceptor;
@@ -88,8 +88,7 @@ public class GeneralAuthorisationService {
      * @return : the authorisation status
      */
 
-    public <T extends SCAResponseTO> SpiResponse<SpiPsuAuthorisationResponse> authorisePsuForConsent(@NotNull SpiPsuData spiPsuData, String pin, String consentId, OpTypeTO opType, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        String authorisationId = Ids.id();
+    public <T extends SCAResponseTO> SpiResponse<SpiPsuAuthorisationResponse> authorisePsuForConsent(@NotNull SpiPsuData spiPsuData, String pin, String consentId, String authorisationId, OpTypeTO opType, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
             String login = spiPsuData.getPsuId();
             logger.info("Authorise user with login: {}", login);
@@ -108,6 +107,14 @@ public class GeneralAuthorisationService {
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Authorise PSU for consent failed: authorisation ID {}, consent ID {}, devMessage {}", authorisationId, consentId, devMessage);
+
+            String errorCode = feignExceptionReader.getErrorCode(feignException);
+            if (errorCode.equals(ATTEMPT_FAILURE)) {
+                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                               .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.ATTEMPT_FAILURE))
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                               .build();
+            }
             return SpiResponse.<SpiPsuAuthorisationResponse>builder()
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
                            .build();
