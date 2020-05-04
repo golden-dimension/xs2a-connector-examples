@@ -664,7 +664,7 @@ class AisConsentSpiImplTest {
         FeignException feignException = FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, "message");
         when(consentDataService.response(CONSENT_DATA_BYTES, SCAConsentResponseTO.class))
                 .thenThrow(feignException);
-        when(feignExceptionReader.getErrorCode(feignException)).thenReturn("PSU_AUTH_ATTEMPT_INVALID");
+        when(feignExceptionReader.getErrorCode(feignException)).thenReturn("SCA_VALIDATION_ATTEMPT_FAILED");
 
         SpiScaConfirmation spiScaConfirmation = new SpiScaConfirmation();
         spiScaConfirmation.setTanNumber("tan");

@@ -67,7 +67,7 @@ import static java.lang.String.format;
 
 @Component
 public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsent, SCAConsentResponseTO> implements AisConsentSpi {
-    private static final String ATTEMPT_FAILURE = "PSU_AUTH_ATTEMPT_INVALID";
+    private static final String ATTEMPT_FAILURE = "SCA_VALIDATION_ATTEMPT_FAILED";
     private static final Logger logger = LoggerFactory.getLogger(AisConsentSpiImpl.class);
     private static final String USER_LOGIN = "{userLogin}";
     private static final String CONSENT_ID = "{consentId}";

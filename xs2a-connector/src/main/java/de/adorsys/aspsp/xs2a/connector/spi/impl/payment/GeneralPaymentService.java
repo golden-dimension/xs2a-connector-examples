@@ -67,7 +67,7 @@ public class GeneralPaymentService {
     private static final Logger logger = LoggerFactory.getLogger(GeneralPaymentService.class);
     private static final String XML_MEDIA_TYPE = "application/xml";
     private static final String PSU_MESSAGE = "Mocked PSU message from SPI for this payment";
-    private static final String ATTEMPT_FAILURE = "PSU_AUTH_ATTEMPT_INVALID";
+    private static final String ATTEMPT_FAILURE = "SCA_VALIDATION_ATTEMPT_FAILED";
 
     private final PaymentRestClient paymentRestClient;
     private final AuthRequestInterceptor authRequestInterceptor;

@@ -282,7 +282,7 @@ class PaymentCancellationSpiImplTest {
         FeignException feignException = FeignExceptionHandler.getException(HttpStatus.BAD_REQUEST, "message");
         when(paymentRestClient.authorizeCancelPayment(PAYMENT_ID, AUTHORISATION_ID, TAN_NUMBER))
                 .thenThrow(feignException);
-        when(feignExceptionReader.getErrorCode(feignException)).thenReturn("PSU_AUTH_ATTEMPT_INVALID");
+        when(feignExceptionReader.getErrorCode(feignException)).thenReturn("SCA_VALIDATION_ATTEMPT_FAILED");
 
         SpiPaymentResponse expected = new SpiPaymentResponse(SpiAuthorisationStatus.ATTEMPT_FAILURE);
         SpiResponse<SpiPaymentResponse> actual = authorisationSpi.verifyScaAuthorisationAndCancelPayment(SPI_CONTEXT_DATA, spiScaConfirmation,

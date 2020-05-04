@@ -54,7 +54,7 @@ import java.util.Optional;
 
 @Component
 public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPayment, SCAPaymentResponseTO> implements PaymentCancellationSpi {
-    private static final String ATTEMPT_FAILURE = "PSU_AUTH_ATTEMPT_INVALID";
+    private static final String ATTEMPT_FAILURE = "SCA_VALIDATION_ATTEMPT_FAILED";
     private static final Logger logger = LoggerFactory.getLogger(PaymentCancellationSpiImpl.class);
 
     private final PaymentRestClient paymentRestClient;
