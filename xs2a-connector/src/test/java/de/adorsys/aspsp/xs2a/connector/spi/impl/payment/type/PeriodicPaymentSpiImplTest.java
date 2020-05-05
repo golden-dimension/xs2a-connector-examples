@@ -108,14 +108,14 @@ class PeriodicPaymentSpiImplTest {
     @Test
     void verifyScaAuthorisationAndExecutePayment() {
         SpiScaConfirmation spiScaConfirmation = new SpiScaConfirmation();
-        when(paymentService.verifyScaAuthorisationAndExecutePayment(spiScaConfirmation, spiAspspConsentDataProvider))
+        when(paymentService.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, spiAspspConsentDataProvider))
                 .thenReturn(SpiResponse.<SpiPaymentResponse>builder()
                                     .payload(new SpiPaymentExecutionResponse(TransactionStatus.RCVD))
                                     .build());
 
-        paymentSpi.verifyScaAuthorisationAndExecutePayment(SPI_CONTEXT_DATA, spiScaConfirmation, payment, spiAspspConsentDataProvider);
+        paymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, spiScaConfirmation, payment, spiAspspConsentDataProvider);
 
-        verify(paymentService).verifyScaAuthorisationAndExecutePayment(spiScaConfirmation, spiAspspConsentDataProvider);
+        verify(paymentService).verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, spiAspspConsentDataProvider);
     }
 
     @Test

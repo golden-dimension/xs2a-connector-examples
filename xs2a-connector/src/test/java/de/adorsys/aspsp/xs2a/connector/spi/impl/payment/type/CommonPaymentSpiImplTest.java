@@ -55,7 +55,7 @@ class CommonPaymentSpiImplTest {
     @Test
     void verifyScaAuthorisationAndExecutePayment() {
         //When
-        SpiResponse<SpiPaymentResponse> response = commonPaymentSpi.verifyScaAuthorisationAndExecutePayment(SPI_CONTEXT_DATA, new SpiScaConfirmation(), new SpiPaymentInfo(PAYMENT_PRODUCT), spiAspspConsentDataProvider);
+        SpiResponse<SpiPaymentResponse> response = commonPaymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, new SpiScaConfirmation(), new SpiPaymentInfo(PAYMENT_PRODUCT), spiAspspConsentDataProvider);
 
         //Then
         assertTrue(response.hasError());
