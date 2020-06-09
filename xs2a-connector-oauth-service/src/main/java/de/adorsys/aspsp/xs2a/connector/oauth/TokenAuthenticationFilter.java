@@ -20,6 +20,7 @@ import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
+import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.web.Xs2aEndpointChecker;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
 import de.adorsys.psd2.xs2a.web.filter.AbstractXs2aFilter;
@@ -58,6 +59,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     private final AspspProfileService aspspProfileService;
     private final OauthDataHolder oauthDataHolder;
     private final TppErrorMessageWriter tppErrorMessageWriter;
+    private final RequestProviderService requestProviderService;
 
     public TokenAuthenticationFilter(RequestPathResolver requestPathResolver,
                                      @Value("${oauth.header-name:X-OAUTH-PREFERRED}") String oauthModeHeaderName,
@@ -65,7 +67,8 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
                                      TokenValidationService tokenValidationService,
                                      AspspProfileService aspspProfileService,
                                      OauthDataHolder oauthDataHolder,
-                                     TppErrorMessageWriter tppErrorMessageWriter) {
+                                     TppErrorMessageWriter tppErrorMessageWriter,
+                                     RequestProviderService requestProviderService) {
         super(tppErrorMessageWriter, xs2aEndpointChecker);
         this.requestPathResolver = requestPathResolver;
         this.oauthModeHeaderName = oauthModeHeaderName;
@@ -73,6 +76,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         this.aspspProfileService = aspspProfileService;
         this.oauthDataHolder = oauthDataHolder;
         this.tppErrorMessageWriter = tppErrorMessageWriter;
+        this.requestProviderService = requestProviderService;
     }
 
     @Override
@@ -106,7 +110,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     }
 
     private boolean isInvalidOauthRequest(HttpServletRequest request, @NotNull HttpServletResponse response, OauthType oauthType, String bearerToken) throws IOException {
-        if (!aspspProfileService.getScaApproaches().contains(ScaApproach.OAUTH)) {
+        if (!aspspProfileService.getScaApproaches(requestProviderService.getInstanceId()).contains(ScaApproach.OAUTH)) {
             log.info("Token authentication error: OAUTH SCA approach is not supported in the profile");
             tppErrorMessageWriter.writeError(response, buildTppErrorMessage(MessageErrorCode.FORMAT_ERROR));
             return true;
@@ -114,7 +118,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
 
         if (oauthType == OauthType.PRE_STEP && StringUtils.isBlank(bearerToken)) {
             log.info("Token authentication error: token is absent in pre-step OAuth");
-            String oauthConfigurationUrl = aspspProfileService.getAspspSettings().getCommon().getOauthConfigurationUrl();
+            String oauthConfigurationUrl = aspspProfileService.getAspspSettings(requestProviderService.getInstanceId()).getCommon().getOauthConfigurationUrl();
             tppErrorMessageWriter.writeError(response, buildTppErrorMessage(UNAUTHORIZED_NO_TOKEN, oauthConfigurationUrl));
             return true;
         }
@@ -139,7 +143,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         if (trimmedRequestPath.endsWith(CONSENT_ENP_ENDING) || trimmedRequestPath.endsWith(FUNDS_CONF_ENP_ENDING)) {
             return false;
         } else {
-            Set<String> supportedProducts = aspspProfileService.getAspspSettings().getPis().getSupportedPaymentTypeAndProductMatrix().values().stream()
+            Set<String> supportedProducts = aspspProfileService.getAspspSettings(requestProviderService.getInstanceId()).getPis().getSupportedPaymentTypeAndProductMatrix().values().stream()
                                                     .flatMap(Collection::stream).collect(Collectors.toSet());
             return supportedProducts.stream().noneMatch(trimmedRequestPath::endsWith);
         }
