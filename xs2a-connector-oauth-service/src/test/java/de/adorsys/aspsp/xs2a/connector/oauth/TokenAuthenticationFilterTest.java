@@ -22,7 +22,6 @@ import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.domain.MessageCategory;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
-import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.web.Xs2aEndpointChecker;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
@@ -68,6 +67,7 @@ class TokenAuthenticationFilterTest {
     private static final String PAYMENTS_PATH = "/v1/payments/sepa-credits-transfer";
     private static final String IDP_CONFIGURATION_LINK = "http://localhost:4200/idp";
 
+    private static final String INSTANCE_ID_HEADER = "instance-id";
     private static final String INSTANCE_ID = "bank1";
 
     @Mock
@@ -88,10 +88,9 @@ class TokenAuthenticationFilterTest {
     private RequestPathResolver requestPathResolver;
     @Mock
     private Xs2aEndpointChecker xs2aEndpointChecker;
-    @Mock
-    private RequestProviderService requestProviderService;
 
     private TokenAuthenticationFilter tokenAuthenticationFilter;
+    private JsonReader jsonReader = new JsonReader();
 
     @BeforeEach
     void setUp() {
@@ -101,7 +100,7 @@ class TokenAuthenticationFilterTest {
                                                                   tokenValidationService,
                                                                   aspspProfileService,
                                                                   oauthDataHolder,
-                                                                  tppErrorMessageWriter, requestProviderService);
+                                                                  tppErrorMessageWriter);
 
         when(xs2aEndpointChecker.isXs2aEndpoint(httpServletRequest)).thenReturn(true);
     }
@@ -109,12 +108,13 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withValidToken() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(tokenValidationService.validate(BEARER_TOKEN_VALUE)).thenReturn(new BearerTokenTO());
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
         when(requestPathResolver.resolveRequestPath(httpServletRequest)).thenReturn(ACCOUNTS_PATH);
@@ -122,8 +122,6 @@ class TokenAuthenticationFilterTest {
         String authorisationTokenValue = BEARER_TOKEN_PREFIX + BEARER_TOKEN_VALUE;
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
                 .thenReturn(authorisationTokenValue);
-        when(tokenValidationService.validate(BEARER_TOKEN_VALUE))
-                .thenReturn(new BearerTokenTO());
 
         // When
         tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -139,7 +137,7 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withValidToken_preStep() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
@@ -166,12 +164,12 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withTrailingSlashInPath() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
         when(requestPathResolver.resolveRequestPath(httpServletRequest)).thenReturn(ACCOUNTS_PATH + "/");
@@ -195,12 +193,12 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withPaymentsPath() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
                 .thenReturn(OAUTH_MODE_INTEGRATED);
@@ -239,7 +237,7 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withConsentsPath_shouldSkipValidation() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
@@ -263,7 +261,7 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withFundsConfirmationPath_shouldSkipValidation() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
@@ -288,9 +286,9 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withoutOauthInProfile_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
-                .thenReturn(OAUTH_MODE_INTEGRATED);
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(null);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
@@ -330,15 +328,16 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilterInternalTest_withNoTokenInHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
+        when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(null);
+
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
-        when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME))
-                .thenReturn(OAUTH_MODE_INTEGRATED);
         when(requestPathResolver.resolveRequestPath(httpServletRequest))
                 .thenReturn(ACCOUNTS_PATH);
 
@@ -358,12 +357,12 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilterInternalTest_withBlankTokenInHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
@@ -386,12 +385,12 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilterInternalTest_withNoBearerPrefixInHeader_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION))
@@ -414,12 +413,12 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilterInternalTest_withBlankToken_preStepOauth_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_PRE_STEP);
 
@@ -442,12 +441,12 @@ class TokenAuthenticationFilterTest {
     @Test
     void doFilter_withInvalidToken_shouldReturnError() throws ServletException, IOException {
         // Given
-        when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
         when(aspspProfileService.getScaApproaches(INSTANCE_ID))
                 .thenReturn(Arrays.asList(ScaApproach.REDIRECT, ScaApproach.OAUTH));
 
         when(aspspProfileService.getAspspSettings(INSTANCE_ID))
-                .thenReturn(new JsonReader().getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
+                .thenReturn(jsonReader.getObjectFromFile(ASPSP_SETTINGS_JSON_PATH, AspspSettings.class));
 
         when(httpServletRequest.getHeader(OAUTH_MODE_HEADER_NAME)).thenReturn(OAUTH_MODE_INTEGRATED);
         when(requestPathResolver.resolveRequestPath(httpServletRequest)).thenReturn(ACCOUNTS_PATH);
