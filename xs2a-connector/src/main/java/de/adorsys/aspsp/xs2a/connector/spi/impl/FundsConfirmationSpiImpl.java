@@ -53,7 +53,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
     private final AspspConsentDataService tokenService;
     private final UserMgmtRestClient userMgmtRestClient;
 
-    @Value("${xs2a.funds-confirmation-user-login:admin1}")
+    @Value("${xs2a.funds-confirmation-user-login:admin}")
     private String fundsConfirmationUserLogin;
     @Value("${xs2a.funds-confirmation-user-password:admin123}")
     private String fundsConfirmationUserPassword;
