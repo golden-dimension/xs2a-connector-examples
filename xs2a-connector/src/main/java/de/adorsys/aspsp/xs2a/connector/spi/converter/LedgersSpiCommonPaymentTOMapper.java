@@ -67,17 +67,17 @@ public class LedgersSpiCommonPaymentTOMapper {
         String paymentData = new String(spiPaymentInfo.getPaymentData());
         try {
             String json = paymentData.substring(paymentData.indexOf("{"), paymentData.lastIndexOf("}") + 1);
-            PeriodicPaymentInitiationXmlPart2StandingorderTypeJson periodicPaymentInitiationXmlPart2StandingorderTypeJson = xs2aObjectMapper.readValue(json, PeriodicPaymentInitiationXmlPart2StandingorderTypeJson.class);
-            paymentTO.setStartDate(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getStartDate());
-            paymentTO.setEndDate(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getEndDate());
-            paymentTO.setDayOfExecution(Optional.ofNullable(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getDayOfExecution())
+            PeriodicPaymentInitiationXmlPart2StandingorderTypeJson periodicTypeJson = xs2aObjectMapper.readValue(json, PeriodicPaymentInitiationXmlPart2StandingorderTypeJson.class);
+            paymentTO.setStartDate(periodicTypeJson.getStartDate());
+            paymentTO.setEndDate(periodicTypeJson.getEndDate());
+            paymentTO.setDayOfExecution(Optional.ofNullable(periodicTypeJson.getDayOfExecution())
                                                 .map(d -> Integer.parseInt(d.toString()))
                                                 .orElse(null));
-            paymentTO.setExecutionRule(Optional.ofNullable(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getExecutionRule())
+            paymentTO.setExecutionRule(Optional.ofNullable(periodicTypeJson.getExecutionRule())
                                                .map(ExecutionRule::toString)
                                                .orElse(null));
             paymentTO.setFrequency(
-                    Optional.ofNullable(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getFrequency())
+                    Optional.ofNullable(periodicTypeJson.getFrequency())
                             .map(f -> FrequencyCodeTO.valueOf(f.name()))
                             .orElse(null));
         } catch (Exception e) {
