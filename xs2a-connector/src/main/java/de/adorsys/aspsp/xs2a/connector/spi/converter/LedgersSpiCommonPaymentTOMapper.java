@@ -65,8 +65,8 @@ public class LedgersSpiCommonPaymentTOMapper {
 
     private PaymentTO enrichPeriodicPaymentFields(PaymentTO paymentTO, SpiPaymentInfo spiPaymentInfo) {
         String paymentData = new String(spiPaymentInfo.getPaymentData());
-        String json = paymentData.substring(paymentData.indexOf("{"), paymentData.lastIndexOf("}") + 1);
         try {
+            String json = paymentData.substring(paymentData.indexOf("{"), paymentData.lastIndexOf("}") + 1);
             PeriodicPaymentInitiationXmlPart2StandingorderTypeJson periodicPaymentInitiationXmlPart2StandingorderTypeJson = xs2aObjectMapper.readValue(json, PeriodicPaymentInitiationXmlPart2StandingorderTypeJson.class);
             paymentTO.setStartDate(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getStartDate());
             paymentTO.setEndDate(periodicPaymentInitiationXmlPart2StandingorderTypeJson.getEndDate());
