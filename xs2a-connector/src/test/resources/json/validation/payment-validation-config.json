@@ -18,7 +18,7 @@
     "maxLength": 100
   },
   "postCode": {
-    "maxLength": 35
+    "maxLength": 5
   },
   "pan": {
     "maxLength": 35
