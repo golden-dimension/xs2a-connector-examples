@@ -16,81 +16,128 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
-import de.adorsys.psd2.xs2a.core.authorisation.AuthenticationObject;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.AisConsentMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaLoginMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.AbstractAuthorisationSpi;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.GeneralAuthorisationService;
+import de.adorsys.ledgers.middleware.api.domain.sca.*;
+import de.adorsys.ledgers.middleware.api.domain.um.AisConsentTO;
+import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
+import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
+import de.adorsys.ledgers.rest.client.ConsentRestClient;
 import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.sca.ChallengeData;
 import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.*;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentConfirmationCodeValidationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentStatusResponse;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiInitiatePiisConsentResponse;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiVerifyScaAuthorisationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.piis.SpiPiisConsent;
-import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.PiisConsentSpi;
 import feign.FeignException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
-public class PiisConsentSpiImpl implements PiisConsentSpi {
-    @Override
-    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsu(@NotNull SpiContextData contextData, @NotNull String authorisationId, @NotNull SpiPsuData psuLoginData, String password, SpiPiisConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        log.info("PiisConsentSpiImpl#authorisePsu: contextData {}, psuLoginData {}, businessObject-id {}", contextData, psuLoginData, businessObject.getId());
+public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent, SCAConsentResponseTO> implements PiisConsentSpi {
+    private final ConsentRestClient consentRestClient;
+    private final TokenStorageService tokenStorageService;
+    private final AisConsentMapper aisConsentMapper;
+    private final AuthRequestInterceptor authRequestInterceptor;
+    private final AspspConsentDataService consentDataService;
+    private final ScaLoginMapper scaLoginMapper;
+    private final MultilevelScaService multilevelScaService;
 
-        return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                       .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS))
-                       .build();
+    public PiisConsentSpiImpl(ConsentRestClient consentRestClient, TokenStorageService tokenStorageService,
+                              AisConsentMapper aisConsentMapper, AuthRequestInterceptor authRequestInterceptor,
+                              AspspConsentDataService consentDataService, GeneralAuthorisationService authorisationService,
+                              ScaMethodConverter scaMethodConverter, ScaLoginMapper scaLoginMapper, FeignExceptionReader feignExceptionReader,
+                              MultilevelScaService multilevelScaService) {
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
+        this.consentRestClient = consentRestClient;
+        this.tokenStorageService = tokenStorageService;
+        this.aisConsentMapper = aisConsentMapper;
+        this.authRequestInterceptor = authRequestInterceptor;
+        this.consentDataService = consentDataService;
+        this.scaLoginMapper = scaLoginMapper;
+        this.multilevelScaService = multilevelScaService;
     }
 
     @Override
-    public SpiResponse<SpiAvailableScaMethodsResponse> requestAvailableScaMethods(@NotNull SpiContextData contextData, SpiPiisConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        log.info("PiisConsentSpiImpl#requestAvailableScaMethods: contextData {}, businessObject-id {}", contextData, businessObject.getId());
-
-        List<AuthenticationObject> spiScaMethods = new ArrayList<>();
-        AuthenticationObject sms = new AuthenticationObject();
-        sms.setAuthenticationType("SMS_OTP");
-        sms.setAuthenticationMethodId("sms");
-        sms.setName("some-sms-name");
-        spiScaMethods.add(sms);
-        AuthenticationObject push = new AuthenticationObject();
-        push.setAuthenticationType("PUSH_OTP");
-        push.setAuthenticationMethodId("push");
-        push.setDecoupled(true);
-        spiScaMethods.add(push);
-
-        return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
-                       .payload(new SpiAvailableScaMethodsResponse(false, spiScaMethods))
-                       .build();
+    protected ResponseEntity<SCAConsentResponseTO> getSelectMethodResponse(@NotNull String authenticationMethodId, SCAConsentResponseTO sca) {
+        return consentRestClient.selectMethod(sca.getConsentId(), sca.getAuthorisationId(), authenticationMethodId);
     }
 
     @Override
-    public @NotNull SpiResponse<SpiAuthorizationCodeResult> requestAuthorisationCode(@NotNull SpiContextData contextData, @NotNull String authenticationMethodId, @NotNull SpiPiisConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        log.info("PiisConsentSpiImpl#requestAuthorisationCode: contextData {}, authenticationMethodId {}, businessObject-id {}", contextData, authenticationMethodId, businessObject.getId());
+    protected SCAConsentResponseTO getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
+        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+        return consentDataService.response(aspspConsentData, SCAConsentResponseTO.class, checkCredentials);
+    }
 
-        SpiAuthorizationCodeResult spiAuthorizationCodeResult = new SpiAuthorizationCodeResult();
-        AuthenticationObject method = new AuthenticationObject();
-        method.setAuthenticationMethodId("sms");
-        method.setAuthenticationType("SMS_OTP");
-        spiAuthorizationCodeResult.setSelectedScaMethod(method);
-        spiAuthorizationCodeResult.setChallengeData(new ChallengeData(null, Collections.singletonList("some data"), "some link", 100, null, "info"));
+    @Override
+    protected String getBusinessObjectId(SpiPiisConsent businessObject) {
+        return businessObject.getId();
+    }
 
-        return SpiResponse.<SpiAuthorizationCodeResult>builder()
-                       .payload(spiAuthorizationCodeResult)
-                       .build();
+    @Override
+    protected OpTypeTO getOtpType() {
+        return OpTypeTO.CONSENT;
+    }
+
+    @Override
+    protected TppMessage getAuthorisePsuFailureMessage(SpiPiisConsent businessObject) {
+        log.error("Initiate consent failed: consent ID {}", businessObject.getId());
+        return new TppMessage(MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT);
+    }
+
+    @Override
+    protected SCAResponseTO initiateBusinessObject(SpiPiisConsent piisConsent, byte[] initialAspspConsentData) {
+        try {
+            SCAResponseTO sca = consentDataService.response(initialAspspConsentData);
+            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            AisConsentTO aisConsent = aisConsentMapper.mapPiisToAisConsent(piisConsent);
+
+            // Bearer token only returned in case of exempted consent.
+            ResponseEntity<SCAConsentResponseTO> consentResponse = consentRestClient.startSCA(piisConsent.getId(),
+                                                                                              aisConsent);
+            SCAConsentResponseTO response = consentResponse.getBody();
+
+            if (response != null && response.getBearerToken() == null) {
+                response.setBearerToken(sca.getBearerToken());
+            }
+            return response;
+        } finally {
+            authRequestInterceptor.setAccessToken(null);
+        }
+    }
+
+    @Override
+    protected SCAConsentResponseTO mapToScaResponse(SpiPiisConsent businessObject, byte[] aspspConsentData, SCAConsentResponseTO originalResponse) throws IOException {
+        SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(aspspConsentData, SCALoginResponseTO.class);
+        SCAConsentResponseTO consentResponse = scaLoginMapper.toConsentResponse(scaResponseTO);
+        consentResponse.setObjectType(SCAConsentResponseTO.class.getSimpleName());
+        consentResponse.setConsentId(businessObject.getId());
+        consentResponse.setMultilevelScaRequired(originalResponse.isMultilevelScaRequired());
+        return consentResponse;
+    }
+
+    @Override
+    protected boolean isFirstInitiationOfMultilevelSca(SpiPiisConsent businessObject, SCAConsentResponseTO scaConsentResponseTO) {
+        return !scaConsentResponseTO.isMultilevelScaRequired() || businessObject.getPsuData().size() <= 1;
     }
 
     @Override
@@ -134,12 +181,12 @@ public class PiisConsentSpiImpl implements PiisConsentSpi {
                        .payload(new SpiConsentConfirmationCodeValidationResponse(ScaStatus.FINALISED, ConsentStatus.VALID))
                        .build();
     }
-    private final MultilevelScaService multilevelScaService;
 
     @Override
     public SpiResponse<SpiInitiatePiisConsentResponse> initiatePiisConsent(@NotNull SpiContextData contextData, SpiPiisConsent spiPiisConsent, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         SpiInitiatePiisConsentResponse spiInitiatePiisConsentResponse = new SpiInitiatePiisConsentResponse();
         spiInitiatePiisConsentResponse.setSpiAccountReference(spiPiisConsent.getAccount());
+
         boolean multilevelScaRequired;
         try {
             multilevelScaRequired = multilevelScaService.isMultilevelScaRequired(contextData.getPsuData(), Collections.singleton(spiPiisConsent.getAccount()));
@@ -149,6 +196,11 @@ public class PiisConsentSpiImpl implements PiisConsentSpi {
                            .error(new TppMessage(MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT))
                            .build();
         }
+        SCAConsentResponseTO response = new SCAConsentResponseTO();
+        response.setScaStatus(ScaStatusTO.STARTED);
+        response.setMultilevelScaRequired(multilevelScaRequired);
+        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response, false));
+
         spiInitiatePiisConsentResponse.setMultilevelScaRequired(multilevelScaRequired);
         return SpiResponse.<SpiInitiatePiisConsentResponse>builder().payload(spiInitiatePiisConsentResponse).build();
     }
