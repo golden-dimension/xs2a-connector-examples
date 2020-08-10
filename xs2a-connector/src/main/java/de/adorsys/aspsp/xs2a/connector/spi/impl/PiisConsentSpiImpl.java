@@ -26,6 +26,7 @@ import de.adorsys.ledgers.middleware.api.domain.um.AisConsentTO;
 import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.ConsentRestClient;
+import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
@@ -50,9 +51,13 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Collections;
 
+import static de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus.ATTEMPT_FAILURE;
+
 @Slf4j
 @Component
 public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent, SCAConsentResponseTO> implements PiisConsentSpi {
+    private static final String SCA_STATUS_LOG = "SCA status is {}";
+
     private final ConsentRestClient consentRestClient;
     private final TokenStorageService tokenStorageService;
     private final AisConsentMapper aisConsentMapper;
@@ -60,12 +65,14 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent,
     private final AspspConsentDataService consentDataService;
     private final ScaLoginMapper scaLoginMapper;
     private final MultilevelScaService multilevelScaService;
+    private final FeignExceptionReader feignExceptionReader;
+    private final UserMgmtRestClient userMgmtRestClient;
 
     public PiisConsentSpiImpl(ConsentRestClient consentRestClient, TokenStorageService tokenStorageService,
                               AisConsentMapper aisConsentMapper, AuthRequestInterceptor authRequestInterceptor,
                               AspspConsentDataService consentDataService, GeneralAuthorisationService authorisationService,
                               ScaMethodConverter scaMethodConverter, ScaLoginMapper scaLoginMapper, FeignExceptionReader feignExceptionReader,
-                              MultilevelScaService multilevelScaService) {
+                              MultilevelScaService multilevelScaService, UserMgmtRestClient userMgmtRestClient) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
         this.consentRestClient = consentRestClient;
         this.tokenStorageService = tokenStorageService;
@@ -74,6 +81,8 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent,
         this.consentDataService = consentDataService;
         this.scaLoginMapper = scaLoginMapper;
         this.multilevelScaService = multilevelScaService;
+        this.feignExceptionReader = feignExceptionReader;
+        this.userMgmtRestClient = userMgmtRestClient;
     }
 
     @Override
@@ -151,11 +160,49 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent,
 
     @Override
     public @NotNull SpiResponse<SpiVerifyScaAuthorisationResponse> verifyScaAuthorisation(@NotNull SpiContextData contextData, @NotNull SpiScaConfirmation spiScaConfirmation, @NotNull SpiPiisConsent spiPiisConsent, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        log.info("PiisConsentSpiImpl#verifyScaAuthorisation: contextData {}, spiScaConfirmation {}, consent-id {}", contextData, spiScaConfirmation, spiPiisConsent.getId());
+        try {
+            SCAConsentResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData(), SCAConsentResponseTO.class);
+            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
-        return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
-                       .payload(new SpiVerifyScaAuthorisationResponse(ConsentStatus.VALID))
-                       .build();
+            ResponseEntity<SCAConsentResponseTO> authorizeConsentResponse = consentRestClient
+                                                                                    .authorizeConsent(sca.getConsentId(), sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
+            SCAConsentResponseTO consentResponse = authorizeConsentResponse.getBody();
+
+            String scaStatusName = sca.getScaStatus().name();
+            log.info(SCA_STATUS_LOG, scaStatusName);
+            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(consentResponse, !consentResponse.isPartiallyAuthorised()));
+
+            // TODO use real sca status from Ledgers for resolving consent status https://git.adorsys.de/adorsys/xs2a/ledgers/issues/206
+            return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
+                           .payload(new SpiVerifyScaAuthorisationResponse(getConsentStatus(consentResponse)))
+                           .build();
+        } catch (FeignException feignException) {
+            String devMessage = feignExceptionReader.getErrorMessage(feignException);
+            log.error("Verify sca authorisation failed: consent ID {}, devMessage {}", spiPiisConsent.getId(), devMessage);
+
+            String errorCode = feignExceptionReader.getErrorCode(feignException);
+            if (errorCode.equals(ATTEMPT_FAILURE)) {
+                return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
+                               .payload(new SpiVerifyScaAuthorisationResponse(spiPiisConsent.getConsentStatus(), ATTEMPT_FAILURE))
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                               .build();
+            }
+
+            return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                           .build();
+        } finally {
+            authRequestInterceptor.setAccessToken(null);
+        }
+    }
+
+    ConsentStatus getConsentStatus(SCAConsentResponseTO consentResponse) {
+        if (consentResponse != null
+                    && consentResponse.isPartiallyAuthorised()
+                    && ScaStatusTO.FINALISED.equals(consentResponse.getScaStatus())) {
+            return ConsentStatus.PARTIALLY_AUTHORISED;
+        }
+        return ConsentStatus.VALID;
     }
 
     @Override
@@ -173,17 +220,43 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent,
     }
 
     @Override
-    public @NotNull SpiResponse<SpiConsentConfirmationCodeValidationResponse> checkConfirmationCode
-            (@NotNull SpiContextData spiContextData,
-             @NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest,
-             @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
-                       .payload(new SpiConsentConfirmationCodeValidationResponse(ScaStatus.FINALISED, ConsentStatus.VALID))
-                       .build();
+    public @NotNull SpiResponse<SpiConsentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiContextData spiContextData,
+                                                                                                    @NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
+        try {
+            SCAConsentResponseTO sca = consentDataService.response(spiAspspConsentDataProvider.loadAspspConsentData(), SCAConsentResponseTO.class);
+            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            ResponseEntity<AuthConfirmationTO> authConfirmationTOResponse =
+                    userMgmtRestClient.verifyAuthConfirmationCode(spiCheckConfirmationCodeRequest.getAuthorisationId(), spiCheckConfirmationCodeRequest.getConfirmationCode());
+
+            AuthConfirmationTO authConfirmationTO = authConfirmationTOResponse.getBody();
+
+            if (authConfirmationTO == null || !authConfirmationTO.isSuccess()) {
+                // No response in payload from ASPSP or confirmation code verification failed at ASPSP side.
+                return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, ConsentStatus.REJECTED);
+            }
+
+            if (authConfirmationTO.isPartiallyAuthorised()) {
+                // This authorisation is finished, but others are left.
+                return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.PARTIALLY_AUTHORISED);
+            }
+
+            // Authorisation is finalised and consent becomes valid.
+            return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.VALID);
+
+        } catch (FeignException feignException) {
+            String devMessage = feignExceptionReader.getErrorMessage(feignException);
+            return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                           .build();
+        } finally {
+            authRequestInterceptor.setAccessToken(null);
+        }
     }
 
     @Override
-    public SpiResponse<SpiInitiatePiisConsentResponse> initiatePiisConsent(@NotNull SpiContextData contextData, SpiPiisConsent spiPiisConsent, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    public SpiResponse<SpiInitiatePiisConsentResponse> initiatePiisConsent(@NotNull SpiContextData contextData, SpiPiisConsent spiPiisConsent,
+                                                                           @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         SpiInitiatePiisConsentResponse spiInitiatePiisConsentResponse = new SpiInitiatePiisConsentResponse();
         spiInitiatePiisConsentResponse.setSpiAccountReference(spiPiisConsent.getAccount());
 
@@ -206,14 +279,26 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent,
     }
 
     @Override
-    public SpiResponse<SpiConsentStatusResponse> getConsentStatus(@NotNull SpiContextData contextData, @NotNull SpiPiisConsent spiPiisConsent, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    public SpiResponse<SpiConsentStatusResponse> getConsentStatus(@NotNull SpiContextData contextData, @NotNull SpiPiisConsent spiPiisConsent,
+                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         return SpiResponse.<SpiConsentStatusResponse>builder()
                        .payload(new SpiConsentStatusResponse(spiPiisConsent.getConsentStatus(), null))
                        .build();
     }
 
     @Override
-    public SpiResponse<SpiResponse.VoidResponse> revokePiisConsent(@NotNull SpiContextData contextData, SpiPiisConsent spiPiisConsent, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        return SpiResponse.<SpiResponse.VoidResponse>builder().payload(SpiResponse.voidResponse()).build();
+    public SpiResponse<SpiResponse.VoidResponse> revokePiisConsent(@NotNull SpiContextData contextData, SpiPiisConsent spiPiisConsent,
+                                                                   @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        return SpiResponse.<SpiResponse.VoidResponse>builder()
+                       .payload(SpiResponse.voidResponse())
+                       .build();
+    }
+
+    private SpiResponse<SpiConsentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(ScaStatus scaStatus, ConsentStatus consentStatus) {
+        SpiConsentConfirmationCodeValidationResponse response = new SpiConsentConfirmationCodeValidationResponse(scaStatus, consentStatus);
+
+        return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
+                       .payload(response)
+                       .build();
     }
 }
