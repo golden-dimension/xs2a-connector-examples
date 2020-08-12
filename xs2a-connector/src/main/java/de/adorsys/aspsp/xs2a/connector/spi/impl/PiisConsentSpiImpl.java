@@ -55,6 +55,7 @@ import java.util.Collections;
 @Slf4j
 @Component
 public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent, SCAConsentResponseTO> implements PiisConsentSpi {
+    // TODO REPLACE WITH PIIS FLOW WHEN LEDGERS STARTS TO SUPPORT PIIS CONSENT https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/-/issues/1323
     private static final String SCA_STATUS_LOG = "SCA status is {}";
     private static final String ATTEMPT_FAILURE = "SCA_VALIDATION_ATTEMPT_FAILED";
 
