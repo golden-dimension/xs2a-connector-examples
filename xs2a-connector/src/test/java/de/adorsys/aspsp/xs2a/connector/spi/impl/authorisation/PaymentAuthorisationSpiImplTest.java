@@ -2,19 +2,16 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaLoginMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.CmsPaymentStatusUpdateService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.internal.PaymentInternalGeneral;
-import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
+import de.adorsys.ledgers.middleware.api.domain.um.ScaMethodTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
+import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.tpp.TppInfo;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -109,6 +106,10 @@ class PaymentAuthorisationSpiImplTest {
     private CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService;
     @Mock
     private PaymentInternalGeneral paymentInternalGeneral;
+    @Mock
+    private RedirectScaRestClient redirectScaRestClient;
+    @Mock
+    private ScaResponseMapper scaResponseMapper;
 
     @Spy
     private ScaMethodConverter scaMethodConverter = Mappers.getMapper(ScaMethodConverter.class);
@@ -415,12 +416,14 @@ class PaymentAuthorisationSpiImplTest {
         when(consentDataService.response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, true)).thenReturn(scaPaymentResponseTO);
 
         doNothing().when(authRequestInterceptor).setAccessToken(ACCESS_TOKEN);
-        when(paymentRestClient.selectMethod(PAYMENT_ID, AUTHORISATION_ID, AUTHENTICATION_METHOD_ID))
-                .thenReturn(ResponseEntity.ok(scaPaymentResponseTO));
         when(authorisationService.returnScaMethodSelection(spiAspspConsentDataProvider, scaPaymentResponseTO))
                 .thenReturn(SpiResponse.<SpiAuthorizationCodeResult>builder()
                                     .payload(new SpiAuthorizationCodeResult())
                                     .build());
+        when(redirectScaRestClient.selectMethod(AUTHORISATION_ID, AUTHENTICATION_METHOD_ID))
+                .thenReturn(ResponseEntity.ok(getGlobalScaResponseTO()));
+        when(scaResponseMapper.mapToScaPaymentResponse(any()))
+                .thenReturn(getScaPaymentResponseTO(ScaStatusTO.PSUIDENTIFIED));
 
         SpiResponse<SpiAuthorisationDecoupledScaResponse> actual = authorisationSpi.startScaDecoupled(SPI_CONTEXT_DATA, AUTHORISATION_ID, AUTHENTICATION_METHOD_ID,
                                                                                                       businessObject, spiAspspConsentDataProvider);
@@ -430,7 +433,7 @@ class PaymentAuthorisationSpiImplTest {
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, true);
         verify(authRequestInterceptor, times(1)).setAccessToken(ACCESS_TOKEN);
-        verify(paymentRestClient, times(1)).selectMethod(PAYMENT_ID, AUTHORISATION_ID, AUTHENTICATION_METHOD_ID);
+        verify(redirectScaRestClient, times(1)).selectMethod(AUTHORISATION_ID, AUTHENTICATION_METHOD_ID);
         verify(authorisationService, times(1)).returnScaMethodSelection(spiAspspConsentDataProvider, scaPaymentResponseTO);
     }
 
@@ -442,12 +445,14 @@ class PaymentAuthorisationSpiImplTest {
         when(consentDataService.response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, true)).thenReturn(scaPaymentResponseTO);
 
         doNothing().when(authRequestInterceptor).setAccessToken(ACCESS_TOKEN);
-        when(paymentRestClient.selectMethod(PAYMENT_ID, AUTHORISATION_ID, AUTHENTICATION_METHOD_ID))
-                .thenReturn(ResponseEntity.ok(scaPaymentResponseTO));
+        when(redirectScaRestClient.selectMethod(AUTHORISATION_ID, AUTHENTICATION_METHOD_ID))
+                .thenReturn(ResponseEntity.ok(getGlobalScaResponseTO()));
         FeignException feignException = FeignExceptionHandler.getException(HttpStatus.BAD_REQUEST, "message");
         when(authorisationService.returnScaMethodSelection(spiAspspConsentDataProvider, scaPaymentResponseTO))
                 .thenThrow(feignException);
         when(feignExceptionReader.getErrorMessage(feignException)).thenReturn("message");
+        when(scaResponseMapper.mapToScaPaymentResponse(any()))
+                .thenReturn(getScaPaymentResponseTO(ScaStatusTO.PSUIDENTIFIED));
 
         SpiResponse<SpiAuthorisationDecoupledScaResponse> actual = authorisationSpi.startScaDecoupled(SPI_CONTEXT_DATA, AUTHORISATION_ID, AUTHENTICATION_METHOD_ID,
                                                                                                       businessObject, spiAspspConsentDataProvider);
@@ -458,7 +463,7 @@ class PaymentAuthorisationSpiImplTest {
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES, SCAPaymentResponseTO.class, true);
         verify(authRequestInterceptor, times(1)).setAccessToken(ACCESS_TOKEN);
-        verify(paymentRestClient, times(1)).selectMethod(PAYMENT_ID, AUTHORISATION_ID, AUTHENTICATION_METHOD_ID);
+        verify(redirectScaRestClient, times(1)).selectMethod(AUTHORISATION_ID, AUTHENTICATION_METHOD_ID);
         verify(authorisationService, times(1)).returnScaMethodSelection(spiAspspConsentDataProvider, scaPaymentResponseTO);
         verify(feignExceptionReader, times(1)).getErrorMessage(any(FeignException.class));
     }
@@ -499,6 +504,24 @@ class PaymentAuthorisationSpiImplTest {
         scaPaymentResponseTO.setPaymentProduct(PAYMENT_PRODUCT);
         scaPaymentResponseTO.setAuthorisationId(AUTHORISATION_ID);
         scaPaymentResponseTO.setScaStatus(scaStatusTO);
+        BearerTokenTO bearerToken = new BearerTokenTO();
+        bearerToken.setAccess_token(ACCESS_TOKEN);
+        scaPaymentResponseTO.setBearerToken(bearerToken);
+        return scaPaymentResponseTO;
+    }
+
+    private ScaUserDataTO getScaUserData() {
+        ScaUserDataTO userDataTO = new ScaUserDataTO();
+        userDataTO.setScaMethod(ScaMethodTypeTO.EMAIL);
+        userDataTO.setDecoupled(false);
+        return userDataTO;
+    }
+
+    private GlobalScaResponseTO getGlobalScaResponseTO() {
+        GlobalScaResponseTO scaPaymentResponseTO = new GlobalScaResponseTO();
+        scaPaymentResponseTO.setAuthorisationId(AUTHORISATION_ID);
+        scaPaymentResponseTO.setScaStatus(ScaStatusTO.PSUIDENTIFIED);
+        scaPaymentResponseTO.setScaMethods(Collections.singletonList(getScaUserData()));
         BearerTokenTO bearerToken = new BearerTokenTO();
         bearerToken.setAccess_token(ACCESS_TOKEN);
         scaPaymentResponseTO.setBearerToken(bearerToken);

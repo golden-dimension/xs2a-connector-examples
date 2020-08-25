@@ -92,7 +92,8 @@ public class GeneralAuthorisationService {
         try {
             String login = spiPsuData.getPsuId();
             logger.info("Authorise user with login: {}", login);
-            ResponseEntity<SCALoginResponseTO> response = userMgmtRestClient.authoriseForConsent(login, pin, consentId, authorisationId, opType);
+
+            ResponseEntity<SCALoginResponseTO> response = userMgmtRestClient.authoriseForConsent(consentId, authorisationId, opType);
             SpiAuthorisationStatus status = response != null && response.getBody() != null && response.getBody().getBearerToken() != null
                                                     ? SpiAuthorisationStatus.SUCCESS
                                                     : SpiAuthorisationStatus.FAILURE;

@@ -11,6 +11,7 @@ import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
+import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
@@ -74,12 +75,18 @@ class GeneralPaymentServiceTest {
     private MultilevelScaService multilevelScaService;
     @Mock
     private UserMgmtRestClient userMgmtRestClient;
+    @Mock
+    private RedirectScaRestClient redirectScaRestClient;
+    @Mock
+    private ScaResponseMapper scaResponseMapper;
+
+
 
     private GeneralPaymentService generalPaymentService;
 
     @BeforeEach
     void setUp() {
-        generalPaymentService = new GeneralPaymentService(paymentRestClient, authRequestInterceptor, consentDataService, feignExceptionReader, MOCK_XML_BODY, multilevelScaService, userMgmtRestClient);
+        generalPaymentService = new GeneralPaymentService(paymentRestClient, authRequestInterceptor, consentDataService, feignExceptionReader, MOCK_XML_BODY, multilevelScaService, userMgmtRestClient, redirectScaRestClient, scaResponseMapper);
     }
 
     @Test

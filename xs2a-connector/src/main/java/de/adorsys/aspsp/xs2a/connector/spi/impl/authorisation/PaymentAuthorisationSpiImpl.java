@@ -22,16 +22,14 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.CmsPaymentStatusUpdateService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.internal.PaymentInternalGeneral;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
-import de.adorsys.ledgers.rest.client.PaymentRestClient;
+import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -44,6 +42,7 @@ import feign.FeignException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -62,24 +61,30 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     private final TokenStorageService tokenStorageService;
     private final ScaLoginMapper scaLoginMapper;
     private final AspspConsentDataService consentDataService;
-    private final PaymentRestClient paymentRestClient;
     private final CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService;
     private final PaymentInternalGeneral paymentInternalGeneral;
-
+    private final RedirectScaRestClient redirectScaRestClient;
+    private final ScaResponseMapper scaResponseMapper;
 
     public PaymentAuthorisationSpiImpl(GeneralAuthorisationService authorisationService,
-                                       TokenStorageService tokenStorageService, ScaMethodConverter scaMethodConverter,
+                                       TokenStorageService tokenStorageService,
+                                       ScaMethodConverter scaMethodConverter,
                                        ScaLoginMapper scaLoginMapper,
-                                       AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService,
-                                       PaymentRestClient paymentRestClient, CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService,
-                                       FeignExceptionReader feignExceptionReader, PaymentInternalGeneral paymentInternalGeneral) {
+                                       AuthRequestInterceptor authRequestInterceptor,
+                                       AspspConsentDataService consentDataService,
+                                       CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService,
+                                       FeignExceptionReader feignExceptionReader,
+                                       PaymentInternalGeneral paymentInternalGeneral,
+                                       RedirectScaRestClient redirectScaRestClient,
+                                       ScaResponseMapper scaResponseMapper) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
         this.tokenStorageService = tokenStorageService;
         this.scaLoginMapper = scaLoginMapper;
         this.consentDataService = consentDataService;
-        this.paymentRestClient = paymentRestClient;
         this.cmsPaymentStatusUpdateService = cmsPaymentStatusUpdateService;
         this.paymentInternalGeneral = paymentInternalGeneral;
+        this.redirectScaRestClient = redirectScaRestClient;
+        this.scaResponseMapper = scaResponseMapper;
     }
 
     @Override
@@ -121,7 +126,11 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
 
     @Override
     protected ResponseEntity<SCAPaymentResponseTO> getSelectMethodResponse(@NotNull String authenticationMethodId, SCAPaymentResponseTO sca) {
-        return paymentRestClient.selectMethod(sca.getPaymentId(), sca.getAuthorisationId(), authenticationMethodId);
+        ResponseEntity<GlobalScaResponseTO> scaResponse = redirectScaRestClient.selectMethod(sca.getAuthorisationId(), authenticationMethodId);
+
+        return scaResponse.getStatusCode() == HttpStatus.OK
+                       ? ResponseEntity.ok(scaResponseMapper.mapToScaPaymentResponse(scaResponse.getBody()))
+                       : ResponseEntity.badRequest().build();
     }
 
     @Override
