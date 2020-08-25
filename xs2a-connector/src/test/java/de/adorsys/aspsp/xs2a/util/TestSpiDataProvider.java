@@ -43,13 +43,14 @@ public class TestSpiDataProvider {
                         .psuAcceptEncoding(PSU_ACCEPT_ENCODING)
                         .psuAcceptLanguage(PSU_ACCEPT_LANGUAGE)
                         .psuHttpMethod(PSU_HTTP_METHOD)
-                        .psuDeviceId(UUID.randomUUID())
+                        .psuDeviceId(PSU_DEVICE_ID)
                         .build(),
                 new TppInfo(),
                 X_REQUEST_ID,
                 INTERNAL_REQUEST_ID,
                 AUTHORISATION,
-                TPP_BRAND_LOGGING_INFORMATION
+                TPP_BRAND_LOGGING_INFORMATION,
+                false
         );
     }
 

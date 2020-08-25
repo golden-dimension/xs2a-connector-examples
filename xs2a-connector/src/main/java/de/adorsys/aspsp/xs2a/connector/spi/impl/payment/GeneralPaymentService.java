@@ -16,19 +16,14 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment;
 
-import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.MultilevelScaService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.TransactionStatusTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.AuthConfirmationTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
+import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.ledgers.util.Ids;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
@@ -76,6 +71,8 @@ public class GeneralPaymentService {
     private final String transactionStatusXmlBody;
     private final MultilevelScaService multilevelScaService;
     private final UserMgmtRestClient userMgmtRestClient;
+    private final RedirectScaRestClient redirectScaRestClient;
+    private final ScaResponseMapper scaResponseMapper;
 
     public GeneralPaymentService(PaymentRestClient ledgersRestClient,
                                  AuthRequestInterceptor authRequestInterceptor,
@@ -83,7 +80,9 @@ public class GeneralPaymentService {
                                  FeignExceptionReader feignExceptionReader,
                                  @Value("${test-transaction-status-xml-body}") String transactionStatusXmlBody,
                                  MultilevelScaService multilevelScaService,
-                                 UserMgmtRestClient userMgmtRestClient) {
+                                 UserMgmtRestClient userMgmtRestClient,
+                                 RedirectScaRestClient redirectScaRestClient,
+                                 ScaResponseMapper scaResponseMapper) {
         this.paymentRestClient = ledgersRestClient;
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
@@ -91,6 +90,8 @@ public class GeneralPaymentService {
         this.transactionStatusXmlBody = transactionStatusXmlBody;
         this.multilevelScaService = multilevelScaService;
         this.userMgmtRestClient = userMgmtRestClient;
+        this.redirectScaRestClient = redirectScaRestClient;
+        this.scaResponseMapper = scaResponseMapper;
     }
 
     public SpiResponse<SpiGetPaymentStatusResponse> getPaymentStatusById(@NotNull PaymentTypeTO paymentType,
@@ -140,20 +141,32 @@ public class GeneralPaymentService {
             SCAPaymentResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData(), SCAPaymentResponseTO.class);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
-            ResponseEntity<SCAPaymentResponseTO> authorizePaymentResponse = paymentRestClient.authorizePayment(sca.getPaymentId(), sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
-            SCAPaymentResponseTO consentResponse = authorizePaymentResponse.getBody();
+            ResponseEntity<GlobalScaResponseTO> authorizePaymentResponse = redirectScaRestClient.validateScaCode(sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
 
-            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(consentResponse));
+            if (authorizePaymentResponse.getStatusCode() == HttpStatus.OK) {
+                paymentRestClient.executePayment(sca.getPaymentId());
+                SCAPaymentResponseTO paymentResponseTO = scaResponseMapper.mapToScaPaymentResponse(authorizePaymentResponse.getBody());
 
-            String scaStatus = Optional.ofNullable(consentResponse)
-                                       .map(SCAResponseTO::getScaStatus)
-                                       .map(ScaStatusTO::name)
-                                       .orElse(null);
+                aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(paymentResponseTO));
 
-            logger.info("SCA status is: {}", scaStatus);
+                String scaStatus = Optional.ofNullable(paymentResponseTO)
+                                           .map(SCAResponseTO::getScaStatus)
+                                           .map(ScaStatusTO::name)
+                                           .orElse(null);
+
+                logger.info("SCA status is: {}", scaStatus);
+
+                ResponseEntity<TransactionStatusTO> paymentStatusResponse = paymentRestClient.getPaymentStatusById(sca.getPaymentId());
+
+                return SpiResponse.<SpiPaymentResponse>builder()
+                               .payload(spiPaymentExecutionResponse(paymentStatusResponse.getBody()))
+                               .build();
+            }
+
             return SpiResponse.<SpiPaymentResponse>builder()
-                           .payload(spiPaymentExecutionResponse(consentResponse.getTransactionStatus()))
+                           .payload(new SpiPaymentResponse(SpiAuthorisationStatus.FAILURE))
                            .build();
+
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.info("Verify SCA authorisation and execute payment failed: payment ID {}, devMessage {}", spiScaConfirmation.getPaymentId(), devMessage);
