@@ -95,7 +95,8 @@ public abstract class LedgersSpiPaymentMapper {
         spiPayment.setRemittanceInformationUnstructured(paymentTargetTO.getRemittanceInformationUnstructured());
         spiPayment.setInstructedAmount(accountMapper.toSpiAmount(paymentTargetTO.getInstructedAmount()));
         spiPayment.setCreditorAccount(accountMapper.toSpiAccountReference(paymentTargetTO.getCreditorAccount()));
-        spiPayment.setRemittanceInformationStructured(mapToSpiRemittance(paymentTargetTO.getRemittanceInformationStructured()));
+        if(paymentTargetTO.getRemittanceInformationStructured() != null)
+            spiPayment.setRemittanceInformationStructured(paymentTargetTO.getRemittanceInformationStructured().getReference());
         spiPayment.setPurposeCode(Optional.ofNullable(paymentTargetTO.getPurposeCode())
                                           .map(PurposeCodeTO::name)
                                           .map(PurposeCode::fromValue)
