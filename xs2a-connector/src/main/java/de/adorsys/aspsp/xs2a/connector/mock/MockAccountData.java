@@ -16,7 +16,6 @@
 
 package de.adorsys.aspsp.xs2a.connector.mock;
 
-import de.adorsys.psd2.xs2a.core.pis.Remittance;
 import de.adorsys.psd2.xs2a.spi.domain.common.SpiAmount;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiAddress;
 

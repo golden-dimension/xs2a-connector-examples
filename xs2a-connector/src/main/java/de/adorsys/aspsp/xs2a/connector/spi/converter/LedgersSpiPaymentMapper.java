@@ -95,15 +95,18 @@ public abstract class LedgersSpiPaymentMapper {
         spiPayment.setRemittanceInformationUnstructured(paymentTargetTO.getRemittanceInformationUnstructured());
         spiPayment.setInstructedAmount(accountMapper.toSpiAmount(paymentTargetTO.getInstructedAmount()));
         spiPayment.setCreditorAccount(accountMapper.toSpiAccountReference(paymentTargetTO.getCreditorAccount()));
-        if(paymentTargetTO.getRemittanceInformationStructured() != null)
-            spiPayment.setRemittanceInformationStructured(paymentTargetTO.getRemittanceInformationStructured().getReference());
+        spiPayment.setRemittanceInformationStructured(mapToRemittanceString(paymentTargetTO.getRemittanceInformationStructured()));
         spiPayment.setPurposeCode(Optional.ofNullable(paymentTargetTO.getPurposeCode())
                                           .map(PurposeCodeTO::name)
                                           .map(PurposeCode::fromValue)
                                           .orElse(null));
     }
 
-    public abstract SpiRemittance mapToSpiRemittance(RemittanceInformationStructuredTO remittanceInformationStructured);
+    public String mapToRemittanceString(RemittanceInformationStructuredTO remittanceInformationStructuredTO) {
+        return Optional.ofNullable(remittanceInformationStructuredTO)
+                       .map(RemittanceInformationStructuredTO::getReference)
+                       .orElse(null);
+    }
 
     private OffsetDateTime toDateTime(LocalDate date, LocalTime time) {
         return Optional.ofNullable(date)
