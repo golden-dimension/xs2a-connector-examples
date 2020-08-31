@@ -16,16 +16,16 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
-import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaLoginMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.ScaResponseMapper;
-import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
+import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
-import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
@@ -50,7 +50,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,28 +59,27 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     private static final Logger logger = LoggerFactory.getLogger(PaymentCancellationSpiImpl.class);
 
     private final PaymentRestClient paymentRestClient;
-    private final TokenStorageService tokenStorageService;
     private final AuthRequestInterceptor authRequestInterceptor;
     private final AspspConsentDataService consentDataService;
     private final FeignExceptionReader feignExceptionReader;
-    private final ScaLoginMapper scaLoginMapper;
     private final RedirectScaRestClient redirectScaRestClient;
     private final ScaResponseMapper scaResponseMapper;
 
     public PaymentCancellationSpiImpl(PaymentRestClient ledgersRestClient,
-                                      TokenStorageService tokenStorageService, ScaMethodConverter scaMethodConverter,
+                                      ScaMethodConverter scaMethodConverter,
                                       AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService,
                                       GeneralAuthorisationService authorisationService,
-                                      FeignExceptionReader feignExceptionReader, ScaLoginMapper scaLoginMapper,
+                                      FeignExceptionReader feignExceptionReader,
                                       RedirectScaRestClient redirectScaRestClient,
-                                      ScaResponseMapper scaResponseMapper) {
-        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
+                                      ScaResponseMapper scaResponseMapper,
+                                      KeycloakTokenService keycloakTokenService,
+                                      GeneralPaymentService paymentService,
+                                      LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper) {
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient, paymentService, ledgersSpiCommonPaymentTOMapper);
         this.paymentRestClient = ledgersRestClient;
-        this.tokenStorageService = tokenStorageService;
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
         this.feignExceptionReader = feignExceptionReader;
-        this.scaLoginMapper = scaLoginMapper;
         this.redirectScaRestClient = redirectScaRestClient;
         this.scaResponseMapper = scaResponseMapper;
     }
@@ -111,7 +109,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                            .build();
         }
 
-        SCAPaymentResponseTO sca = getSCAConsentResponse(aspspConsentDataProvider, true);
+        SCAPaymentResponseTO sca = getScaObjectResponse(aspspConsentDataProvider, true);
         if (sca.getScaStatus() == ScaStatusTO.EXEMPTED) {
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
             try {
@@ -121,7 +119,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                .build();
             } catch (FeignException feignException) {
                 String devMessage = feignExceptionReader.getErrorMessage(feignException);
-                logger.error("Cancel payment without sca failed: payment ID {}, devMessage {}", payment.getPaymentId(), devMessage);
+                logger.error("Cancel payment without SCA failed: payment ID: {}, devMessage: {}", payment.getPaymentId(), devMessage);
                 return SpiResponse.<SpiResponse.VoidResponse>builder()
                                .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR_CANCELLATION, devMessage))
                                .build();
@@ -138,16 +136,20 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                                                                                                 @NotNull SpiPayment payment,
                                                                                                                 @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
-            SCAPaymentResponseTO sca = getSCAConsentResponse(aspspConsentDataProvider, true);
+            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData(), SCAPaymentResponseTO.class);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             ResponseEntity<GlobalScaResponseTO> authorizeCancelPaymentResponse = redirectScaRestClient.validateScaCode(sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
 
             if (authorizeCancelPaymentResponse.getStatusCode() == HttpStatus.OK) {
+                String authCancellationBearerToken = authorizeCancelPaymentResponse.getBody().getBearerToken().getAccess_token();
+                authRequestInterceptor.setAccessToken(authCancellationBearerToken);
+
                 paymentRestClient.executeCancelPayment(sca.getPaymentId());
                 SCAPaymentResponseTO paymentResponseTO = scaResponseMapper.mapToScaPaymentResponse(authorizeCancelPaymentResponse.getBody());
 
                 aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(paymentResponseTO));
+                authRequestInterceptor.setAccessToken(authCancellationBearerToken);
 
                 return SpiResponse.<SpiPaymentExecutionResponse>builder()
                                .payload(new SpiPaymentExecutionResponse(SpiAuthorisationStatus.SUCCESS))
@@ -159,7 +161,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                            .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            logger.error("Verify sca authorisation and cancel payment failed: payment ID {}, devMessage {}", payment.getPaymentId(), devMessage);
+            logger.error("Verify SCA authorisation and cancel payment failed: payment ID: {}, devMessage: {}", payment.getPaymentId(), devMessage);
 
             String errorCode = feignExceptionReader.getErrorCode(feignException);
             if (errorCode.equals(ATTEMPT_FAILURE)) {
@@ -185,7 +187,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     @Override
-    protected SCAPaymentResponseTO getSCAConsentResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
+    protected SCAPaymentResponseTO getScaObjectResponse(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
         return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class, checkCredentials);
     }
@@ -196,15 +198,14 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     @Override
-    protected OpTypeTO getOtpType() {
+    protected OpTypeTO getOpType() {
         return OpTypeTO.CANCEL_PAYMENT;
     }
 
     @Override
     protected TppMessage getAuthorisePsuFailureMessage(SpiPayment businessObject) {
-        logger.error("Initiate single payment failed: payment ID {}", businessObject.getPaymentId());
+        logger.error("Authorising payment cancellation failed, payment ID: {}", businessObject.getPaymentId());
         return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
-
     }
 
     @Override
@@ -212,17 +213,21 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                                                                  SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
                                                                                  SCAPaymentResponseTO scaBusinessObjectResponse) {
-        try {
-            aspspConsentDataProvider.updateAspspConsentData(tokenStorageService.toBytes(scaBusinessObjectResponse));
 
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS))
-                           .build();
-        } catch (IOException e) {
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.UNAUTHORIZED_CANCELLATION))
-                           .build();
-        }
+        ResponseEntity<SCAPaymentResponseTO> cancellationResponse = paymentRestClient.executeCancelPayment(businessObject.getPaymentId());
+
+        boolean success = Optional.ofNullable(cancellationResponse.getBody())
+                                  .map(cr -> cr.getScaStatus() != ScaStatusTO.FAILED)
+                                  .orElse(false);
+
+        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(cancellationResponse.getBody()));
+
+        return success ? SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS))
+                                 .build()
+                       : SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
+                                 .build();
     }
 
     @Override
@@ -230,18 +235,18 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
         return null;
     }
 
-    @Override
-    protected SCAPaymentResponseTO mapToScaResponse(SpiPayment businessObject, byte[] aspspConsentData, SCAPaymentResponseTO originalResponse) throws IOException {
-        String paymentTypeString = Optional.ofNullable(businessObject.getPaymentType()).orElseThrow(() -> new IOException("Missing payment type")).name();
-        SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(aspspConsentData, SCALoginResponseTO.class);
-        SCAPaymentResponseTO paymentResponse = scaLoginMapper.toPaymentResponse(scaResponseTO);
-        paymentResponse.setObjectType(SCAPaymentResponseTO.class.getSimpleName());
-        paymentResponse.setPaymentId(businessObject.getPaymentId());
-        paymentResponse.setPaymentType(PaymentTypeTO.valueOf(paymentTypeString));
-        paymentResponse.setPaymentProduct(businessObject.getPaymentProduct());
-        paymentResponse.setMultilevelScaRequired(originalResponse.isMultilevelScaRequired());
-        return paymentResponse;
-    }
+//    @Override
+//    protected SCAPaymentResponseTO mapToScaResponse(SpiPayment businessObject, byte[] aspspConsentData, SCAPaymentResponseTO originalResponse) throws IOException {
+//        String paymentTypeString = Optional.ofNullable(businessObject.getPaymentType()).orElseThrow(() -> new IOException("Missing payment type")).name();
+//        SCALoginResponseTO scaResponseTO = consentDataService.response(aspspConsentData, SCALoginResponseTO.class);
+//        SCAPaymentResponseTO paymentResponse = scaLoginMapper.toPaymentResponse(scaResponseTO);
+//        paymentResponse.setObjectType(SCAPaymentResponseTO.class.getSimpleName());
+//        paymentResponse.setPaymentId(businessObject.getPaymentId());
+//        paymentResponse.setPaymentType(PaymentTypeTO.valueOf(paymentTypeString));
+//        paymentResponse.setPaymentProduct(businessObject.getPaymentProduct());
+//        paymentResponse.setMultilevelScaRequired(originalResponse.isMultilevelScaRequired());
+//        return paymentResponse;
+//    }
 
     @Override
     protected boolean validateStatuses(SpiPayment businessObject, SCAPaymentResponseTO sca) {
@@ -258,7 +263,6 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     protected Optional<List<ScaUserDataTO>> getScaMethods(SCAPaymentResponseTO sca) {
         authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
         ResponseEntity<GlobalScaResponseTO> cancelScaResponse = redirectScaRestClient.getSCA(sca.getAuthorisationId());
-
 
         return Optional.ofNullable(
                 scaResponseMapper.mapToScaPaymentResponse(cancelScaResponse.getBody()).getScaMethods()

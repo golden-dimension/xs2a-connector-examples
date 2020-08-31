@@ -9,7 +9,6 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.*;
-import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import lombok.RequiredArgsConstructor;
@@ -23,13 +22,6 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaym
     protected static final String DEBTOR_NAME = "Mocked debtor name from ASPSP";
 
     protected final GeneralPaymentService paymentService;
-
-    /*
-     * Initiating a payment you need a valid bearer token if not we just return ok.
-     */
-    public @NotNull SpiResponse<R> initiatePayment(@NotNull SpiContextData contextData, @NotNull P payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        return processEmptyAspspConsentData(payment, aspspConsentDataProvider, contextData.getPsuData());
-    }
 
     public @NotNull SpiResponse<SpiGetPaymentStatusResponse> getPaymentStatusById(@NotNull SpiContextData contextData,
                                                                                   @NotNull String acceptMediaType,
@@ -58,24 +50,20 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaym
     }
 
     public @NotNull SpiResponse<SpiPaymentExecutionResponse> verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(@NotNull SpiContextData contextData,
-                                                                                            @NotNull SpiScaConfirmation spiScaConfirmation,
-                                                                                            @NotNull P payment,
-                                                                                            @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+                                                                                                               @NotNull SpiScaConfirmation spiScaConfirmation,
+                                                                                                               @NotNull P payment,
+                                                                                                               @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         return paymentService.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, aspspConsentDataProvider);
     }
 
     public @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiContextData contextData,
-                                                                                           @NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest,
-                                                                                           @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+                                                                                                    @NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest,
+                                                                                                    @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         return paymentService.checkConfirmationCode(spiCheckConfirmationCodeRequest, aspspConsentDataProvider);
     }
 
-    protected abstract SpiResponse<R> processEmptyAspspConsentData(@NotNull P payment,
-                                                                   @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                   @NotNull SpiPsuData spiPsuData);
-
-    protected  @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> notifyConfirmationCodeValidation(@NotNull SpiContextData spiContextData, boolean confirmationCodeValidationResult, @NotNull P payment, boolean isCancellation, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        ScaStatus scaStatus  = confirmationCodeValidationResult ? ScaStatus.FINALISED : ScaStatus.FAILED;
+    protected @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> notifyConfirmationCodeValidation(@NotNull SpiContextData spiContextData, boolean confirmationCodeValidationResult, @NotNull P payment, boolean isCancellation, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
+        ScaStatus scaStatus = confirmationCodeValidationResult ? ScaStatus.FINALISED : ScaStatus.FAILED;
         TransactionStatus transactionStatus = isCancellation
                                                       ? confirmationCodeValidationResult ? TransactionStatus.CANC : payment.getPaymentStatus()
                                                       : confirmationCodeValidationResult ? TransactionStatus.ACSP : TransactionStatus.RJCT;

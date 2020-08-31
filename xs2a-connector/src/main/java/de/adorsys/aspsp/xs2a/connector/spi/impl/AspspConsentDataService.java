@@ -16,19 +16,23 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
-import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
 @Service
+@RequiredArgsConstructor
 public class AspspConsentDataService {
 
-    @Autowired
-    private TokenStorageService tokenStorageService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Default storage, makes sure there is a bearer token in the response object.
@@ -42,7 +46,7 @@ public class AspspConsentDataService {
             throw new IllegalStateException("Missing credentials, response must contain a bearer token by default.");
         }
         try {
-            return tokenStorageService.toBytes(response);
+            return objectMapper.writeValueAsBytes(response);
         } catch (IOException e) {
             throw FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
@@ -58,7 +62,7 @@ public class AspspConsentDataService {
 
     public SCAResponseTO response(byte[] aspspConsentData, boolean checkCredentials) {
         try {
-            SCAResponseTO sca = tokenStorageService.fromBytes(aspspConsentData);
+            SCAResponseTO sca = fromBytes(aspspConsentData);
             checkBearerTokenPresent(checkCredentials, sca);
             return sca;
         } catch (IOException e) {
@@ -68,7 +72,7 @@ public class AspspConsentDataService {
 
     public <T extends SCAResponseTO> T response(byte[] aspspConsentData, Class<T> klass, boolean checkCredentials) {
         try {
-            T sca = tokenStorageService.fromBytes(aspspConsentData, klass);
+            T sca = fromBytes(aspspConsentData, klass);
             checkBearerTokenPresent(checkCredentials, sca);
             return sca;
         } catch (IOException e) {
@@ -76,9 +80,39 @@ public class AspspConsentDataService {
         }
     }
 
+    private <T extends SCAResponseTO> T fromBytes(byte[] tokenBytes, Class<T> klass) throws IOException {
+        String type = readType(tokenBytes);
+        if(!klass.getSimpleName().equals(type)) {
+            return null;
+        }
+        return objectMapper.readValue(tokenBytes, klass);
+    }
+
     private <T extends SCAResponseTO> void checkBearerTokenPresent(boolean checkCredentials, T sca) {
         if (checkCredentials && sca.getBearerToken() == null) {
             throw FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, "Missing credentials. Expecting a bearer token in the consent data object.");
+        }
+    }
+
+    private String readType(byte[] tokenBytes) throws IOException {
+        JsonNode jsonNode = objectMapper.readTree(tokenBytes);
+        JsonNode objectType = jsonNode.get("objectType");
+        if (objectType == null) {
+            return null;
+        }
+        return objectType.textValue();
+    }
+
+    private SCAResponseTO fromBytes(byte[] tokenBytes) throws IOException {
+        String type = readType(tokenBytes);
+        if (SCAConsentResponseTO.class.getSimpleName().equals(type)) {
+            return objectMapper.readValue(tokenBytes, SCAConsentResponseTO.class);
+        } else if (SCALoginResponseTO.class.getSimpleName().equals(type)) {
+            return objectMapper.readValue(tokenBytes, SCALoginResponseTO.class);
+        } else if (SCAPaymentResponseTO.class.getSimpleName().equals(type)) {
+            return objectMapper.readValue(tokenBytes, SCAPaymentResponseTO.class);
+        } else {
+            return null;
         }
     }
 }

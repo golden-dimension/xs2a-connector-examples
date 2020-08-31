@@ -21,14 +21,14 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.ScaResponseMapper;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.StartScaOprTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
-import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
-import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
+import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.sca.ChallengeData;
@@ -36,13 +36,12 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
-import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -52,65 +51,71 @@ import static de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO.PSUIDENTI
 import static de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO.SCAMETHODSELECTED;
 
 @Component
+@RequiredArgsConstructor
 public class GeneralAuthorisationService {
     private static final String ATTEMPT_FAILURE = "PSU_AUTH_ATTEMPT_INVALID";
     private static final Logger logger = LoggerFactory.getLogger(GeneralAuthorisationService.class);
-    private final UserMgmtRestClient userMgmtRestClient;
     private final AuthRequestInterceptor authRequestInterceptor;
     private final ChallengeDataMapper challengeDataMapper;
     private final ScaMethodConverter scaMethodConverter;
     private final AspspConsentDataService consentDataService;
     private final FeignExceptionReader feignExceptionReader;
+    private final RedirectScaRestClient redirectScaRestClient;
+    private final ScaResponseMapper scaResponseMapper;
 
-    public GeneralAuthorisationService(UserMgmtRestClient userMgmtRestClient, AuthRequestInterceptor authRequestInterceptor,
-                                       ChallengeDataMapper challengeDataMapper, ScaMethodConverter scaMethodConverter, AspspConsentDataService consentDataService, FeignExceptionReader feignExceptionReader) {
-        this.userMgmtRestClient = userMgmtRestClient;
-        this.authRequestInterceptor = authRequestInterceptor;
-        this.challengeDataMapper = challengeDataMapper;
-        this.scaMethodConverter = scaMethodConverter;
-        this.consentDataService = consentDataService;
-        this.feignExceptionReader = feignExceptionReader;
-    }
+    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(@NotNull String login, String businessObjectId, String authorisationId, BearerTokenTO fullAccessToken, OpTypeTO operationType, SCAResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
-    /**
-     * First authorization of the PSU.
-     * <p>
-     * The result of this authorisation must contain an scaStatus with following options:
-     * - {@link ScaStatusTO#EXEMPTED}: There is no SCA needed. The user does not have any SCA method anyway.
-     * - {@link ScaStatusTO#SCAMETHODSELECTED}: The user has receive an authorisation code and must enter it.
-     * - {@link ScaStatusTO#PSUIDENTIFIED}: the user must select an authorisation method to complete authorisation.
-     * <p>
-     * In all three cases, we store the response object for reuse in an {@link AspspConsentData} object.
-     *
-     * @param spiPsuData               identification data for the psu
-     * @param pin                      : pis of the psu
-     * @param aspspConsentDataProvider :Provides access to read/write encrypted data to be stored in the consent management system
-     * @return : the authorisation status
-     */
+        logger.info("Authorising user with login: {}", login);
 
-    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuForConsent(@NotNull SpiPsuData spiPsuData, String pin, String consentId, String authorisationId, OpTypeTO opType, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponse));
+        authRequestInterceptor.setAccessToken(scaResponse.getBearerToken().getAccess_token());
+
+        StartScaOprTO startScaOprTO = new StartScaOprTO();
+        startScaOprTO.setOpType(operationType);
+        startScaOprTO.setAuthorisationId(authorisationId);
+        startScaOprTO.setOprId(businessObjectId);
+
+        ResponseEntity<GlobalScaResponseTO> startScaResponse = redirectScaRestClient.startSca(startScaOprTO);
+        GlobalScaResponseTO startScaResponseBody = startScaResponse.getBody();
+
+        SCAResponseTO responseWithRefreshedToken;
+
+        if (operationType == OpTypeTO.PAYMENT || operationType == OpTypeTO.CANCEL_PAYMENT) {
+            responseWithRefreshedToken = scaResponseMapper.mapToScaPaymentResponse(startScaResponseBody);
+            responseWithRefreshedToken.setBearerToken(scaResponse.getBearerToken());
+        } else {
+            responseWithRefreshedToken = scaResponseMapper.mapToScaConsentResponse(startScaResponseBody);
+            responseWithRefreshedToken.setBearerToken(scaResponse.getBearerToken());
+        }
+
+        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(responseWithRefreshedToken));
+
         try {
-            String login = spiPsuData.getPsuId();
-            logger.info("Authorise user with login: {}", login);
-
-            ResponseEntity<SCALoginResponseTO> response = userMgmtRestClient.authoriseForConsent(consentId, authorisationId, opType);
-            SpiAuthorisationStatus status = response != null && response.getBody() != null && response.getBody().getBearerToken() != null
+            SpiAuthorisationStatus status = fullAccessToken != null && fullAccessToken.getAccess_token() != null
                                                     ? SpiAuthorisationStatus.SUCCESS
                                                     : SpiAuthorisationStatus.FAILURE;
             logger.info("Authorisation status is: {}", status);
 
-            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(Optional.ofNullable(response)
-                                                                                             .map(HttpEntity::getBody)
-                                                                                             .orElseGet(SCALoginResponseTO::new)));
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .payload(new SpiPsuAuthorisationResponse(ScaStatusTO.EXEMPTED == Optional.ofNullable(response)
+            SpiResponse<SpiPsuAuthorisationResponse> response = SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                                                                        .payload(new SpiPsuAuthorisationResponse(false, status))
+                                                                        .build();
+            if (!response.isSuccessful()) {
+                SpiPsuAuthorisationResponse spiResponse = response.getPayload();
+                if (spiResponse != null && spiResponse.getSpiAuthorisationStatus() == SpiAuthorisationStatus.ATTEMPT_FAILURE) {
+                    return response;
+                }
+                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                               .payload(new SpiPsuAuthorisationResponse(ScaStatusTO.EXEMPTED == Optional.ofNullable(response)
                                                                                                     .map(HttpEntity::getBody)
                                                                                                     .map(SCAResponseTO::getScaStatus)
-                                                                                                    .orElse(null), status))
-                           .build();
+                                                                                                    .orElse(null), SpiAuthorisationStatus.FAILURE))
+                               .build();
+            }
+
+            return response;
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            logger.error("Authorise PSU for consent failed: authorisation ID {}, consent ID {}, devMessage {}", authorisationId, consentId, devMessage);
+            logger.error("Authorise PSU internal failed: authorisation ID {}, business object ID: {}, devMessage: {}", authorisationId, businessObjectId, devMessage);
 
             String errorCode = feignExceptionReader.getErrorCode(feignException);
             if (errorCode.equals(ATTEMPT_FAILURE)) {
@@ -122,15 +127,6 @@ public class GeneralAuthorisationService {
             return SpiResponse.<SpiPsuAuthorisationResponse>builder()
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
                            .build();
-        }
-    }
-
-    public BearerTokenTO validateToken(String accessToken) {
-        try {
-            authRequestInterceptor.setAccessToken(accessToken);
-            return userMgmtRestClient.validate(accessToken).getBody();
-        } finally {
-            authRequestInterceptor.setAccessToken(null);
         }
     }
 

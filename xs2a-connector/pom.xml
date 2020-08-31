@@ -47,6 +47,13 @@
 			<groupId>de.adorsys.ledgers</groupId>
 			<artifactId>keycloak-client</artifactId>
 			<version>${ledgers.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>de.adorsys.ledgers</groupId>
+					<artifactId>ledgers-user-management-service-api</artifactId>
+				</exclusion>
+			</exclusions>
+
 		</dependency>
 
 		<dependency>

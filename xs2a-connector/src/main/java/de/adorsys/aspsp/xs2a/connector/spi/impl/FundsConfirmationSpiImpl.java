@@ -20,9 +20,9 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.account.FundsConfirmationRequestTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
-import de.adorsys.ledgers.um.api.domain.BearerTokenBO;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
@@ -48,7 +48,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
     private final AccountRestClient restClient;
     private final LedgersSpiAccountMapper accountMapper;
     private final AuthRequestInterceptor authRequestInterceptor;
-    private final AspspConsentDataService tokenService;
+    private final AspspConsentDataService consentDataService;
     private final KeycloakTokenService keycloakTokenService;
 
     @Value("${xs2a.funds-confirmation-user-login:admin}")
@@ -57,11 +57,11 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
     private String fundsConfirmationUserPassword;
 
     public FundsConfirmationSpiImpl(AccountRestClient restClient, LedgersSpiAccountMapper accountMapper,
-                                    AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService tokenService, KeycloakTokenService keycloakTokenService) {
+                                    AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService, KeycloakTokenService keycloakTokenService) {
         this.restClient = restClient;
         this.accountMapper = accountMapper;
         this.authRequestInterceptor = authRequestInterceptor;
-        this.tokenService = tokenService;
+        this.consentDataService = consentDataService;
         this.keycloakTokenService = keycloakTokenService;
     }
 
@@ -82,7 +82,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
                 tokenForAuthorisation = getTokenForFundsConfirmationUser();
             } else {
                 // This is normal flow when PIIS consent is supported in ASPSP profile.
-                SCAResponseTO response = tokenService.response(aspspConsentData);
+                SCAResponseTO response = consentDataService.response(aspspConsentData);
                 tokenForAuthorisation = response.getBearerToken().getAccess_token();
             }
 
@@ -97,7 +97,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
             spiFundsConfirmationResponse.setFundsAvailable(Optional.ofNullable(fundsAvailable).orElse(false));
 
             if (aspspConsentDataProvider != null) {
-                aspspConsentDataProvider.updateAspspConsentData(tokenService.store(tokenService.response(aspspConsentData)));
+                aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(consentDataService.response(aspspConsentData)));
             }
 
             return SpiResponse.<SpiFundsConfirmationResponse>builder()
@@ -120,7 +120,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
      */
     private String getTokenForFundsConfirmationUser() {
 
-        BearerTokenBO bearerTokenBO = keycloakTokenService.login(fundsConfirmationUserLogin, fundsConfirmationUserPassword);
+        BearerTokenTO bearerTokenBO = keycloakTokenService.login(fundsConfirmationUserLogin, fundsConfirmationUserPassword);
 
         if (bearerTokenBO != null) {
             return bearerTokenBO.getAccess_token();

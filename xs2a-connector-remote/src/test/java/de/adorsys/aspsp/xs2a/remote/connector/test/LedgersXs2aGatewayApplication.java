@@ -31,9 +31,8 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ActiveProfiles;
 
-@EnableFeignClients(basePackageClasses = {PaymentRestClient.class, KeycloakTokenRestClient.class})
+@EnableFeignClients(basePackageClasses = {PaymentRestClient.class})
 @SpringBootApplication(exclude = {HypermediaAutoConfiguration.class, DataSourceAutoConfiguration.class})
-@ComponentScan(basePackageClasses = {KeycloakTokenServiceImpl.class, KeycloakAuthMapperImpl.class})
 @EnableXs2aSwagger
 @EnableXs2aInterface
 @EnableLedgersXS2AConnectorRemote

@@ -16,18 +16,20 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
-import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaLoginMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.CmsPaymentStatusUpdateService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.ScaResponseMapper;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.internal.PaymentInternalGeneral;
-import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.*;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
+import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
-import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
@@ -46,7 +48,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -58,37 +59,31 @@ import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.PRODUCT_UNKNOWN;
 public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPayment, SCAPaymentResponseTO> implements PaymentAuthorisationSpi {
     private static final Logger logger = LoggerFactory.getLogger(PaymentAuthorisationSpiImpl.class);
 
-    private final TokenStorageService tokenStorageService;
-    private final ScaLoginMapper scaLoginMapper;
     private final AspspConsentDataService consentDataService;
     private final CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService;
-    private final PaymentInternalGeneral paymentInternalGeneral;
     private final RedirectScaRestClient redirectScaRestClient;
     private final ScaResponseMapper scaResponseMapper;
 
     public PaymentAuthorisationSpiImpl(GeneralAuthorisationService authorisationService,
-                                       TokenStorageService tokenStorageService,
                                        ScaMethodConverter scaMethodConverter,
-                                       ScaLoginMapper scaLoginMapper,
                                        AuthRequestInterceptor authRequestInterceptor,
                                        AspspConsentDataService consentDataService,
                                        CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService,
                                        FeignExceptionReader feignExceptionReader,
-                                       PaymentInternalGeneral paymentInternalGeneral,
                                        RedirectScaRestClient redirectScaRestClient,
-                                       ScaResponseMapper scaResponseMapper) {
-        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, tokenStorageService);
-        this.tokenStorageService = tokenStorageService;
-        this.scaLoginMapper = scaLoginMapper;
+                                       ScaResponseMapper scaResponseMapper,
+                                       KeycloakTokenService keycloakTokenService,
+                                       GeneralPaymentService generalPaymentService,
+                                       LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper) {
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient, generalPaymentService, ledgersSpiCommonPaymentTOMapper);
         this.consentDataService = consentDataService;
         this.cmsPaymentStatusUpdateService = cmsPaymentStatusUpdateService;
-        this.paymentInternalGeneral = paymentInternalGeneral;
         this.redirectScaRestClient = redirectScaRestClient;
         this.scaResponseMapper = scaResponseMapper;
     }
 
     @Override
-    protected OpTypeTO getOtpType() {
+    protected OpTypeTO getOpType() {
         return OpTypeTO.PAYMENT;
     }
 
@@ -134,27 +129,14 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    protected SCAPaymentResponseTO getSCAConsentResponse(SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
+    protected SCAPaymentResponseTO getScaObjectResponse(SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
         return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class, checkCredentials);
     }
 
     @Override
     protected SCAResponseTO initiateBusinessObject(SpiPayment businessObject, byte[] aspspConsentData) {
-        return paymentInternalGeneral.initiatePaymentInternal(businessObject, aspspConsentData);
-    }
-
-    @Override
-    protected SCAPaymentResponseTO mapToScaResponse(SpiPayment businessObject, byte[] aspspConsentData, SCAPaymentResponseTO originalResponse) throws IOException {
-        String paymentTypeString = Optional.ofNullable(businessObject.getPaymentType()).orElseThrow(() -> new IOException("Missing payment type")).name();
-        SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(aspspConsentData, SCALoginResponseTO.class);
-        SCAPaymentResponseTO paymentResponse = scaLoginMapper.toPaymentResponse(scaResponseTO);
-        paymentResponse.setObjectType(SCAPaymentResponseTO.class.getSimpleName());
-        paymentResponse.setPaymentId(businessObject.getPaymentId());
-        paymentResponse.setPaymentType(PaymentTypeTO.valueOf(paymentTypeString));
-        paymentResponse.setPaymentProduct(businessObject.getPaymentProduct());
-        paymentResponse.setMultilevelScaRequired(originalResponse.isMultilevelScaRequired());
-        return paymentResponse;
+        return initiatePaymentInternal(businessObject);
     }
 
     @Override

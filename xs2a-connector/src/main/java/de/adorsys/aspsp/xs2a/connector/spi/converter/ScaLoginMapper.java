@@ -5,10 +5,10 @@ import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
-public interface ScaLoginMapper {
-
-    SCAConsentResponseTO toConsentResponse(SCALoginResponseTO loginResponse);
-
-    SCAPaymentResponseTO toPaymentResponse(SCALoginResponseTO loginResponse);
-}
+//@Mapper(componentModel = "spring")
+//public interface ScaLoginMapper {
+//
+//    SCAConsentResponseTO toConsentResponse(SCALoginResponseTO loginResponse);
+//
+//    SCAPaymentResponseTO toPaymentResponse(SCALoginResponseTO loginResponse);
+//}

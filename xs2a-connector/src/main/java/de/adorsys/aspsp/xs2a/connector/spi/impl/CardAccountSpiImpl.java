@@ -65,19 +65,19 @@ public class CardAccountSpiImpl implements CardAccountSpi {
     private final AccountRestClient accountRestClient;
     private final LedgersSpiAccountMapper accountMapper;
     private final AuthRequestInterceptor authRequestInterceptor;
-    private final AspspConsentDataService tokenService;
+    private final AspspConsentDataService consentDataService;
     private final FeignExceptionReader feignExceptionReader;
     private final IbanResolverMockService ibanResolverMockService;
     private final OwnerNameService ownerNameService;
 
     public CardAccountSpiImpl(AccountRestClient restClient, LedgersSpiAccountMapper accountMapper,
-                              AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService tokenService,
+                              AuthRequestInterceptor authRequestInterceptor, AspspConsentDataService consentDataService,
                               FeignExceptionReader feignExceptionReader, IbanResolverMockService ibanResolverMockService,
                               OwnerNameService ownerNameService) {
         this.accountRestClient = restClient;
         this.accountMapper = accountMapper;
         this.authRequestInterceptor = authRequestInterceptor;
-        this.tokenService = tokenService;
+        this.consentDataService = consentDataService;
         this.feignExceptionReader = feignExceptionReader;
         this.ibanResolverMockService = ibanResolverMockService;
         this.ownerNameService = ownerNameService;
@@ -95,7 +95,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
             logger.info("Requested card account list for consent with ID: {}", accountConsent.getId());
             List<SpiCardAccountDetails> cardAccountDetailsList = getSpiCardAccountDetails(accountConsent, aspspConsentData);
 
-            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
 
             List<SpiCardAccountDetails> cardAccountDetailsListWithMaskedPan = mapToCardAccountList(cardAccountDetailsList);
             List<SpiCardAccountDetails> cardAccountDetailsListWithOwnerName = cardAccountDetailsListWithMaskedPan.stream()
@@ -136,7 +136,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
 
             cardAccountDetails.setMaskedPan(ibanResolverMockService.getMaskedPanByIban(cardAccountDetails.getAspspAccountId())); // TODO: Remove when ledgers starts supporting card accounts https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1246
 
-            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
             SpiCardAccountDetails accountDetailsWithOwnerName = enrichWithOwnerName(cardAccountDetails, accountConsent.getAccess());
 
             return SpiResponse.<SpiCardAccountDetails>builder()
@@ -199,7 +199,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
 
             logger.info("Finally found {} transactions.", transactionReport.getCardTransactions().size());
 
-            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
 
             return SpiResponse.<SpiCardTransactionReport>builder()
                            .payload(transactionReport)
@@ -238,7 +238,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
                                                               .orElseThrow(() -> FeignExceptionHandler.getException(HttpStatus.NOT_FOUND, RESPONSE_STATUS_200_WITH_EMPTY_BODY));
             logger.info("Found Balances: {}", accountBalances.size());
 
-            aspspConsentDataProvider.updateAspspConsentData(tokenService.store(response));
+            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
 
             return SpiResponse.<List<SpiAccountBalance>>builder()
                            .payload(accountBalances)
@@ -339,7 +339,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
     }
 
     private SCAResponseTO applyAuthorisation(byte[] aspspConsentData) {
-        SCAResponseTO sca = tokenService.response(aspspConsentData);
+        SCAResponseTO sca = consentDataService.response(aspspConsentData);
         authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
         return sca;
     }
