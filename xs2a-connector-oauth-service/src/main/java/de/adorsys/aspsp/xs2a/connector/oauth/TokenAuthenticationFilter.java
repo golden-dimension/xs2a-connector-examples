@@ -16,7 +16,7 @@
 
 package de.adorsys.aspsp.xs2a.connector.oauth;
 
-import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
+import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
@@ -42,8 +42,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.UNAUTHORIZED_NO_TOKEN;
 import static de.adorsys.psd2.xs2a.core.domain.MessageCategory.ERROR;
+import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.UNAUTHORIZED_NO_TOKEN;
 
 @Slf4j
 @Component
@@ -55,7 +55,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
 
     private final RequestPathResolver requestPathResolver;
     private final String oauthModeHeaderName;
-    private final TokenValidationService tokenValidationService;
+    private final KeycloakTokenService keycloakTokenService;
     private final AspspProfileService aspspProfileService;
     private final OauthDataHolder oauthDataHolder;
     private final TppErrorMessageWriter tppErrorMessageWriter;
@@ -63,14 +63,14 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     public TokenAuthenticationFilter(RequestPathResolver requestPathResolver,
                                      @Value("${oauth.header-name:X-OAUTH-PREFERRED}") String oauthModeHeaderName,
                                      Xs2aEndpointChecker xs2aEndpointChecker,
-                                     TokenValidationService tokenValidationService,
+                                     KeycloakTokenService keycloakTokenService,
                                      AspspProfileService aspspProfileService,
                                      OauthDataHolder oauthDataHolder,
                                      TppErrorMessageWriter tppErrorMessageWriter) {
         super(tppErrorMessageWriter, xs2aEndpointChecker);
         this.requestPathResolver = requestPathResolver;
         this.oauthModeHeaderName = oauthModeHeaderName;
-        this.tokenValidationService = tokenValidationService;
+        this.keycloakTokenService = keycloakTokenService;
         this.aspspProfileService = aspspProfileService;
         this.oauthDataHolder = oauthDataHolder;
         this.tppErrorMessageWriter = tppErrorMessageWriter;
@@ -148,8 +148,10 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     }
 
     private boolean isTokenInvalid(String bearerToken) {
-        BearerTokenTO token = tokenValidationService.validate(bearerToken);
-        return token == null;
+
+        // TODO: think about PSU ID
+        return false;
+//        return keycloakTokenService.validate(bearerToken, psuId);
     }
 
     private String resolveBearerToken(HttpServletRequest request) {

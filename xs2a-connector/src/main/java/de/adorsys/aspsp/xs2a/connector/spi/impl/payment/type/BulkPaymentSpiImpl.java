@@ -60,13 +60,13 @@ public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment, SpiBu
         return super.notifyConfirmationCodeValidation(spiContextData, confirmationCodeValidationResult, payment, isCancellation, spiAspspConsentDataProvider);
     }
 
-    @Override
-    protected SpiResponse<SpiBulkPaymentInitiationResponse> processEmptyAspspConsentData(@NotNull SpiBulkPayment payment,
-                                                                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                                         @NotNull SpiPsuData spiPsuData) {
-        Set<SpiAccountReference> spiAccountReferences = payment.getPayments().stream()
-                                                                .map(SpiSinglePayment::getDebtorAccount)
-                                                                .collect(Collectors.toSet());
-        return paymentService.firstCallInstantiatingPayment(PaymentTypeTO.BULK, payment, aspspConsentDataProvider, new SpiBulkPaymentInitiationResponse(), spiPsuData, spiAccountReferences);
-    }
+//    @Override
+//    protected SpiResponse<SpiBulkPaymentInitiationResponse> processEmptyAspspConsentData(@NotNull SpiBulkPayment payment,
+//                                                                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+//                                                                                         @NotNull SpiPsuData spiPsuData) {
+//        Set<SpiAccountReference> spiAccountReferences = payment.getPayments().stream()
+//                                                                .map(SpiSinglePayment::getDebtorAccount)
+//                                                                .collect(Collectors.toSet());
+//        return paymentService.firstCallInstantiatingPayment(PaymentTypeTO.BULK, payment, aspspConsentDataProvider, new SpiBulkPaymentInitiationResponse(), spiPsuData, spiAccountReferences);
+//    }
 }

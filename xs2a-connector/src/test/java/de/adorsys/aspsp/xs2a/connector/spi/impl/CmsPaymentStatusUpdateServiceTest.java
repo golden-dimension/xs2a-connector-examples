@@ -3,7 +3,6 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl;
 import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
-import de.adorsys.ledgers.middleware.api.service.TokenStorageService;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -27,7 +26,7 @@ CmsPaymentStatusUpdateServiceTest {
     @Mock
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     @Mock
-    private TokenStorageService tokenStorageService;
+    private AspspConsentDataService consentDataService;
     @Mock
     private CmsPsuPisClient cmsPsuPisClient;
     @Mock
@@ -44,7 +43,7 @@ CmsPaymentStatusUpdateServiceTest {
                 .thenReturn(ASPSP_CONSENT_DATA);
         SCALoginResponseTO scaLoginResponse = new SCALoginResponseTO();
         scaLoginResponse.setScaStatus(ScaStatusTO.PSUIDENTIFIED);
-        when(tokenStorageService.fromBytes(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
+        when(consentDataService.response(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
         when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
 
         // When
@@ -61,7 +60,7 @@ CmsPaymentStatusUpdateServiceTest {
                 .thenReturn(ASPSP_CONSENT_DATA);
         SCALoginResponseTO scaLoginResponse = new SCALoginResponseTO();
         scaLoginResponse.setScaStatus(ScaStatusTO.EXEMPTED);
-        when(tokenStorageService.fromBytes(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
+        when(consentDataService.response(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
         when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
 
         // When
@@ -78,7 +77,7 @@ CmsPaymentStatusUpdateServiceTest {
                 .thenReturn(ASPSP_CONSENT_DATA);
         SCALoginResponseTO scaLoginResponse = new SCALoginResponseTO();
         scaLoginResponse.setScaStatus(ScaStatusTO.PSUAUTHENTICATED);
-        when(tokenStorageService.fromBytes(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
+        when(consentDataService.response(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
         when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
 
         // When
@@ -95,7 +94,7 @@ CmsPaymentStatusUpdateServiceTest {
                 .thenReturn(ASPSP_CONSENT_DATA);
         SCALoginResponseTO scaLoginResponse = new SCALoginResponseTO();
         scaLoginResponse.setScaStatus(ScaStatusTO.STARTED);
-        when(tokenStorageService.fromBytes(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
+        when(consentDataService.response(ASPSP_CONSENT_DATA)).thenReturn(scaLoginResponse);
         when(requestProviderService.getInstanceId()).thenReturn(INSTANCE_ID);
 
         // When
@@ -110,7 +109,7 @@ CmsPaymentStatusUpdateServiceTest {
         // Given
         when(spiAspspConsentDataProvider.loadAspspConsentData())
                 .thenReturn(ASPSP_CONSENT_DATA);
-        when(tokenStorageService.fromBytes(ASPSP_CONSENT_DATA)).thenThrow(IOException.class);
+        when(consentDataService.response(ASPSP_CONSENT_DATA)).thenThrow(IOException.class);
 
         // When
         cmsPaymentStatusUpdateService.updatePaymentStatus(PAYMENT_ID, spiAspspConsentDataProvider);

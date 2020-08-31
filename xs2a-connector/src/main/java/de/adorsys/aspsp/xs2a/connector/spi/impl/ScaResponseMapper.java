@@ -17,6 +17,7 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import org.springframework.stereotype.Service;
 
@@ -40,5 +41,21 @@ public class ScaResponseMapper {
         return paymentResponseTO;
     }
 
+    public SCAConsentResponseTO mapToScaConsentResponse(GlobalScaResponseTO globalScaResponseTO) {
+        SCAConsentResponseTO consentResponseTO = new SCAConsentResponseTO();
+
+        consentResponseTO.setConsentId(globalScaResponseTO.getOperationObjectId());
+        consentResponseTO.setAuthorisationId(globalScaResponseTO.getAuthorisationId());
+        consentResponseTO.setScaStatus(globalScaResponseTO.getScaStatus());
+        consentResponseTO.setScaMethods(globalScaResponseTO.getScaMethods());
+        consentResponseTO.setBearerToken(globalScaResponseTO.getBearerToken());
+        consentResponseTO.setAuthConfirmationCode(globalScaResponseTO.getAuthConfirmationCode());
+        consentResponseTO.setChallengeData(globalScaResponseTO.getChallengeData());
+        consentResponseTO.setExpiresInSeconds(globalScaResponseTO.getExpiresInSeconds());
+        consentResponseTO.setMultilevelScaRequired(globalScaResponseTO.isMultilevelScaRequired());
+        consentResponseTO.setPsuMessage(globalScaResponseTO.getPsuMessage());
+
+        return consentResponseTO;
+    }
 
 }

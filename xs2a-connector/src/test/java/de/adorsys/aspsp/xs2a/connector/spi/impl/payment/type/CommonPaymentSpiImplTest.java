@@ -82,23 +82,23 @@ class CommonPaymentSpiImplTest {
         assertEquals(response.getPayload(), spiSinglePaymentInitiationResponse);
     }
 
-    @Test
-    void processEmptyAspspConsentData() {
-        //Given
-        SpiPaymentInfo spiPaymentInfo = new SpiPaymentInfo(PAYMENT_PRODUCT);
-        SpiSinglePaymentInitiationResponse spiSinglePaymentInitiationResponse = new SpiSinglePaymentInitiationResponse();
-        spiSinglePaymentInitiationResponse.setPaymentId(PAYMENT_ID);
-
-        when(generalPaymentService.firstCallInstantiatingPayment(PaymentTypeTO.SINGLE, spiPaymentInfo, spiAspspConsentDataProvider, new SpiSinglePaymentInitiationResponse(), SPI_CONTEXT_DATA.getPsuData(), new HashSet<>()))
-                .thenReturn(buildSpiResponse(spiSinglePaymentInitiationResponse));
-
-        //When
-        SpiResponse<SpiPaymentInitiationResponse> response = commonPaymentSpi.processEmptyAspspConsentData(spiPaymentInfo, spiAspspConsentDataProvider, SPI_CONTEXT_DATA.getPsuData());
-
-        //Then
-        assertTrue(response.isSuccessful());
-        assertEquals(response.getPayload(), spiSinglePaymentInitiationResponse);
-    }
+//    @Test
+//    void processEmptyAspspConsentData() {
+//        //Given
+//        SpiPaymentInfo spiPaymentInfo = new SpiPaymentInfo(PAYMENT_PRODUCT);
+//        SpiSinglePaymentInitiationResponse spiSinglePaymentInitiationResponse = new SpiSinglePaymentInitiationResponse();
+//        spiSinglePaymentInitiationResponse.setPaymentId(PAYMENT_ID);
+//
+//        when(generalPaymentService.firstCallInstantiatingPayment(PaymentTypeTO.SINGLE, spiPaymentInfo, spiAspspConsentDataProvider, new SpiSinglePaymentInitiationResponse(), SPI_CONTEXT_DATA.getPsuData(), new HashSet<>()))
+//                .thenReturn(buildSpiResponse(spiSinglePaymentInitiationResponse));
+//
+//        //When
+//        SpiResponse<SpiPaymentInitiationResponse> response = commonPaymentSpi.processEmptyAspspConsentData(spiPaymentInfo, spiAspspConsentDataProvider, SPI_CONTEXT_DATA.getPsuData());
+//
+//        //Then
+//        assertTrue(response.isSuccessful());
+//        assertEquals(response.getPayload(), spiSinglePaymentInitiationResponse);
+//    }
 
     @Test
     void getPaymentById() {

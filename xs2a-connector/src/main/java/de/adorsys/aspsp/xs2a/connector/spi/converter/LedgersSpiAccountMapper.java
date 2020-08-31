@@ -90,8 +90,8 @@ public abstract class LedgersSpiAccountMapper {
                                t.getUltimateDebtor(),
                                t.getRemittanceInformationUnstructured(),
                                MockAccountData.REMITTANCE_UNSTRUCTURED_ARRAY,
-                               mapToRemittance(t.getRemittanceInformationStructured()),
-                               MockAccountData.REMITTANCE_STRUCTURED_ARRAY,
+                               mapToRemittance(t.getRemittanceInformationStructured()).toString(), // TODO: replace with real data!!!
+                               MockAccountData.REMITTANCE_UNSTRUCTURED_ARRAY,
                                t.getPurposeCode(),
                                t.getBankTransactionCode(),
                                t.getProprietaryBankTransactionCode(),
