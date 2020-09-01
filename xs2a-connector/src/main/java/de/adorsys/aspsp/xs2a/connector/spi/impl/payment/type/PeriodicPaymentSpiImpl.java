@@ -18,10 +18,16 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.NotSupportedPaymentTypeException;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpi;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.Xs2aPaymentMapper;
+import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
+import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPeriodicPayment;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPeriodicPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.PeriodicPaymentSpi;
@@ -33,11 +39,25 @@ import org.springframework.stereotype.Component;
 public class PeriodicPaymentSpiImpl extends AbstractPaymentSpi<SpiPeriodicPayment, SpiPeriodicPaymentInitiationResponse> implements PeriodicPaymentSpi {
 
     private final LedgersSpiPaymentMapper paymentMapper;
+    private PaymentSpi paymentSpi;
+    private Xs2aPaymentMapper xs2aPaymentMapper;
 
     @Autowired
-    public PeriodicPaymentSpiImpl(GeneralPaymentService paymentService, LedgersSpiPaymentMapper paymentMapper) {
+    public PeriodicPaymentSpiImpl(GeneralPaymentService paymentService, LedgersSpiPaymentMapper paymentMapper, PaymentSpi paymentSpi, Xs2aPaymentMapper xs2aPaymentMapper) {
         super(paymentService);
         this.paymentMapper = paymentMapper;
+        this.paymentSpi = paymentSpi;
+        this.xs2aPaymentMapper = xs2aPaymentMapper;
+    }
+
+    @Override
+    public @NotNull SpiResponse<SpiPeriodicPaymentInitiationResponse> initiatePayment(@NotNull SpiContextData spiContextData, @NotNull SpiPeriodicPayment spiPeriodicPayment, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
+        try {
+            SpiResponse<? extends SpiPaymentInitiationResponse> periodicPayment = paymentSpi.initiatePayment(spiContextData, spiPeriodicPayment, spiAspspConsentDataProvider);
+            return SpiResponse.<SpiPeriodicPaymentInitiationResponse>builder().payload(xs2aPaymentMapper.mapToPeriodic(periodicPayment.getPayload())).build();
+        } catch (NotSupportedPaymentTypeException e) {
+            return SpiResponse.<SpiPeriodicPaymentInitiationResponse>builder().error(new TppMessage(MessageErrorCode.FORMAT_ERROR)).build();
+        }
     }
 
     @Override

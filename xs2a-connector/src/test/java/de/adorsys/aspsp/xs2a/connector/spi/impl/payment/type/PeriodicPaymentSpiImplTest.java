@@ -2,7 +2,7 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.*;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.*;
 import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.psd2.xs2a.core.pis.FrequencyCode;
@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, AddressMapperImpl.class, ChallengeDataMapperImpl.class, LedgersSpiAccountMapperImpl.class, ObjectMapper.class})
+@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, AddressMapperImpl.class, ChallengeDataMapperImpl.class, LedgersSpiAccountMapperImpl.class, ObjectMapper.class, PaymentSpiImpl.class, Xs2aPaymentMapperImpl.class})
 class PeriodicPaymentSpiImplTest {
     private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";
     private static final SpiContextData SPI_CONTEXT_DATA = TestSpiDataProvider.getSpiContextData();
@@ -44,13 +44,18 @@ class PeriodicPaymentSpiImplTest {
     private static final String JSON_ACCEPT_MEDIA_TYPE = "application/json";
     private static final String PSU_MESSAGE = "Mocked PSU message from SPI for this payment";
 
-    private PeriodicPaymentSpiImpl paymentSpi;
+    private PeriodicPaymentSpiImpl periodicPaymentSpi;
     private GeneralPaymentService paymentService;
 
     @Autowired
     private LedgersSpiPaymentMapper spiPaymentMapper;
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     private SpiPeriodicPayment payment;
+
+    @Autowired
+    private PaymentSpi paymentSpi;
+    @Autowired
+    private Xs2aPaymentMapper xs2aPaymentMapper;
 
     @BeforeEach
     void setUp() {
@@ -61,7 +66,7 @@ class PeriodicPaymentSpiImplTest {
 
         paymentService = mock(GeneralPaymentService.class);
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
-        paymentSpi = new PeriodicPaymentSpiImpl(paymentService, spiPaymentMapper);
+        periodicPaymentSpi = new PeriodicPaymentSpiImpl(paymentService, spiPaymentMapper, paymentSpi, xs2aPaymentMapper);
     }
 
     @Test
@@ -72,7 +77,7 @@ class PeriodicPaymentSpiImplTest {
                                     .payload(new SpiPeriodicPayment(PAYMENT_PRODUCT))
                                     .build());
 
-        paymentSpi.getPaymentById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
+        periodicPaymentSpi.getPaymentById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
 
         verify(paymentService, times(1)).getPaymentById(eq(payment),
                                                         eq(spiAspspConsentDataProvider),
@@ -87,7 +92,7 @@ class PeriodicPaymentSpiImplTest {
                                     .payload(new SpiGetPaymentStatusResponse(TransactionStatus.RCVD, false, SpiGetPaymentStatusResponse.RESPONSE_TYPE_JSON, null, PSU_MESSAGE))
                                     .build());
 
-        paymentSpi.getPaymentStatusById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
+        periodicPaymentSpi.getPaymentStatusById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(paymentService, times(1)).getPaymentStatusById(PaymentTypeTO.PERIODIC, JSON_ACCEPT_MEDIA_TYPE, PAYMENT_ID, TransactionStatus.RCVD, CONSENT_DATA_BYTES);
@@ -100,7 +105,7 @@ class PeriodicPaymentSpiImplTest {
                                     .payload(new SpiPaymentExecutionResponse(TransactionStatus.RCVD))
                                     .build());
 
-        paymentSpi.executePaymentWithoutSca(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
+        periodicPaymentSpi.executePaymentWithoutSca(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
 
         verify(paymentService, times(1)).executePaymentWithoutSca(spiAspspConsentDataProvider);
     }
@@ -113,7 +118,7 @@ class PeriodicPaymentSpiImplTest {
                                     .payload(new SpiPaymentExecutionResponse(TransactionStatus.RCVD))
                                     .build());
 
-        paymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, spiScaConfirmation, payment, spiAspspConsentDataProvider);
+        periodicPaymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, spiScaConfirmation, payment, spiAspspConsentDataProvider);
 
         verify(paymentService).verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, spiAspspConsentDataProvider);
     }
@@ -131,7 +136,7 @@ class PeriodicPaymentSpiImplTest {
                                     .payload(new SpiPeriodicPaymentInitiationResponse())
                                     .build());
 
-        paymentSpi.initiatePayment(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
+        periodicPaymentSpi.initiatePayment(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
 
         verify(paymentService, times(1)).firstCallInstantiatingPayment(eq(PaymentTypeTO.PERIODIC), eq(payment),
                                                                        eq(spiAspspConsentDataProvider), any(SpiPeriodicPaymentInitiationResponse.class), eq(SPI_CONTEXT_DATA.getPsuData()), eq(spiAccountReferences));

@@ -41,7 +41,6 @@ public class SinglePaymentSpiImpl extends AbstractPaymentSpi<SpiSinglePayment, S
     private PaymentSpi paymentSpi;
     private Xs2aPaymentMapper xs2aPaymentMapper;
 
-
     @Autowired
     public SinglePaymentSpiImpl(GeneralPaymentService paymentService, LedgersSpiPaymentMapper paymentMapper, PaymentSpi paymentSpi, Xs2aPaymentMapper xs2aPaymentMapper) {
         super(paymentService);
@@ -53,15 +52,11 @@ public class SinglePaymentSpiImpl extends AbstractPaymentSpi<SpiSinglePayment, S
     @Override
     public @NotNull SpiResponse<SpiSinglePaymentInitiationResponse> initiatePayment(@NotNull SpiContextData spiContextData, @NotNull SpiSinglePayment spiSinglePayment, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
         try {
-
             SpiResponse<? extends SpiPaymentInitiationResponse> singlePayment = paymentSpi.initiatePayment(spiContextData, spiSinglePayment, spiAspspConsentDataProvider);
-
             return SpiResponse.<SpiSinglePaymentInitiationResponse>builder().payload(xs2aPaymentMapper.mapToSingle(singlePayment.getPayload())).build();
         } catch (NotSupportedPaymentTypeException e) {
-            e.printStackTrace();
+            return SpiResponse.<SpiSinglePaymentInitiationResponse>builder().error(new TppMessage(MessageErrorCode.FORMAT_ERROR)).build();
         }
-
-        return SpiResponse.<SpiSinglePaymentInitiationResponse>builder().error(new TppMessage(MessageErrorCode.FORMAT_ERROR)).build();
     }
 
     @Override
