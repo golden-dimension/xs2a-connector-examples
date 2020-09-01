@@ -3,6 +3,8 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.*;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpi;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpiImpl;
 import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
@@ -34,7 +36,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, AddressMapperImpl.class, ChallengeDataMapperImpl.class, LedgersSpiAccountMapperImpl.class, ObjectMapper.class})
+@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, AddressMapperImpl.class, ChallengeDataMapperImpl.class, LedgersSpiAccountMapperImpl.class, ObjectMapper.class, PaymentSpiImpl.class})
 class BulkPaymentSpiImplTest {
     private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";
     private static final SpiContextData SPI_CONTEXT_DATA = TestSpiDataProvider.getSpiContextData();
@@ -43,13 +45,16 @@ class BulkPaymentSpiImplTest {
     private static final String JSON_ACCEPT_MEDIA_TYPE = "application/json";
     private static final String PSU_MESSAGE = "Mocked PSU message from SPI for this payment";
 
-    private BulkPaymentSpiImpl paymentSpi;
+    private BulkPaymentSpiImpl bulkPaymentSpi;
     private GeneralPaymentService paymentService;
 
     @Autowired
     private LedgersSpiPaymentMapper spiPaymentMapper;
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     private SpiBulkPayment payment;
+
+    @Autowired
+    private PaymentSpi paymentSpi;
 
     @BeforeEach
     void setUp() {
@@ -62,7 +67,7 @@ class BulkPaymentSpiImplTest {
         paymentService = mock(GeneralPaymentService.class);
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
 
-        paymentSpi = new BulkPaymentSpiImpl(paymentService, spiPaymentMapper);
+        bulkPaymentSpi = new BulkPaymentSpiImpl(paymentService, spiPaymentMapper, paymentSpi);
     }
 
     @Test
@@ -73,7 +78,7 @@ class BulkPaymentSpiImplTest {
                                     .payload(payment)
                                     .build());
 
-        paymentSpi.getPaymentById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
+        bulkPaymentSpi.getPaymentById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
 
         verify(paymentService, times(1)).getPaymentById(eq(payment),
                                                         eq(spiAspspConsentDataProvider),
@@ -88,7 +93,7 @@ class BulkPaymentSpiImplTest {
                                     .payload(new SpiGetPaymentStatusResponse(TransactionStatus.RCVD, false, SpiGetPaymentStatusResponse.RESPONSE_TYPE_JSON, null, PSU_MESSAGE))
                                     .build());
 
-        paymentSpi.getPaymentStatusById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
+        bulkPaymentSpi.getPaymentStatusById(SPI_CONTEXT_DATA, JSON_ACCEPT_MEDIA_TYPE, payment, spiAspspConsentDataProvider);
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(paymentService, times(1)).getPaymentStatusById(PaymentTypeTO.BULK, JSON_ACCEPT_MEDIA_TYPE, PAYMENT_ID, TransactionStatus.RCVD, CONSENT_DATA_BYTES);
@@ -101,7 +106,7 @@ class BulkPaymentSpiImplTest {
                                     .payload(new SpiPaymentExecutionResponse(TransactionStatus.RCVD))
                                     .build());
 
-        paymentSpi.executePaymentWithoutSca(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
+        bulkPaymentSpi.executePaymentWithoutSca(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
 
         verify(paymentService, times(1)).executePaymentWithoutSca(spiAspspConsentDataProvider);
     }
@@ -114,7 +119,7 @@ class BulkPaymentSpiImplTest {
                                     .payload(new SpiPaymentExecutionResponse(TransactionStatus.RCVD))
                                     .build());
 
-        paymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, spiScaConfirmation, payment, spiAspspConsentDataProvider);
+        bulkPaymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, spiScaConfirmation, payment, spiAspspConsentDataProvider);
 
         verify(paymentService).verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, spiAspspConsentDataProvider);
     }
@@ -134,7 +139,7 @@ class BulkPaymentSpiImplTest {
                                     .payload(new SpiBulkPaymentInitiationResponse())
                                     .build());
 
-        paymentSpi.initiatePayment(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
+        bulkPaymentSpi.initiatePayment(SPI_CONTEXT_DATA, payment, spiAspspConsentDataProvider);
 
         verify(paymentService, times(1)).firstCallInstantiatingPayment(eq(PaymentTypeTO.BULK), eq(payment),
                                                                        eq(spiAspspConsentDataProvider), any(SpiBulkPaymentInitiationResponse.class), eq(SPI_CONTEXT_DATA.getPsuData()), eq(spiAccountReferences));
