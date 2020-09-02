@@ -34,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.*;
@@ -43,7 +44,7 @@ import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.*;
 
 @Slf4j
 @RequiredArgsConstructor
-public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
+public abstract class AbstractAuthorisationSpi<T> {
 
     private static final String DECOUPLED_PSU_MESSAGE = "Please check your app to continue...";
 
@@ -57,9 +58,18 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
     private final GeneralPaymentService paymentService;
     private final LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper;
 
-    protected abstract ResponseEntity<R> getSelectMethodResponse(@NotNull String authenticationMethodId, R sca);
+    protected ResponseEntity<GlobalScaResponseTO> getSelectMethodResponse(@NotNull String authenticationMethodId, GlobalScaResponseTO sca) {
+        ResponseEntity<GlobalScaResponseTO> scaResponse = redirectScaRestClient.selectMethod(sca.getAuthorisationId(), authenticationMethodId);
 
-    protected abstract R getScaObjectResponse(SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials);
+        return scaResponse.getStatusCode() == HttpStatus.OK
+                       ? ResponseEntity.ok(scaResponse.getBody())
+                       : ResponseEntity.badRequest().build();
+    }
+
+    protected GlobalScaResponseTO getScaObjectResponse(SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
+        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+        return consentDataService.response(aspspConsentData, checkCredentials);
+    }
 
     protected abstract String getBusinessObjectId(T businessObject);
 
@@ -67,9 +77,9 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
 
     protected abstract TppMessage getAuthorisePsuFailureMessage(T businessObject);
 
-    protected abstract SCAResponseTO initiateBusinessObject(T businessObject, byte[] aspspConsentData);
+    protected abstract GlobalScaResponseTO initiateBusinessObject(T businessObject, byte[] aspspConsentData);
 
-    protected abstract boolean isFirstInitiationOfMultilevelSca(T businessObject, R scaBusinessObjectResponse);
+    protected abstract boolean isFirstInitiationOfMultilevelSca(T businessObject, GlobalScaResponseTO scaBusinessObjectResponse);
 
     protected String generatePsuMessage(@NotNull SpiContextData contextData, @NotNull String authorisationId,
                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
@@ -77,7 +87,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
         return DECOUPLED_PSU_MESSAGE;
     }
 
-    protected boolean validateStatuses(T businessObject, R sca) {
+    protected boolean validateStatuses(T businessObject, GlobalScaResponseTO sca) {
         return false;
     }
 
@@ -100,7 +110,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
         OpTypeTO opTypeTO = getOpType();
 
         if (opTypeTO == OpTypeTO.PAYMENT) {
-            SCAPaymentResponseTO scaPaymentResponseTO = initiatePaymentInternal((SpiPayment) businessObject);
+            GlobalScaResponseTO scaPaymentResponseTO = initiatePaymentInternal((SpiPayment) businessObject);
 
             return authorisationService.authorisePsuInternal(
                     psuLoginData.getPsuId(), getBusinessObjectId(businessObject),
@@ -110,7 +120,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
 
         if (opTypeTO == OpTypeTO.CANCEL_PAYMENT) {
             SpiPayment paymentToCancel = (SpiPayment) businessObject;
-            SCAPaymentResponseTO scaPaymentCancellationResponseTO = paymentService.initiatePaymentCancellationInLedgers(paymentToCancel.getPaymentId());
+            GlobalScaResponseTO scaPaymentCancellationResponseTO = paymentService.initiatePaymentCancellationInLedgers(paymentToCancel.getPaymentId());
 
             return authorisationService.authorisePsuInternal(
                     psuLoginData.getPsuId(), getBusinessObjectId(businessObject),
@@ -126,14 +136,14 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
 
     /**
      * This call must follow an init business object request, therefore we are expecting the
-     * {@link AspspConsentData} object to contain a {@link SCAConsentResponseTO}
+     * {@link AspspConsentData} object to contain a {@link GlobalScaResponseTO}
      * response.
      */
     public SpiResponse<SpiAvailableScaMethodsResponse> requestAvailableScaMethods(@NotNull SpiContextData contextData,
                                                                                   T businessObject,
                                                                                   @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
-            R sca = getScaObjectResponse(aspspConsentDataProvider, true);
+            GlobalScaResponseTO sca = getScaObjectResponse(aspspConsentDataProvider, true);
 
             if (validateStatuses(businessObject, sca)) {
                 return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
@@ -174,7 +184,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                        .build();
     }
 
-    protected Optional<List<ScaUserDataTO>> getScaMethods(R sca) {
+    protected Optional<List<ScaUserDataTO>> getScaMethods(GlobalScaResponseTO sca) {
         return Optional.ofNullable(sca.getScaMethods());
     }
 
@@ -182,13 +192,13 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
                                                                                      @NotNull String authenticationMethodId,
                                                                                      @NotNull T businessObject,
                                                                                      @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        R sca = getScaObjectResponse(aspspConsentDataProvider, true);
+        GlobalScaResponseTO sca = getScaObjectResponse(aspspConsentDataProvider, true);
         if (EnumSet.of(PSUIDENTIFIED, PSUAUTHENTICATED).contains(sca.getScaStatus())) {
             try {
                 authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
-                ResponseEntity<R> selectMethodResponse = getSelectMethodResponse(authenticationMethodId, sca);
-                R authCodeResponse = selectMethodResponse.getBody();
+                ResponseEntity<GlobalScaResponseTO> selectMethodResponse = getSelectMethodResponse(authenticationMethodId, sca);
+                GlobalScaResponseTO authCodeResponse = selectMethodResponse.getBody();
                 if (authCodeResponse != null && authCodeResponse.getBearerToken() == null) {
                     authCodeResponse.setBearerToken(sca.getBearerToken());
                 }
@@ -231,7 +241,7 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
 
     }
 
-    protected SCAPaymentResponseTO initiatePaymentInternal(SpiPayment payment) {
+    protected GlobalScaResponseTO initiatePaymentInternal(SpiPayment payment) {
         PaymentType paymentType = payment.getPaymentType();
         PaymentTO paymentTO = ledgersSpiCommonPaymentTOMapper.mapToPaymentTO(paymentType, (SpiPaymentInfo) payment);
 
@@ -241,11 +251,11 @@ public abstract class AbstractAuthorisationSpi<T, R extends SCAResponseTO> {
     protected SpiResponse<SpiPsuAuthorisationResponse> onSuccessfulAuthorisation(T businessObject,
                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                                                                  SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-                                                                                 R scaBusinessObjectResponse) {
+                                                                                 GlobalScaResponseTO scaBusinessObjectResponse) {
 
         if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())
                     && isFirstInitiationOfMultilevelSca(businessObject, scaBusinessObjectResponse)) {
-            SCAResponseTO scaResponseTO;
+            GlobalScaResponseTO scaResponseTO;
             try {
                 scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider.loadAspspConsentData());
             } catch (FeignException feignException) {

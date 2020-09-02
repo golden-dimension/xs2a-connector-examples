@@ -19,7 +19,7 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.account.FundsConfirmationRequestTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
@@ -82,7 +82,7 @@ public class FundsConfirmationSpiImpl implements FundsConfirmationSpi {
                 tokenForAuthorisation = getTokenForFundsConfirmationUser();
             } else {
                 // This is normal flow when PIIS consent is supported in ASPSP profile.
-                SCAResponseTO response = consentDataService.response(aspspConsentData);
+                GlobalScaResponseTO response = consentDataService.response(aspspConsentData);
                 tokenForAuthorisation = response.getBearerToken().getAccess_token();
             }
 

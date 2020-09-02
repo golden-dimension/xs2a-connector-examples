@@ -21,7 +21,7 @@ import de.adorsys.aspsp.xs2a.connector.account.OwnerNameService;
 import de.adorsys.aspsp.xs2a.connector.mock.IbanResolverMockService;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.ledgers.middleware.api.domain.account.AccountDetailsTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.psd2.xs2a.core.ais.BookingStatus;
@@ -90,7 +90,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            SCAResponseTO response = applyAuthorisation(aspspConsentData);
+            GlobalScaResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested card account list for consent with ID: {}", accountConsent.getId());
             List<SpiCardAccountDetails> cardAccountDetailsList = getSpiCardAccountDetails(accountConsent, aspspConsentData);
@@ -125,7 +125,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            SCAResponseTO response = applyAuthorisation(aspspConsentData);
+            GlobalScaResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested details for account, ACCOUNT-ID: {}", accountReference.getResourceId());
 
@@ -184,7 +184,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
         Boolean deltaList = spiTransactionReportParameters.getDeltaList();
 
         try {
-            SCAResponseTO response = applyAuthorisation(aspspConsentData);
+            GlobalScaResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested transactions for account: {}, dates from: {}, to: {}, withBalance: {}, entryReferenceFrom: {}, deltaList: {}",
                         accountReference.getResourceId(), dateFrom, dateTo, withBalance, entryReferenceFrom, deltaList);
@@ -229,7 +229,7 @@ public class CardAccountSpiImpl implements CardAccountSpi {
         byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
 
         try {
-            SCAResponseTO response = applyAuthorisation(aspspConsentData);
+            GlobalScaResponseTO response = applyAuthorisation(aspspConsentData);
 
             logger.info("Requested Balances for ACCOUNT-ID: {}", accountReference.getResourceId());
             List<SpiAccountBalance> accountBalances = Optional
@@ -338,8 +338,8 @@ public class CardAccountSpiImpl implements CardAccountSpi {
                        .anyMatch(reference -> reference.getCurrency() == null || reference.getCurrency().equals(account.getCurrency()));
     }
 
-    private SCAResponseTO applyAuthorisation(byte[] aspspConsentData) {
-        SCAResponseTO sca = consentDataService.response(aspspConsentData);
+    private GlobalScaResponseTO applyAuthorisation(byte[] aspspConsentData) {
+        GlobalScaResponseTO sca = consentDataService.response(aspspConsentData);
         authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
         return sca;
     }

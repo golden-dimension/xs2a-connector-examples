@@ -1,7 +1,7 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
 import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
@@ -25,7 +25,7 @@ public class CmsPaymentStatusUpdateService {
     private final RequestProviderService requestProviderService;
 
     public void updatePaymentStatus(String paymentId, SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        SCAResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
+        GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
         TransactionStatus transactionStatus = getTransactionStatus(sca.getScaStatus());
         cmsPsuPisClient.updatePaymentStatus(paymentId, transactionStatus, requestProviderService.getInstanceId());
     }

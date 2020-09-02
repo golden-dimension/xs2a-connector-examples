@@ -17,6 +17,8 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
@@ -121,13 +123,11 @@ public class GeneralPaymentService {
         String paymentId = StringUtils.isNotBlank(payment.getPaymentId())
                                    ? payment.getPaymentId()
                                    : Ids.id();
-        SCAPaymentResponseTO response = new SCAPaymentResponseTO();
-        response.setPaymentId(paymentId);
-        response.setTransactionStatus(TransactionStatusTO.RCVD);
-        response.setPaymentProduct(payment.getPaymentProduct());
-        response.setPaymentType(paymentType);
+        GlobalScaResponseTO response = new GlobalScaResponseTO();
+        response.setOperationObjectId(paymentId);
+        response.setOpType(OpTypeTO.PAYMENT);
         responsePayload.setPaymentId(paymentId);
-        responsePayload.setTransactionStatus(TransactionStatus.valueOf(response.getTransactionStatus().name()));
+        responsePayload.setTransactionStatus(TransactionStatus.RCVD);
 
         boolean isMultilevelScaRequired;
 
@@ -167,11 +167,11 @@ public class GeneralPaymentService {
                            .build();
         }
         try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
+            GlobalScaResponseTO sca = consentDataService.response(aspspConsentData);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             logger.info("Get payment status by ID with type: {} and ID: {}", paymentType, paymentId);
-            TransactionStatusTO response = paymentRestClient.getPaymentStatusById(sca.getPaymentId()).getBody();
+            TransactionStatusTO response = paymentRestClient.getPaymentStatusById(sca.getOperationObjectId()).getBody();
             TransactionStatus status = Optional.ofNullable(response)
                                                .map(r -> TransactionStatus.valueOf(r.name()))
                                                .orElseThrow(() -> FeignException.errorStatus("Request failed, response was 200, but body was empty!",
@@ -194,23 +194,23 @@ public class GeneralPaymentService {
 
     public SpiResponse<SpiPaymentExecutionResponse> verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(@NotNull SpiScaConfirmation spiScaConfirmation, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData(), SCAPaymentResponseTO.class);
+            GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             ResponseEntity<GlobalScaResponseTO> paymentAuthorisationValidationResponse = redirectScaRestClient.validateScaCode(sca.getAuthorisationId(), spiScaConfirmation.getTanNumber());
 
             if (paymentAuthorisationValidationResponse.getStatusCode() == HttpStatus.OK) {
-                String authorisationBearerToken = paymentAuthorisationValidationResponse.getBody().getBearerToken().getAccess_token();
+                GlobalScaResponseTO paymentAuthorisationValidationResponseBody = paymentAuthorisationValidationResponse.getBody();
+                String authorisationBearerToken = paymentAuthorisationValidationResponseBody.getBearerToken().getAccess_token();
 
                 authRequestInterceptor.setAccessToken(authorisationBearerToken);
 
-                paymentRestClient.executePayment(sca.getPaymentId());
-                SCAPaymentResponseTO paymentResponseTO = scaResponseMapper.mapToScaPaymentResponse(paymentAuthorisationValidationResponse.getBody());
+                paymentRestClient.executePayment(sca.getOperationObjectId());
 
-                aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(paymentResponseTO));
+                aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(paymentAuthorisationValidationResponseBody));
 
-                String scaStatus = Optional.ofNullable(paymentResponseTO)
-                                           .map(SCAResponseTO::getScaStatus)
+                String scaStatus = Optional.ofNullable(paymentAuthorisationValidationResponseBody)
+                                           .map(GlobalScaResponseTO::getScaStatus)
                                            .map(ScaStatusTO::name)
                                            .orElse(null);
 
@@ -218,7 +218,7 @@ public class GeneralPaymentService {
 
                 authRequestInterceptor.setAccessToken(authorisationBearerToken);
 
-                ResponseEntity<TransactionStatusTO> paymentStatusResponse = paymentRestClient.getPaymentStatusById(sca.getPaymentId());
+                ResponseEntity<TransactionStatusTO> paymentStatusResponse = paymentRestClient.getPaymentStatusById(sca.getOperationObjectId());
 
                 return SpiResponse.<SpiPaymentExecutionResponse>builder()
                                .payload(spiPaymentExecutionResponse(paymentStatusResponse.getBody()))
@@ -257,7 +257,7 @@ public class GeneralPaymentService {
                                                                                            @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
         try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData(), SCAPaymentResponseTO.class);
+            GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             ResponseEntity<AuthConfirmationTO> authConfirmationTOResponse =
@@ -294,25 +294,29 @@ public class GeneralPaymentService {
     public @NotNull SpiResponse<SpiPaymentExecutionResponse> executePaymentWithoutSca(@NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         try {
             // First check if there is any payment response ongoing.
-            SCAPaymentResponseTO response = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData(), SCAPaymentResponseTO.class);
+            GlobalScaResponseTO response = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
+            authRequestInterceptor.setAccessToken(response.getBearerToken().getAccess_token());
 
             ScaStatusTO scaStatus = response.getScaStatus();
             String scaStatusName = scaStatus.name();
+
+            logger.info("Getting payment transaction status by payment id {}", response.getOperationObjectId());
+            TransactionStatusTO transactionStatusTO = paymentRestClient.getPaymentStatusById(response.getOperationObjectId()).getBody();
 
             if (ScaStatusTO.EXEMPTED.equals(scaStatus) || ScaStatusTO.FINALISED.equals(scaStatus)) {
                 // Success
 
                 logger.info("SCA status is: {}", scaStatusName);
-                logger.info("Payment scheduled for execution. Transaction status is: {}. Also see SCA status", response.getTransactionStatus());
+                logger.info("Payment scheduled for execution. Transaction status is: {}. Also see SCA status", transactionStatusTO);
 
                 return SpiResponse.<SpiPaymentExecutionResponse>builder()
-                               .payload(spiPaymentExecutionResponse(response.getTransactionStatus()))
+                               .payload(spiPaymentExecutionResponse(transactionStatusTO))
                                .build();
             }
 
             aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR_PAYMENT_NOT_EXECUTED, response.getTransactionStatus(), scaStatusName))
+                           .error(new TppMessage(MessageErrorCode.FORMAT_ERROR_PAYMENT_NOT_EXECUTED, transactionStatusTO, scaStatusName))
                            .build();
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
@@ -343,21 +347,21 @@ public class GeneralPaymentService {
                        .orElseGet(buildFailedResponse);
     }
 
-    public <P> SCAPaymentResponseTO initiatePaymentInLedgers(P payment, PaymentTypeTO paymentTypeTO, PaymentTO request) {
+    public <P> GlobalScaResponseTO initiatePaymentInLedgers(P payment, PaymentTypeTO paymentTypeTO, PaymentTO request) {
         try {
             SCAPaymentResponseTO initiationResponse = paymentRestClient.initiatePayment(paymentTypeTO, request).getBody();
             logger.debug("{} payment body: {}", paymentTypeTO, payment);
-            return initiationResponse;
+            return scaResponseMapper.toGlobalScaResponse(initiationResponse);
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
     }
 
-    public <P> SCAPaymentResponseTO initiatePaymentCancellationInLedgers(String paymentId) {
+    public GlobalScaResponseTO initiatePaymentCancellationInLedgers(String paymentId) {
         try {
             SCAPaymentResponseTO cancellationResponse = paymentRestClient.initiatePmtCancellation(paymentId).getBody();
             logger.debug("Payment cancellation, ID: {}", paymentId);
-            return cancellationResponse;
+            return scaResponseMapper.toGlobalScaResponse(cancellationResponse);
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
@@ -377,12 +381,12 @@ public class GeneralPaymentService {
 
     private Optional<PaymentTO> getPaymentFromLedgers(SpiPayment payment, byte[] aspspConsentData) {
         try {
-            SCAPaymentResponseTO sca = consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class);
+            GlobalScaResponseTO sca = consentDataService.response(aspspConsentData);
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
             logger.info("Get payment by ID with type: {} and ID: {}", payment.getPaymentType(), payment.getPaymentId());
             logger.debug("Payment body: {}", payment);
-            return Optional.ofNullable(paymentRestClient.getPaymentById(sca.getPaymentId()).getBody());
+            return Optional.ofNullable(paymentRestClient.getPaymentById(sca.getOperationObjectId()).getBody());
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Get payment by ID failed: payment ID: {}, devMessage: {}", payment.getPaymentId(), devMessage);

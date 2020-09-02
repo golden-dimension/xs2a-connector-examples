@@ -18,10 +18,8 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
+import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,15 +31,16 @@ import java.io.IOException;
 public class AspspConsentDataService {
 
     private final ObjectMapper objectMapper;
+    private final ScaResponseMapper scaResponseMapper;
 
     /**
      * Default storage, makes sure there is a bearer token in the response object.
      */
-    public byte[] store(SCAResponseTO response) {
+    public byte[] store(GlobalScaResponseTO response) {
         return store(response, true);
     }
 
-    public byte[] store(SCAResponseTO response, boolean checkCredentials) {
+    public byte[] store(GlobalScaResponseTO response, boolean checkCredentials) {
         if (checkCredentials && response.getBearerToken() == null) {
             throw new IllegalStateException("Missing credentials, response must contain a bearer token by default.");
         }
@@ -52,17 +51,13 @@ public class AspspConsentDataService {
         }
     }
 
-    public <T extends SCAResponseTO> T response(byte[] aspspConsentData, Class<T> klass) {
-        return response(aspspConsentData, klass, true);
-    }
-
-    public SCAResponseTO response(byte[] aspspConsentData) {
+    public GlobalScaResponseTO response(byte[] aspspConsentData) {
         return response(aspspConsentData, true);
     }
 
-    public SCAResponseTO response(byte[] aspspConsentData, boolean checkCredentials) {
+    public GlobalScaResponseTO response(byte[] aspspConsentData, boolean checkCredentials) {
         try {
-            SCAResponseTO sca = fromBytes(aspspConsentData);
+            GlobalScaResponseTO sca = fromBytes(aspspConsentData);
             checkBearerTokenPresent(checkCredentials, sca);
             return sca;
         } catch (IOException e) {
@@ -70,25 +65,7 @@ public class AspspConsentDataService {
         }
     }
 
-    public <T extends SCAResponseTO> T response(byte[] aspspConsentData, Class<T> klass, boolean checkCredentials) {
-        try {
-            T sca = fromBytes(aspspConsentData, klass);
-            checkBearerTokenPresent(checkCredentials, sca);
-            return sca;
-        } catch (IOException e) {
-            throw FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, e.getMessage());
-        }
-    }
-
-    private <T extends SCAResponseTO> T fromBytes(byte[] tokenBytes, Class<T> klass) throws IOException {
-        String type = readType(tokenBytes);
-        if(!klass.getSimpleName().equals(type)) {
-            return null;
-        }
-        return objectMapper.readValue(tokenBytes, klass);
-    }
-
-    private <T extends SCAResponseTO> void checkBearerTokenPresent(boolean checkCredentials, T sca) {
+    private void checkBearerTokenPresent(boolean checkCredentials, GlobalScaResponseTO sca) {
         if (checkCredentials && sca.getBearerToken() == null) {
             throw FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, "Missing credentials. Expecting a bearer token in the consent data object.");
         }
@@ -103,14 +80,19 @@ public class AspspConsentDataService {
         return objectType.textValue();
     }
 
-    private SCAResponseTO fromBytes(byte[] tokenBytes) throws IOException {
+    private GlobalScaResponseTO fromBytes(byte[] tokenBytes) throws IOException {
         String type = readType(tokenBytes);
-        if (SCAConsentResponseTO.class.getSimpleName().equals(type)) {
-            return objectMapper.readValue(tokenBytes, SCAConsentResponseTO.class);
+        if (GlobalScaResponseTO.class.getSimpleName().equals(type)) {
+            return objectMapper.readValue(tokenBytes, GlobalScaResponseTO.class);
+        } else if (SCAConsentResponseTO.class.getSimpleName().equals(type)) {
+            SCAConsentResponseTO scaConsentResponseTO = objectMapper.readValue(tokenBytes, SCAConsentResponseTO.class);
+            return scaResponseMapper.toGlobalScaResponse(scaConsentResponseTO);
         } else if (SCALoginResponseTO.class.getSimpleName().equals(type)) {
-            return objectMapper.readValue(tokenBytes, SCALoginResponseTO.class);
+            SCALoginResponseTO scaLoginResponseTO = objectMapper.readValue(tokenBytes, SCALoginResponseTO.class);
+            return scaResponseMapper.toGlobalScaResponse(scaLoginResponseTO);
         } else if (SCAPaymentResponseTO.class.getSimpleName().equals(type)) {
-            return objectMapper.readValue(tokenBytes, SCAPaymentResponseTO.class);
+            SCAPaymentResponseTO scaPaymentResponseTO = objectMapper.readValue(tokenBytes, SCAPaymentResponseTO.class);
+            return scaResponseMapper.toGlobalScaResponse(scaPaymentResponseTO);
         } else {
             return null;
         }
