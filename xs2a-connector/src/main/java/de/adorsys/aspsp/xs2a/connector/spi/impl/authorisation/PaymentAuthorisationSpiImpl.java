@@ -21,13 +21,10 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.CmsPaymentStatusUpdateService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
@@ -42,8 +39,6 @@ import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -51,13 +46,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPayment, SCAPaymentResponseTO> implements PaymentAuthorisationSpi {
+public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPayment> implements PaymentAuthorisationSpi {
     private static final Logger logger = LoggerFactory.getLogger(PaymentAuthorisationSpiImpl.class);
 
-    private final AspspConsentDataService consentDataService;
     private final CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService;
-    private final RedirectScaRestClient redirectScaRestClient;
-    private final ScaResponseMapper scaResponseMapper;
 
     public PaymentAuthorisationSpiImpl(GeneralAuthorisationService authorisationService,
                                        ScaMethodConverter scaMethodConverter,
@@ -66,15 +58,11 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                                        CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService,
                                        FeignExceptionReader feignExceptionReader,
                                        RedirectScaRestClient redirectScaRestClient,
-                                       ScaResponseMapper scaResponseMapper,
                                        KeycloakTokenService keycloakTokenService,
                                        GeneralPaymentService generalPaymentService,
                                        LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient, generalPaymentService, ledgersSpiCommonPaymentTOMapper);
-        this.consentDataService = consentDataService;
         this.cmsPaymentStatusUpdateService = cmsPaymentStatusUpdateService;
-        this.redirectScaRestClient = redirectScaRestClient;
-        this.scaResponseMapper = scaResponseMapper;
     }
 
     @Override
@@ -89,7 +77,10 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    protected SpiResponse<SpiPsuAuthorisationResponse> onSuccessfulAuthorisation(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, SpiResponse<SpiPsuAuthorisationResponse> authorisePsu, SCAPaymentResponseTO scaBusinessObjectResponse) {
+    protected SpiResponse<SpiPsuAuthorisationResponse> onSuccessfulAuthorisation(SpiPayment businessObject,
+                                                                                 @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+                                                                                 SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
+                                                                                 GlobalScaResponseTO scaBusinessObjectResponse) {
         SpiResponse<SpiPsuAuthorisationResponse> response = super.onSuccessfulAuthorisation(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
         if (!response.hasError() && businessObject.getPsuDataList().size() == 1) {
             cmsPaymentStatusUpdateService.updatePaymentStatus(businessObject.getPaymentId(), aspspConsentDataProvider);
@@ -103,32 +94,17 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    protected ResponseEntity<SCAPaymentResponseTO> getSelectMethodResponse(@NotNull String authenticationMethodId, SCAPaymentResponseTO sca) {
-        ResponseEntity<GlobalScaResponseTO> scaResponse = redirectScaRestClient.selectMethod(sca.getAuthorisationId(), authenticationMethodId);
-
-        return scaResponse.getStatusCode() == HttpStatus.OK
-                       ? ResponseEntity.ok(scaResponseMapper.mapToScaPaymentResponse(scaResponse.getBody()))
-                       : ResponseEntity.badRequest().build();
-    }
-
-    @Override
-    protected SCAPaymentResponseTO getScaObjectResponse(SpiAspspConsentDataProvider aspspConsentDataProvider, boolean checkCredentials) {
-        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
-        return consentDataService.response(aspspConsentData, SCAPaymentResponseTO.class, checkCredentials);
-    }
-
-    @Override
-    protected SCAResponseTO initiateBusinessObject(SpiPayment businessObject, byte[] aspspConsentData) {
+    protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, byte[] aspspConsentData) {
         return initiatePaymentInternal(businessObject);
     }
 
     @Override
-    protected boolean isFirstInitiationOfMultilevelSca(SpiPayment businessObject, SCAPaymentResponseTO scaPaymentResponseTO) {
+    protected boolean isFirstInitiationOfMultilevelSca(SpiPayment businessObject, GlobalScaResponseTO scaPaymentResponseTO) {
         return !scaPaymentResponseTO.isMultilevelScaRequired() || businessObject.getPsuDataList().size() <= 1;
     }
 
     @Override
-    protected Optional<List<ScaUserDataTO>> getScaMethods(SCAPaymentResponseTO sca) {
+    protected Optional<List<ScaUserDataTO>> getScaMethods(GlobalScaResponseTO sca) {
         if (sca.getScaMethods() == null) {
             return Optional.of(Collections.emptyList());
         }
@@ -137,7 +113,10 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    public @NotNull SpiResponse<Boolean> requestTrustedBeneficiaryFlag(@NotNull SpiContextData spiContextData, @NotNull SpiPayment payment, @NotNull String authorisationId, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
+    public @NotNull SpiResponse<Boolean> requestTrustedBeneficiaryFlag(@NotNull SpiContextData spiContextData,
+                                                                       @NotNull SpiPayment payment,
+                                                                       @NotNull String authorisationId,
+                                                                       @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
         // TODO replace with real response from ledgers https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/-/issues/1263
         logger.info("Retrieving mock trusted beneficiaries flag for payment: {}", payment);
         return SpiResponse.<Boolean>builder()

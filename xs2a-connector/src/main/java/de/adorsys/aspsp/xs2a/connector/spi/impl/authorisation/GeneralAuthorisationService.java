@@ -17,14 +17,11 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapper;
-import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.ScaResponseMapper;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.SCAResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.StartScaOprTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
@@ -57,13 +54,11 @@ public class GeneralAuthorisationService {
     private static final Logger logger = LoggerFactory.getLogger(GeneralAuthorisationService.class);
     private final AuthRequestInterceptor authRequestInterceptor;
     private final ChallengeDataMapper challengeDataMapper;
-    private final ScaMethodConverter scaMethodConverter;
     private final AspspConsentDataService consentDataService;
     private final FeignExceptionReader feignExceptionReader;
     private final RedirectScaRestClient redirectScaRestClient;
-    private final ScaResponseMapper scaResponseMapper;
 
-    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(@NotNull String login, String businessObjectId, String authorisationId, BearerTokenTO fullAccessToken, OpTypeTO operationType, SCAResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(@NotNull String login, String businessObjectId, String authorisationId, BearerTokenTO fullAccessToken, OpTypeTO operationType, GlobalScaResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
         logger.info("Authorising user with login: {}", login);
 
@@ -76,19 +71,7 @@ public class GeneralAuthorisationService {
         startScaOprTO.setOprId(businessObjectId);
 
         ResponseEntity<GlobalScaResponseTO> startScaResponse = redirectScaRestClient.startSca(startScaOprTO);
-        GlobalScaResponseTO startScaResponseBody = startScaResponse.getBody();
-
-        SCAResponseTO responseWithRefreshedToken;
-
-        if (operationType == OpTypeTO.PAYMENT || operationType == OpTypeTO.CANCEL_PAYMENT) {
-            responseWithRefreshedToken = scaResponseMapper.mapToScaPaymentResponse(startScaResponseBody);
-            responseWithRefreshedToken.setBearerToken(scaResponse.getBearerToken());
-        } else {
-            responseWithRefreshedToken = scaResponseMapper.mapToScaConsentResponse(startScaResponseBody);
-            responseWithRefreshedToken.setBearerToken(scaResponse.getBearerToken());
-        }
-
-        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(responseWithRefreshedToken));
+        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(startScaResponse.getBody()));
 
         try {
             SpiAuthorisationStatus status = fullAccessToken != null && fullAccessToken.getAccess_token() != null
@@ -128,7 +111,7 @@ public class GeneralAuthorisationService {
         }
     }
 
-    public SpiResponse<SpiAuthorizationCodeResult> getResponseIfScaSelected(SpiAspspConsentDataProvider aspspConsentDataProvider, SCAResponseTO sca) {
+    public SpiResponse<SpiAuthorizationCodeResult> getResponseIfScaSelected(SpiAspspConsentDataProvider aspspConsentDataProvider, GlobalScaResponseTO sca) {
         if (SCAMETHODSELECTED.equals(sca.getScaStatus())) {
             return returnScaMethodSelection(aspspConsentDataProvider, sca);
         } else {
@@ -139,11 +122,10 @@ public class GeneralAuthorisationService {
         }
     }
 
-    public SpiResponse<SpiAuthorizationCodeResult> returnScaMethodSelection(SpiAspspConsentDataProvider aspspConsentDataProvider, SCAResponseTO sca) {
+    public SpiResponse<SpiAuthorizationCodeResult> returnScaMethodSelection(SpiAspspConsentDataProvider aspspConsentDataProvider, GlobalScaResponseTO sca) {
         SpiAuthorizationCodeResult spiAuthorizationCodeResult = new SpiAuthorizationCodeResult();
         ChallengeData challengeData = Optional.ofNullable(challengeDataMapper.toChallengeData(sca.getChallengeData())).orElse(new ChallengeData());
         spiAuthorizationCodeResult.setChallengeData(challengeData);
-        spiAuthorizationCodeResult.setSelectedScaMethod(scaMethodConverter.toAuthenticationObject(sca.getChosenScaMethod()));
         aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(sca));
         return SpiResponse.<SpiAuthorizationCodeResult>builder()
                        .payload(spiAuthorizationCodeResult)
