@@ -23,7 +23,6 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.StartScaOprTO;
-import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
@@ -58,7 +57,7 @@ public class GeneralAuthorisationService {
     private final FeignExceptionReader feignExceptionReader;
     private final RedirectScaRestClient redirectScaRestClient;
 
-    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(@NotNull String login, String businessObjectId, String authorisationId, BearerTokenTO fullAccessToken, OpTypeTO operationType, GlobalScaResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(@NotNull String login, String businessObjectId, String authorisationId, OpTypeTO operationType, GlobalScaResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
         logger.info("Authorising user with login: {}", login);
 
@@ -71,10 +70,14 @@ public class GeneralAuthorisationService {
         startScaOprTO.setOprId(businessObjectId);
 
         ResponseEntity<GlobalScaResponseTO> startScaResponse = redirectScaRestClient.startSca(startScaOprTO);
-        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(startScaResponse.getBody()));
+
+        GlobalScaResponseTO startScaResponseBody = startScaResponse.getBody();
+        startScaResponseBody.setBearerToken(scaResponse.getBearerToken());
+
+        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(startScaResponseBody));
 
         try {
-            SpiAuthorisationStatus status = fullAccessToken != null && fullAccessToken.getAccess_token() != null
+            SpiAuthorisationStatus status = startScaResponse.getBody().getBearerToken().getAccess_token() != null
                                                     ? SpiAuthorisationStatus.SUCCESS
                                                     : SpiAuthorisationStatus.FAILURE;
             logger.info("Authorisation status is: {}", status);

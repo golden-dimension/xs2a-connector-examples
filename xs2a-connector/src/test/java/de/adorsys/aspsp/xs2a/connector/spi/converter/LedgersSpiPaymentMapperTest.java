@@ -26,8 +26,10 @@ import java.util.Currency;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, LedgersSpiAccountMapperImpl.class})
+@ContextConfiguration(classes = {LedgersSpiPaymentMapper.class, LedgersSpiAccountMapperImpl.class})
 class LedgersSpiPaymentMapperTest {
+
+    private static final String REFERENCE = "Ref Number Merchant";
 
     @Autowired
     private LedgersSpiPaymentMapper ledgersSpiPaymentMapper;

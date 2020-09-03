@@ -156,6 +156,11 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
     }
 
     @Override
+    protected GlobalScaResponseTO executeBusinessObject(SpiPiisConsent businessObject) {
+        return null;
+    }
+
+    @Override
     public @NotNull SpiResponse<Boolean> requestTrustedBeneficiaryFlag(@NotNull SpiContextData contextData, @NotNull SpiPiisConsent businessObject, @NotNull String authorisationId, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         log.info("PiisConsentSpiImpl#requestTrustedBeneficiaryFlag: contextData {}, businessObject-id {}", contextData, businessObject.getId());
 
