@@ -8,7 +8,6 @@ import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
 import de.adorsys.psd2.xs2a.spi.domain.common.SpiAmount;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPeriodicPayment;
-import de.adorsys.psd2.xs2a.spi.domain.payment.SpiRemittance;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -27,8 +26,10 @@ import java.util.Currency;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, LedgersSpiAccountMapperImpl.class})
+@ContextConfiguration(classes = {LedgersSpiPaymentMapper.class, LedgersSpiAccountMapperImpl.class})
 class LedgersSpiPaymentMapperTest {
+
+    private static final String REFERENCE = "Ref Number Merchant";
 
     @Autowired
     private LedgersSpiPaymentMapper ledgersSpiPaymentMapper;
@@ -75,10 +76,9 @@ class LedgersSpiPaymentMapperTest {
         //Given
         RemittanceInformationStructuredTO remittanceInformationStructuredTO = jsonReader.getObjectFromFile("json/mappers/remittance.json", RemittanceInformationStructuredTO.class);
         //When
-        SpiRemittance actual = ledgersSpiPaymentMapper.mapToSpiRemittance(remittanceInformationStructuredTO);
+        String actual = ledgersSpiPaymentMapper.mapToSpiRemittance(remittanceInformationStructuredTO);
         //Then
-        SpiRemittance expected = jsonReader.getObjectFromFile("json/mappers/remittance.json", SpiRemittance.class);
-        assertEquals(expected, actual);
+        assertEquals(REFERENCE, actual);
     }
 
     private SpiBulkPayment buildSpiBulkPayment() {

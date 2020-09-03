@@ -195,10 +195,10 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     @Override
-    protected SpiResponse<SpiPsuAuthorisationResponse> onSuccessfulAuthorisation(SpiPayment businessObject,
-                                                                                 @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                                 SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-                                                                                 GlobalScaResponseTO scaBusinessObjectResponse) {
+    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
+                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
+                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
 
         ResponseEntity<SCAPaymentResponseTO> cancellationResponse = paymentRestClient.executeCancelPayment(businessObject.getPaymentId());
 
@@ -221,19 +221,6 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
         return paymentService.initiatePaymentCancellationInLedgers(businessObject.getPaymentId());
     }
 
-//    @Override
-//    protected SCAPaymentResponseTO mapToScaResponse(SpiPayment businessObject, byte[] aspspConsentData, SCAPaymentResponseTO originalResponse) throws IOException {
-//        String paymentTypeString = Optional.ofNullable(businessObject.getPaymentType()).orElseThrow(() -> new IOException("Missing payment type")).name();
-//        SCALoginResponseTO scaResponseTO = consentDataService.response(aspspConsentData, SCALoginResponseTO.class);
-//        SCAPaymentResponseTO paymentResponse = scaLoginMapper.toPaymentResponse(scaResponseTO);
-//        paymentResponse.setObjectType(SCAPaymentResponseTO.class.getSimpleName());
-//        paymentResponse.setPaymentId(businessObject.getPaymentId());
-//        paymentResponse.setPaymentType(PaymentTypeTO.valueOf(paymentTypeString));
-//        paymentResponse.setPaymentProduct(businessObject.getPaymentProduct());
-//        paymentResponse.setMultilevelScaRequired(originalResponse.isMultilevelScaRequired());
-//        return paymentResponse;
-//    }
-
     @Override
     protected boolean validateStatuses(SpiPayment businessObject, GlobalScaResponseTO sca) {
         return businessObject.getPaymentStatus() == TransactionStatus.RCVD ||
@@ -243,6 +230,11 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     @Override
     protected boolean isFirstInitiationOfMultilevelSca(SpiPayment businessObject, GlobalScaResponseTO scaPaymentResponseTO) {
         return true;
+    }
+
+    @Override
+    protected GlobalScaResponseTO executeBusinessObject(SpiPayment businessObject) {
+        return scaResponseMapper.toGlobalScaResponse(paymentRestClient.executeCancelPayment(businessObject.getPaymentId()).getBody());
     }
 
     @Override

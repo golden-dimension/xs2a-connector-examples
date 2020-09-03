@@ -284,6 +284,11 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     @Override
+    protected GlobalScaResponseTO executeBusinessObject(SpiAccountConsent businessObject) {
+        return null;
+    }
+
+    @Override
     protected OpTypeTO getOpType() {
         return OpTypeTO.CONSENT;
     }

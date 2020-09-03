@@ -19,7 +19,10 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
-import de.adorsys.ledgers.middleware.api.domain.sca.*;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAConsentResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCALoginResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -82,7 +85,7 @@ public class AspspConsentDataService {
 
     private GlobalScaResponseTO fromBytes(byte[] tokenBytes) throws IOException {
         String type = readType(tokenBytes);
-        if (GlobalScaResponseTO.class.getSimpleName().equals(type)) {
+        if (type == null || GlobalScaResponseTO.class.getSimpleName().equals(type)) {
             return objectMapper.readValue(tokenBytes, GlobalScaResponseTO.class);
         } else if (SCAConsentResponseTO.class.getSimpleName().equals(type)) {
             SCAConsentResponseTO scaConsentResponseTO = objectMapper.readValue(tokenBytes, SCAConsentResponseTO.class);

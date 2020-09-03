@@ -1,7 +1,10 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.adorsys.aspsp.xs2a.connector.spi.converter.*;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.AddressMapperImpl;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapperImpl;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpi;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpiImpl;
@@ -38,7 +41,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(classes = {LedgersSpiPaymentMapperImpl.class, AddressMapperImpl.class, ChallengeDataMapperImpl.class, LedgersSpiAccountMapperImpl.class, ObjectMapper.class, PaymentSpiImpl.class})
+@ContextConfiguration(classes = {LedgersSpiPaymentMapper.class, AddressMapperImpl.class, ChallengeDataMapperImpl.class, LedgersSpiAccountMapperImpl.class, ObjectMapper.class, PaymentSpiImpl.class})
 @Disabled("Due to refactoring SCA")
 class BulkPaymentSpiImplTest {
     private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";

@@ -18,10 +18,7 @@ import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationDecoupledScaResponse;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAvailableScaMethodsResponse;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.*;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
@@ -74,6 +71,8 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     protected abstract boolean isFirstInitiationOfMultilevelSca(T businessObject, GlobalScaResponseTO scaBusinessObjectResponse);
 
+    protected abstract GlobalScaResponseTO executeBusinessObject(T businessObject);
+
     protected String generatePsuMessage(@NotNull SpiContextData contextData, @NotNull String authorisationId,
                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                         SpiResponse<SpiAuthorizationCodeResult> response) {
@@ -101,9 +100,42 @@ public abstract class AbstractAuthorisationSpi<T> {
         }
 
         GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider);
+
+        if (scaResponseTO.getScaStatus() == EXEMPTED && isFirstInitiationOfMultilevelSca(businessObject, scaResponseTO)) {
+
+            try {
+                authRequestInterceptor.setAccessToken(scaResponseTO.getBearerToken().getAccess_token());
+                GlobalScaResponseTO executionResponse = executeBusinessObject(businessObject);
+
+                if (executionResponse == null) {
+                    return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                                   .error(getAuthorisePsuFailureMessage(businessObject))
+                                   .build();
+                }
+
+                executionResponse.setBearerToken(scaResponseTO.getBearerToken());
+                executionResponse.setScaStatus(scaResponseTO.getScaStatus());
+
+                aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(executionResponse));
+
+                String scaStatusName = scaResponseTO.getScaStatus().name();
+                log.info("SCA status is: {}", scaStatusName);
+
+                return SpiResponse.<SpiPsuAuthorisationResponse>builder().payload(new SpiPsuAuthorisationResponse(true, SpiAuthorisationStatus.SUCCESS)).build();
+
+            } catch (FeignException feignException) {
+                String devMessage = feignExceptionReader.getErrorMessage(feignException);
+                log.info("Processing of successful authorisation failed: devMessage '{}'", devMessage);
+                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, FORMAT_ERROR))
+                               .build();
+            }
+
+        }
+
         return authorisationService.authorisePsuInternal(
                 psuLoginData.getPsuId(), getBusinessObjectId(businessObject),
-                authorisationId, scaResponseTO.getBearerToken(), getOpType(), scaResponseTO, aspspConsentDataProvider);
+                authorisationId, getOpType(), scaResponseTO, aspspConsentDataProvider);
     }
 
     /**
@@ -213,10 +245,10 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     }
 
-    protected SpiResponse<SpiPsuAuthorisationResponse> onSuccessfulAuthorisation(T businessObject,
-                                                                                 @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                                 SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-                                                                                 GlobalScaResponseTO scaBusinessObjectResponse) {
+    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(T businessObject,
+                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
+                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
 
         if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())
                     && isFirstInitiationOfMultilevelSca(businessObject, scaBusinessObjectResponse)) {
