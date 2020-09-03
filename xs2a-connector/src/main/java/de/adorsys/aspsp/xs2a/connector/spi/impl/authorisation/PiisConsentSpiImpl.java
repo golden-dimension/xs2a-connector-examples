@@ -21,8 +21,6 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.MultilevelScaService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.AbstractAuthorisationSpi;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.GeneralAuthorisationService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
