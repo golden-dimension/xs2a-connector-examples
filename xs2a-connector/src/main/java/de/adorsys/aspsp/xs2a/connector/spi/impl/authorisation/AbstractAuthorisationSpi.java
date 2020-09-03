@@ -1,15 +1,13 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
-import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
-import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTO;
-import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.*;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
@@ -18,17 +16,14 @@ import de.adorsys.psd2.xs2a.core.authorisation.AuthenticationObject;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationDecoupledScaResponse;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAvailableScaMethodsResponse;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
-import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPaymentInfo;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
-import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,8 +50,6 @@ public abstract class AbstractAuthorisationSpi<T> {
     private final FeignExceptionReader feignExceptionReader;
     private final KeycloakTokenService keycloakTokenService;
     private final RedirectScaRestClient redirectScaRestClient;
-    private final GeneralPaymentService paymentService;
-    private final LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper;
 
     protected ResponseEntity<GlobalScaResponseTO> getSelectMethodResponse(@NotNull String authenticationMethodId, GlobalScaResponseTO sca) {
         ResponseEntity<GlobalScaResponseTO> scaResponse = redirectScaRestClient.selectMethod(sca.getAuthorisationId(), authenticationMethodId);
@@ -77,7 +70,7 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     protected abstract TppMessage getAuthorisePsuFailureMessage(T businessObject);
 
-    protected abstract GlobalScaResponseTO initiateBusinessObject(T businessObject, byte[] aspspConsentData);
+    protected abstract GlobalScaResponseTO initiateBusinessObject(T businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider);
 
     protected abstract boolean isFirstInitiationOfMultilevelSca(T businessObject, GlobalScaResponseTO scaBusinessObjectResponse);
 
@@ -107,31 +100,10 @@ public abstract class AbstractAuthorisationSpi<T> {
                            .build();
         }
 
-        OpTypeTO opTypeTO = getOpType();
-
-        if (opTypeTO == OpTypeTO.PAYMENT) {
-            GlobalScaResponseTO scaPaymentResponseTO = initiatePaymentInternal((SpiPayment) businessObject);
-
-            return authorisationService.authorisePsuInternal(
-                    psuLoginData.getPsuId(), getBusinessObjectId(businessObject),
-                    authorisationId, scaPaymentResponseTO.getBearerToken(), getOpType(), scaPaymentResponseTO, aspspConsentDataProvider);
-
-        }
-
-        if (opTypeTO == OpTypeTO.CANCEL_PAYMENT) {
-            SpiPayment paymentToCancel = (SpiPayment) businessObject;
-            GlobalScaResponseTO scaPaymentCancellationResponseTO = paymentService.initiatePaymentCancellationInLedgers(paymentToCancel.getPaymentId());
-
-            return authorisationService.authorisePsuInternal(
-                    psuLoginData.getPsuId(), getBusinessObjectId(businessObject),
-                    authorisationId, scaPaymentCancellationResponseTO.getBearerToken(), getOpType(), scaPaymentCancellationResponseTO, aspspConsentDataProvider);
-
-            // TODO: if consent?
-        }
-
-        return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                       .error(new TppMessage(FORMAT_ERROR_RESPONSE_TYPE))
-                       .build();
+        GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider);
+        return authorisationService.authorisePsuInternal(
+                psuLoginData.getPsuId(), getBusinessObjectId(businessObject),
+                authorisationId, scaResponseTO.getBearerToken(), getOpType(), scaResponseTO, aspspConsentDataProvider);
     }
 
     /**
@@ -241,13 +213,6 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     }
 
-    protected GlobalScaResponseTO initiatePaymentInternal(SpiPayment payment) {
-        PaymentType paymentType = payment.getPaymentType();
-        PaymentTO paymentTO = ledgersSpiCommonPaymentTOMapper.mapToPaymentTO(paymentType, (SpiPaymentInfo) payment);
-
-        return paymentService.initiatePaymentInLedgers(payment, PaymentTypeTO.valueOf(paymentType.toString()), paymentTO);
-    }
-
     protected SpiResponse<SpiPsuAuthorisationResponse> onSuccessfulAuthorisation(T businessObject,
                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                                                                  SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
@@ -257,7 +222,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                     && isFirstInitiationOfMultilevelSca(businessObject, scaBusinessObjectResponse)) {
             GlobalScaResponseTO scaResponseTO;
             try {
-                scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider.loadAspspConsentData());
+                scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider);
             } catch (FeignException feignException) {
                 String devMessage = feignExceptionReader.getErrorMessage(feignException);
                 log.info("Processing of successful authorisation failed: devMessage '{}'", devMessage);
