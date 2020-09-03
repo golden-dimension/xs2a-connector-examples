@@ -16,7 +16,6 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
-import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
@@ -24,7 +23,10 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
-import de.adorsys.ledgers.middleware.api.domain.sca.*;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
@@ -64,6 +66,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     private final FeignExceptionReader feignExceptionReader;
     private final RedirectScaRestClient redirectScaRestClient;
     private final ScaResponseMapper scaResponseMapper;
+    private final GeneralPaymentService paymentService;
 
     public PaymentCancellationSpiImpl(PaymentRestClient ledgersRestClient,
                                       ScaMethodConverter scaMethodConverter,
@@ -73,13 +76,14 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                       RedirectScaRestClient redirectScaRestClient,
                                       KeycloakTokenService keycloakTokenService,
                                       GeneralPaymentService paymentService,
-                                      LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper, ScaResponseMapper scaResponseMapper) {
-        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient, paymentService, ledgersSpiCommonPaymentTOMapper);
+                                      ScaResponseMapper scaResponseMapper) {
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient);
         this.paymentRestClient = ledgersRestClient;
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
         this.feignExceptionReader = feignExceptionReader;
         this.redirectScaRestClient = redirectScaRestClient;
+        this.paymentService = paymentService;
         this.scaResponseMapper = scaResponseMapper;
     }
 
@@ -213,8 +217,8 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     @Override
-    protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, byte[] aspspConsentData) {
-        return null;
+    protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        return paymentService.initiatePaymentCancellationInLedgers(businessObject.getPaymentId());
     }
 
 //    @Override
