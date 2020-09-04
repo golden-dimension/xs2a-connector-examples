@@ -35,7 +35,6 @@ import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -57,9 +56,7 @@ public class GeneralAuthorisationService {
     private final FeignExceptionReader feignExceptionReader;
     private final RedirectScaRestClient redirectScaRestClient;
 
-    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(@NotNull String login, String businessObjectId, String authorisationId, OpTypeTO operationType, GlobalScaResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
-
-        logger.info("Authorising user with login: {}", login);
+    public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(String businessObjectId, String authorisationId, OpTypeTO operationType, GlobalScaResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
         aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponse));
         authRequestInterceptor.setAccessToken(scaResponse.getBearerToken().getAccess_token());
