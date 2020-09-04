@@ -102,7 +102,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
 
     @Override
     protected TppMessage getAuthorisePsuFailureMessage(SpiPayment businessObject) {
-        logger.error("Initiate single payment failed: payment ID {}", businessObject.getPaymentId());
+        logger.error("Initiate payment failed: payment ID {}", businessObject.getPaymentId());
         return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
     }
 

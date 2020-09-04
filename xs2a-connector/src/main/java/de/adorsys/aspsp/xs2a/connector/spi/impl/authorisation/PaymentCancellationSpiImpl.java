@@ -85,6 +85,14 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
         this.scaResponseMapper = scaResponseMapper;
     }
 
+    /**
+     * Initiates payment cancellation process
+     *
+     * @param contextData              holder of call's context data (e.g. about PSU and TPP)
+     * @param payment                  Payment to be cancelled
+     * @param aspspConsentDataProvider Provides access to read/write encrypted data to be stored in the consent management system
+     * @return Payment cancellation response with information about transaction status and whether authorisation of the request is required
+     */
     @Override
     public @NotNull SpiResponse<SpiPaymentCancellationResponse> initiatePaymentCancellation(@NotNull SpiContextData contextData,
                                                                                             @NotNull SpiPayment payment,
@@ -98,7 +106,12 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     }
 
     /**
-     * Makes no sense.
+     * Cancels payment without performing strong customer authentication
+     *
+     * @param contextData              holder of call's context data (e.g. about PSU and TPP)
+     * @param payment                  Payment to be cancelled
+     * @param aspspConsentDataProvider Provides access to read/write encrypted data to be stored in the consent management system
+     * @return Return a positive or negative response as part of SpiResponse
      */
     @Override
     public @NotNull SpiResponse<SpiResponse.VoidResponse> cancelPaymentWithoutSca(@NotNull SpiContextData contextData,
@@ -131,6 +144,15 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                        .build();
     }
 
+    /**
+     * Sends authorisation confirmation information (secure code or such) to ASPSP and if case of successful validation cancels payment at ASPSP.
+     *
+     * @param contextData              holder of call's context data (e.g. about PSU and TPP)
+     * @param spiScaConfirmation       payment cancellation confirmation information
+     * @param payment                  Payment to be cancelled
+     * @param aspspConsentDataProvider Provides access to read/write encrypted data to be stored in the consent management system
+     * @return Return a positive or negative response as part of SpiResponse
+     */
     @Override
     public @NotNull SpiResponse<SpiPaymentExecutionResponse> verifyScaAuthorisationAndCancelPaymentWithResponse(@NotNull SpiContextData contextData,
                                                                                                                 @NotNull SpiScaConfirmation spiScaConfirmation,
@@ -191,28 +213,6 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
         logger.error("Authorising payment cancellation failed, payment ID: {}", businessObject.getPaymentId());
         return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
     }
-
-//    @Override
-//    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
-//                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-//                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-//                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
-//
-//        ResponseEntity<SCAPaymentResponseTO> cancellationResponse = paymentRestClient.executeCancelPayment(businessObject.getPaymentId());
-//
-//        boolean success = Optional.ofNullable(cancellationResponse.getBody())
-//                                  .map(cr -> cr.getScaStatus() != ScaStatusTO.FAILED)
-//                                  .orElse(false);
-//
-//        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponseMapper.toGlobalScaResponse(cancellationResponse.getBody())));
-//
-//        return success ? SpiResponse.<SpiPsuAuthorisationResponse>builder()
-//                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS))
-//                                 .build()
-//                       : SpiResponse.<SpiPsuAuthorisationResponse>builder()
-//                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
-//                                 .build();
-//    }
 
     @Override
     protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
