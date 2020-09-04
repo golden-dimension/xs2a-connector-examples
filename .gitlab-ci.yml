@@ -43,6 +43,8 @@ variables: &variables
   DEV_NAMESPACE: adorsys-psd2-develop
   DEMO_NAMESPACE: adorsys-psd2-demo
   INTEG_NAMESPACE: adorsys-psd2-integ
+  OPENSHIFT_NAMESPACE_MODELBANK_KEYCLOAK_DEV: adorsys-modelbank-keycloak-dev
+
 
 # ------------------------------------------------------------------
 # reusable yaml anchors
@@ -181,6 +183,14 @@ Push to DockerHub (develop):
     DOCKER_TAG: develop
   <<: *build_dockerhub_image
 
+Push to DockerHub (keycloak-develop):
+  stage: "Package"
+  only:
+    - keycloak-develop
+  variables:
+    DOCKER_TAG: keycloak-develop
+  <<: *build_dockerhub_image
+
 Deploy Openshift (develop):
   stage: "Deployment"
   only:
@@ -189,6 +199,16 @@ Deploy Openshift (develop):
     <<: *variables
     DOCKER_TAG: develop
     OPENSHIFT_NAMESPACE: "${DEV_NAMESPACE}"
+  <<: *deploy_openshift
+
+Deploy Openshift (keycloak-develop):
+  stage: "Deployment"
+  only:
+    - keycloak-develop
+  variables:
+    <<: *variables
+    DOCKER_TAG: keycloak-develop
+    OPENSHIFT_NAMESPACE: "${OPENSHIFT_NAMESPACE_MODELBANK_KEYCLOAK_DEV}"
   <<: *deploy_openshift
 
 Notify Slack channel (develop):
