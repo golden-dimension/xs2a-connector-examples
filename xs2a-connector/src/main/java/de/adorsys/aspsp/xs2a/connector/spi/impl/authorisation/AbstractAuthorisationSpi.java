@@ -245,39 +245,39 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     }
 
-    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(T businessObject,
-                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
-
-        if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())
-                    && isFirstInitiationOfMultilevelSca(businessObject, scaBusinessObjectResponse)) {
-            GlobalScaResponseTO scaResponseTO;
-            try {
-                scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider);
-            } catch (FeignException feignException) {
-                String devMessage = feignExceptionReader.getErrorMessage(feignException);
-                log.info("Processing of successful authorisation failed: devMessage '{}'", devMessage);
-                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                               .error(FeignExceptionHandler.getFailureMessage(feignException, FORMAT_ERROR))
-                               .build();
-            }
-
-            if (scaResponseTO == null) {
-                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                               .error(getAuthorisePsuFailureMessage(businessObject))
-                               .build();
-            }
-            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponseTO));
-
-            String scaStatusName = scaResponseTO.getScaStatus().name();
-            log.info("SCA status is: {}", scaStatusName);
-        }
-
-        return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                       .payload(authorisePsu.getPayload())
-                       .build();
-    }
+//    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(T businessObject,
+//                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+//                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
+//                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
+//
+//        if (EnumSet.of(EXEMPTED, PSUAUTHENTICATED, PSUIDENTIFIED).contains(scaBusinessObjectResponse.getScaStatus())
+//                    && isFirstInitiationOfMultilevelSca(businessObject, scaBusinessObjectResponse)) {
+//            GlobalScaResponseTO scaResponseTO;
+//            try {
+//                scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider);
+//            } catch (FeignException feignException) {
+//                String devMessage = feignExceptionReader.getErrorMessage(feignException);
+//                log.info("Processing of successful authorisation failed: devMessage '{}'", devMessage);
+//                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+//                               .error(FeignExceptionHandler.getFailureMessage(feignException, FORMAT_ERROR))
+//                               .build();
+//            }
+//
+//            if (scaResponseTO == null) {
+//                return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+//                               .error(getAuthorisePsuFailureMessage(businessObject))
+//                               .build();
+//            }
+//            aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponseTO));
+//
+//            String scaStatusName = scaResponseTO.getScaStatus().name();
+//            log.info("SCA status is: {}", scaStatusName);
+//        }
+//
+//        return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+//                       .payload(authorisePsu.getPayload())
+//                       .build();
+//    }
 
     private MessageErrorCode getMessageErrorCodeByStatus(int status) {
         if (status == 501) {

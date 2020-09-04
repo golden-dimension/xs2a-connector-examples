@@ -16,6 +16,7 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment;
 
+import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTO;
@@ -31,6 +32,7 @@ import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
@@ -74,6 +76,8 @@ public class GeneralPaymentService {
     private final UserMgmtRestClient userMgmtRestClient;
     private final RedirectScaRestClient redirectScaRestClient;
     private final ScaResponseMapper scaResponseMapper;
+    private final CmsPsuPisClient cmsPsuPisClient;
+    private final RequestProviderService requestProviderService;
 
     public GeneralPaymentService(PaymentRestClient ledgersRestClient,
                                  AuthRequestInterceptor authRequestInterceptor,
@@ -83,7 +87,7 @@ public class GeneralPaymentService {
                                  MultilevelScaService multilevelScaService,
                                  UserMgmtRestClient userMgmtRestClient,
                                  RedirectScaRestClient redirectScaRestClient,
-                                 ScaResponseMapper scaResponseMapper) {
+                                 ScaResponseMapper scaResponseMapper, CmsPsuPisClient cmsPsuPisClient, RequestProviderService requestProviderService) {
         this.paymentRestClient = ledgersRestClient;
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
@@ -93,6 +97,8 @@ public class GeneralPaymentService {
         this.userMgmtRestClient = userMgmtRestClient;
         this.redirectScaRestClient = redirectScaRestClient;
         this.scaResponseMapper = scaResponseMapper;
+        this.cmsPsuPisClient = cmsPsuPisClient;
+        this.requestProviderService = requestProviderService;
     }
 
     /**
@@ -193,7 +199,13 @@ public class GeneralPaymentService {
 
                 authRequestInterceptor.setAccessToken(authorisationBearerToken);
 
-                paymentRestClient.executePayment(sca.getOperationObjectId());
+                ResponseEntity<SCAPaymentResponseTO> scaPaymentResponseTOResponse = paymentRestClient.executePayment(sca.getOperationObjectId());
+
+                if (scaPaymentResponseTOResponse.getStatusCode() == HttpStatus.ACCEPTED) {
+                    SCAPaymentResponseTO paymentExecutionResponse = scaPaymentResponseTOResponse.getBody();
+
+                    cmsPsuPisClient.updatePaymentStatus(paymentExecutionResponse.getPaymentId(), TransactionStatus.valueOf(paymentExecutionResponse.getTransactionStatus().name()), requestProviderService.getInstanceId());
+                }
 
                 aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(paymentAuthorisationValidationResponseBody));
 
