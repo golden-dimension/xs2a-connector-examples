@@ -21,7 +21,6 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMa
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.CmsPaymentStatusUpdateService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
@@ -60,14 +59,11 @@ import java.util.Optional;
 public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPayment> implements PaymentAuthorisationSpi {
     private static final Logger logger = LoggerFactory.getLogger(PaymentAuthorisationSpiImpl.class);
 
-    private final CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService;
     private final GeneralPaymentService paymentService;
     private final LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper;
     private final AspspConsentDataService aspspConsentDataService;
-    private final AuthRequestInterceptor authRequestInterceptor;
     private final ScaResponseMapper scaResponseMapper;
     private final PaymentRestClient paymentRestClient;
-    private final FeignExceptionReader feignExceptionReader;
     private final CmsPsuPisClient cmsPsuPisClient;
     private final RequestProviderService requestProviderService;
 
@@ -75,7 +71,6 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                                        ScaMethodConverter scaMethodConverter,
                                        AuthRequestInterceptor authRequestInterceptor,
                                        AspspConsentDataService consentDataService,
-                                       CmsPaymentStatusUpdateService cmsPaymentStatusUpdateService,
                                        FeignExceptionReader feignExceptionReader,
                                        RedirectScaRestClient redirectScaRestClient,
                                        KeycloakTokenService keycloakTokenService,
@@ -85,14 +80,11 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                                        ScaResponseMapper scaResponseMapper,
                                        PaymentRestClient paymentRestClient, CmsPsuPisClient cmsPsuPisClient, RequestProviderService requestProviderService) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient);
-        this.cmsPaymentStatusUpdateService = cmsPaymentStatusUpdateService;
         this.paymentService = paymentService;
         this.ledgersSpiCommonPaymentTOMapper = ledgersSpiCommonPaymentTOMapper;
         this.aspspConsentDataService = aspspConsentDataService;
-        this.authRequestInterceptor = authRequestInterceptor;
         this.scaResponseMapper = scaResponseMapper;
         this.paymentRestClient = paymentRestClient;
-        this.feignExceptionReader = feignExceptionReader;
         this.cmsPsuPisClient = cmsPsuPisClient;
         this.requestProviderService = requestProviderService;
     }
@@ -107,18 +99,6 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
         logger.error("Initiate single payment failed: payment ID {}", businessObject.getPaymentId());
         return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
     }
-
-//    @Override
-//    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
-//                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-//                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-//                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
-//        SpiResponse<SpiPsuAuthorisationResponse> response = super.processExemptedStatus(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
-//        if (!response.hasError() && businessObject.getPsuDataList().size() == 1) {
-//            cmsPaymentStatusUpdateService.updatePaymentStatus(businessObject.getPaymentId(), aspspConsentDataProvider);
-//        }
-//        return response;
-//    }
 
     @Override
     protected String getBusinessObjectId(SpiPayment businessObject) {
