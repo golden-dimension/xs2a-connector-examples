@@ -17,14 +17,17 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.StartScaOprTO;
+import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
+import de.adorsys.psd2.xs2a.core.authorisation.AuthenticationObject;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.sca.ChallengeData;
@@ -55,6 +58,7 @@ public class GeneralAuthorisationService {
     private final AspspConsentDataService consentDataService;
     private final FeignExceptionReader feignExceptionReader;
     private final RedirectScaRestClient redirectScaRestClient;
+    private final ScaMethodConverter scaMethodConverter;
 
     public SpiResponse<SpiPsuAuthorisationResponse> authorisePsuInternal(String businessObjectId, String authorisationId, OpTypeTO operationType, GlobalScaResponseTO scaResponse, SpiAspspConsentDataProvider aspspConsentDataProvider) {
 
@@ -113,9 +117,10 @@ public class GeneralAuthorisationService {
         }
     }
 
-    public SpiResponse<SpiAuthorizationCodeResult> getResponseIfScaSelected(SpiAspspConsentDataProvider aspspConsentDataProvider, GlobalScaResponseTO sca) {
+    public SpiResponse<SpiAuthorizationCodeResult> getResponseIfScaSelected(SpiAspspConsentDataProvider aspspConsentDataProvider, GlobalScaResponseTO sca,
+                                                                            String authenticationMethodId) {
         if (SCAMETHODSELECTED.equals(sca.getScaStatus())) {
-            return returnScaMethodSelection(aspspConsentDataProvider, sca);
+            return returnScaMethodSelection(aspspConsentDataProvider, sca, authenticationMethodId);
         } else {
             Object[] messageTextArgs = {SCAMETHODSELECTED.toString(), PSUIDENTIFIED.toString(), sca.getScaStatus().toString()};
             return SpiResponse.<SpiAuthorizationCodeResult>builder()
@@ -124,10 +129,15 @@ public class GeneralAuthorisationService {
         }
     }
 
-    public SpiResponse<SpiAuthorizationCodeResult> returnScaMethodSelection(SpiAspspConsentDataProvider aspspConsentDataProvider, GlobalScaResponseTO sca) {
+    public SpiResponse<SpiAuthorizationCodeResult> returnScaMethodSelection(SpiAspspConsentDataProvider aspspConsentDataProvider, GlobalScaResponseTO sca,
+                                                                            String authenticationMethodId) {
         SpiAuthorizationCodeResult spiAuthorizationCodeResult = new SpiAuthorizationCodeResult();
         ChallengeData challengeData = Optional.ofNullable(challengeDataMapper.toChallengeData(sca.getChallengeData())).orElse(new ChallengeData());
         spiAuthorizationCodeResult.setChallengeData(challengeData);
+        Optional<ScaUserDataTO> scaUserDataOptional = sca.getScaMethods().stream().filter(method -> method.getId().equals(authenticationMethodId)).findFirst();
+        if (scaUserDataOptional.isPresent()) {
+            spiAuthorizationCodeResult.setSelectedScaMethod(scaMethodConverter.toAuthenticationObject(scaUserDataOptional.get()));
+        }
         aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(sca));
         return SpiResponse.<SpiAuthorizationCodeResult>builder()
                        .payload(spiAuthorizationCodeResult)

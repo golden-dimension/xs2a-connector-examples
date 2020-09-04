@@ -207,7 +207,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                 if (authCodeResponse != null && authCodeResponse.getBearerToken() == null) {
                     authCodeResponse.setBearerToken(sca.getBearerToken());
                 }
-                return authorisationService.returnScaMethodSelection(aspspConsentDataProvider, authCodeResponse);
+                return authorisationService.returnScaMethodSelection(aspspConsentDataProvider, authCodeResponse, authenticationMethodId);
             } catch (FeignException feignException) {
                 String devMessage = feignExceptionReader.getErrorMessage(feignException);
                 log.error("Request authorisation code failed: business object ID: {}, devMessage: {}", getBusinessObjectId(businessObject), devMessage);
@@ -219,7 +219,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                 authRequestInterceptor.setAccessToken(null);
             }
         } else {
-            return authorisationService.getResponseIfScaSelected(aspspConsentDataProvider, sca);
+            return authorisationService.getResponseIfScaSelected(aspspConsentDataProvider, sca, authenticationMethodId);
         }
     }
 
