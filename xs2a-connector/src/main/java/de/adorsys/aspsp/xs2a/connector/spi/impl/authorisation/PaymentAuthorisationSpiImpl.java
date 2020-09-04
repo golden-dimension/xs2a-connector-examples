@@ -16,6 +16,7 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
+import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
@@ -29,16 +30,18 @@ import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.SCAPaymentResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
+import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
 import de.adorsys.psd2.xs2a.core.profile.PaymentType;
+import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPaymentInfo;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.PaymentAuthorisationSpi;
@@ -70,6 +73,8 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     private final ScaResponseMapper scaResponseMapper;
     private final PaymentRestClient paymentRestClient;
     private final FeignExceptionReader feignExceptionReader;
+    private final CmsPsuPisClient cmsPsuPisClient;
+    private final RequestProviderService requestProviderService;
 
     public PaymentAuthorisationSpiImpl(GeneralAuthorisationService authorisationService,
                                        ScaMethodConverter scaMethodConverter,
@@ -83,7 +88,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                                        LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper,
                                        AspspConsentDataService aspspConsentDataService,
                                        ScaResponseMapper scaResponseMapper,
-                                       PaymentRestClient paymentRestClient) {
+                                       PaymentRestClient paymentRestClient, CmsPsuPisClient cmsPsuPisClient, RequestProviderService requestProviderService) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient);
         this.cmsPaymentStatusUpdateService = cmsPaymentStatusUpdateService;
         this.paymentService = paymentService;
@@ -93,6 +98,8 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
         this.scaResponseMapper = scaResponseMapper;
         this.paymentRestClient = paymentRestClient;
         this.feignExceptionReader = feignExceptionReader;
+        this.cmsPsuPisClient = cmsPsuPisClient;
+        this.requestProviderService = requestProviderService;
     }
 
     @Override
@@ -106,17 +113,17 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
         return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
     }
 
-    @Override
-    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
-                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
-        SpiResponse<SpiPsuAuthorisationResponse> response = super.processExemptedStatus(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
-        if (!response.hasError() && businessObject.getPsuDataList().size() == 1) {
-            cmsPaymentStatusUpdateService.updatePaymentStatus(businessObject.getPaymentId(), aspspConsentDataProvider);
-        }
-        return response;
-    }
+//    @Override
+//    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
+//                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+//                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
+//                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
+//        SpiResponse<SpiPsuAuthorisationResponse> response = super.processExemptedStatus(businessObject, aspspConsentDataProvider, authorisePsu, scaBusinessObjectResponse);
+//        if (!response.hasError() && businessObject.getPsuDataList().size() == 1) {
+//            cmsPaymentStatusUpdateService.updatePaymentStatus(businessObject.getPaymentId(), aspspConsentDataProvider);
+//        }
+//        return response;
+//    }
 
     @Override
     protected SpiResponse<SpiPsuAuthorisationResponse> getSpiPsuAuthorisationResponseSpiResponseWithError(FeignException feignException, String devMessage, String errorCode) {
@@ -137,6 +144,11 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
 
     @Override
     protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+
+        if (businessObject.getPaymentStatus() == TransactionStatus.PATC) {
+            return aspspConsentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
+        }
+
         PaymentType paymentType = businessObject.getPaymentType();
         PaymentTO paymentTO = ledgersSpiCommonPaymentTOMapper.mapToPaymentTO(paymentType, (SpiPaymentInfo) businessObject);
 
@@ -150,7 +162,14 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
 
     @Override
     protected GlobalScaResponseTO executeBusinessObject(SpiPayment businessObject) {
-        return scaResponseMapper.toGlobalScaResponse(paymentRestClient.executePayment(businessObject.getPaymentId()).getBody());
+        SCAPaymentResponseTO paymentExecutionResponse = paymentRestClient.executePayment(businessObject.getPaymentId()).getBody();
+//        if (businessObject.getPsuDataList().size() == 1) {
+
+        cmsPsuPisClient.updatePaymentStatus(businessObject.getPaymentId(), TransactionStatus.valueOf(paymentExecutionResponse.getTransactionStatus().name()), requestProviderService.getInstanceId());
+
+//        }
+
+        return scaResponseMapper.toGlobalScaResponse(paymentExecutionResponse);
     }
 
     @Override

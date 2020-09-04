@@ -194,27 +194,27 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
         return new TppMessage(MessageErrorCode.PAYMENT_FAILED);
     }
 
-    @Override
-    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
-                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
-                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
-                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
-
-        ResponseEntity<SCAPaymentResponseTO> cancellationResponse = paymentRestClient.executeCancelPayment(businessObject.getPaymentId());
-
-        boolean success = Optional.ofNullable(cancellationResponse.getBody())
-                                  .map(cr -> cr.getScaStatus() != ScaStatusTO.FAILED)
-                                  .orElse(false);
-
-        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponseMapper.toGlobalScaResponse(cancellationResponse.getBody())));
-
-        return success ? SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS))
-                                 .build()
-                       : SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
-                                 .build();
-    }
+//    @Override
+//    protected SpiResponse<SpiPsuAuthorisationResponse> processExemptedStatus(SpiPayment businessObject,
+//                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+//                                                                             SpiResponse<SpiPsuAuthorisationResponse> authorisePsu,
+//                                                                             GlobalScaResponseTO scaBusinessObjectResponse) {
+//
+//        ResponseEntity<SCAPaymentResponseTO> cancellationResponse = paymentRestClient.executeCancelPayment(businessObject.getPaymentId());
+//
+//        boolean success = Optional.ofNullable(cancellationResponse.getBody())
+//                                  .map(cr -> cr.getScaStatus() != ScaStatusTO.FAILED)
+//                                  .orElse(false);
+//
+//        aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponseMapper.toGlobalScaResponse(cancellationResponse.getBody())));
+//
+//        return success ? SpiResponse.<SpiPsuAuthorisationResponse>builder()
+//                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS))
+//                                 .build()
+//                       : SpiResponse.<SpiPsuAuthorisationResponse>builder()
+//                                 .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
+//                                 .build();
+//    }
 
     @Override
     protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
