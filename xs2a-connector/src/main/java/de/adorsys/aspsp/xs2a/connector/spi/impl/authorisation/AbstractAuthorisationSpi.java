@@ -67,7 +67,7 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     protected abstract TppMessage getAuthorisePsuFailureMessage(T businessObject);
 
-    protected abstract GlobalScaResponseTO initiateBusinessObject(T businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider);
+    protected abstract GlobalScaResponseTO initiateBusinessObject(T businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, String authorisationId);
 
     protected abstract boolean isFirstInitiationOfMultilevelSca(T businessObject, GlobalScaResponseTO scaBusinessObjectResponse);
 
@@ -99,7 +99,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                            .build();
         }
 
-        GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider);
+        GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
 
         if (scaResponseTO.getScaStatus() == EXEMPTED && isFirstInitiationOfMultilevelSca(businessObject, scaResponseTO)) {
 

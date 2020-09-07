@@ -16,6 +16,7 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
+import de.adorsys.aspsp.xs2a.connector.spi.converter.AisConsentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
@@ -25,10 +26,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.MultilevelScaService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
-import de.adorsys.ledgers.rest.client.AccountRestClient;
-import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
-import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
+import de.adorsys.ledgers.rest.client.*;
 import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
@@ -81,6 +79,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     private final MultilevelScaService multilevelScaService;
     private final UserMgmtRestClient userMgmtRestClient;
     private final RedirectScaRestClient redirectScaRestClient;
+    private final ConsentRestClient consentRestClient;
+    private final AisConsentMapper aisConsentMapper;
 
     @Value("${xs2asandbox.tppui.online-banking.url}")
     private String onlineBankingUrl;
@@ -89,7 +89,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                              AspspConsentDataService consentDataService, GeneralAuthorisationService authorisationService,
                              ScaMethodConverter scaMethodConverter, FeignExceptionReader feignExceptionReader,
                              AccountRestClient accountRestClient, LedgersSpiAccountMapper accountMapper, MultilevelScaService multilevelScaService, UserMgmtRestClient userMgmtRestClient, RedirectScaRestClient redirectScaRestClient,
-                             KeycloakTokenService keycloakTokenService) {
+                             KeycloakTokenService keycloakTokenService, ConsentRestClient consentRestClient, AisConsentMapper aisConsentMapper) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient);
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
@@ -99,6 +99,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
         this.multilevelScaService = multilevelScaService;
         this.userMgmtRestClient = userMgmtRestClient;
         this.redirectScaRestClient = redirectScaRestClient;
+        this.consentRestClient = consentRestClient;
+        this.aisConsentMapper = aisConsentMapper;
     }
 
     /*
@@ -115,7 +117,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
         GlobalScaResponseTO globalScaResponse;
         try {
-            globalScaResponse = initiateConsentInternal(accountConsent, initialAspspConsentData);
+            globalScaResponse = initiateConsentInternal(accountConsent, initialAspspConsentData, null);
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Initiate AIS consent failed: consent ID: {}, devMessage: {}", accountConsent.getId(), devMessage);
@@ -305,8 +307,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     @Override
-    protected GlobalScaResponseTO initiateBusinessObject(SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        return initiateConsentInternal(businessObject, aspspConsentDataProvider.loadAspspConsentData());
+    protected GlobalScaResponseTO initiateBusinessObject(SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, String authorisationId) {
+        return initiateConsentInternal(businessObject, aspspConsentDataProvider.loadAspspConsentData(), authorisationId);
     }
 
     @Override
@@ -325,10 +327,13 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                        .build();
     }
 
-    private GlobalScaResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, byte[] initialAspspConsentData) {
+    private GlobalScaResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, byte[] initialAspspConsentData, String authorisationId) {
         try {
-            GlobalScaResponseTO sca = consentDataService.response(initialAspspConsentData);
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            ResponseEntity<SCAConsentResponseTO> a = consentRestClient.initiateAisConsent(accountConsent.getId(), aisConsentMapper.mapToAisConsent(accountConsent));
+
+//            GlobalScaResponseTO sca = consentDataService.response(initialAspspConsentData);
+            authRequestInterceptor.setAccessToken(a.getBody().getBearerToken().getAccess_token());
 
             SpiAccountAccess spiAccountAccess = accountConsent.getAccess();
             boolean isAllAvailableAccounts = spiAccountAccess.getAvailableAccounts() != null;
@@ -350,7 +355,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
             StartScaOprTO startScaOprTO = new StartScaOprTO();
             startScaOprTO.setOpType(OpTypeTO.CONSENT);
-            startScaOprTO.setAuthorisationId(sca.getAuthorisationId());
+            startScaOprTO.setAuthorisationId(authorisationId);
             startScaOprTO.setOprId(accountConsent.getId());
 
             // Bearer token only returned in case of exempted consent.
