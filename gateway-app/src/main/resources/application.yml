@@ -19,6 +19,10 @@ server:
   use-forward-headers: true
   port: 8089
 
+springdoc:
+  api-docs:
+    enabled: false
+
 keycloak:
   auth-server-url: http://localhost:8080/auth
   realm: ledgers
