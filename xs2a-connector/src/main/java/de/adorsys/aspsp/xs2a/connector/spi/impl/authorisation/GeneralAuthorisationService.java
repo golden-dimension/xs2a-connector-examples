@@ -27,7 +27,6 @@ import de.adorsys.ledgers.middleware.api.domain.sca.StartScaOprTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.psd2.xs2a.core.authorisation.AuthenticationObject;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.sca.ChallengeData;
