@@ -353,10 +353,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                 }
             }
 
-            StartScaOprTO startScaOprTO = new StartScaOprTO();
-            startScaOprTO.setOpType(OpTypeTO.CONSENT);
+            StartScaOprTO startScaOprTO = new StartScaOprTO(accountConsent.getId(), OpTypeTO.CONSENT);
             startScaOprTO.setAuthorisationId(authorisationId);
-            startScaOprTO.setOprId(accountConsent.getId());
 
             // Bearer token only returned in case of exempted consent.
             ResponseEntity<GlobalScaResponseTO> consentResponse = redirectScaRestClient.startSca(startScaOprTO);

@@ -118,10 +118,8 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
             GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
 
-            StartScaOprTO startScaOprTO = new StartScaOprTO();
-            startScaOprTO.setOpType(OpTypeTO.CONSENT);
+            StartScaOprTO startScaOprTO = new StartScaOprTO(piisConsent.getId(), OpTypeTO.CONSENT);
             startScaOprTO.setAuthorisationId(sca.getAuthorisationId());
-            startScaOprTO.setOprId(piisConsent.getId());
 
             // Bearer token only returned in case of exempted consent.
             ResponseEntity<GlobalScaResponseTO> consentResponse = redirectScaRestClient.startSca(startScaOprTO);

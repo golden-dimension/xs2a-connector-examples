@@ -64,10 +64,8 @@ public class GeneralAuthorisationService {
         aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(scaResponse));
         authRequestInterceptor.setAccessToken(scaResponse.getBearerToken().getAccess_token());
 
-        StartScaOprTO startScaOprTO = new StartScaOprTO();
-        startScaOprTO.setOpType(operationType);
+        StartScaOprTO startScaOprTO = new StartScaOprTO(businessObjectId, operationType);
         startScaOprTO.setAuthorisationId(authorisationId);
-        startScaOprTO.setOprId(businessObjectId);
 
         ResponseEntity<GlobalScaResponseTO> startScaResponse = redirectScaRestClient.startSca(startScaOprTO);
 
