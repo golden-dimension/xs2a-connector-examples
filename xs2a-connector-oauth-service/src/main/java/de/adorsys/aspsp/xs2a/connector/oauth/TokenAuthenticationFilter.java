@@ -19,6 +19,7 @@ package de.adorsys.aspsp.xs2a.connector.oauth;
 import de.adorsys.psd2.aspsp.profile.domain.AspspSettings;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
+import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
 import de.adorsys.psd2.xs2a.web.Xs2aEndpointChecker;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
@@ -36,9 +37,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.adorsys.psd2.xs2a.core.domain.MessageCategory.ERROR;
@@ -75,7 +74,17 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     protected void doFilterInternalCustom(HttpServletRequest request, @NotNull HttpServletResponse response,
                                           @NotNull FilterChain chain) throws IOException, ServletException {
         String bearerToken = getBearerToken(request);
-        if (isInvalidOauthRequest(request, response, bearerToken)) {
+        String instanceId = request.getHeader(INSTANCE_ID);
+        List<ScaApproach> scaApproaches = aspspProfileService.getScaApproaches(instanceId);
+        AspspSettings aspspSettings = aspspProfileService.getAspspSettings(instanceId);
+        ScaRedirectFlow scaRedirectFlow = aspspSettings.getCommon().getScaRedirectFlow();
+
+        if (!isOAuthRequest(scaApproaches, scaRedirectFlow)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        if (isInvalidOauthRequest(request, response, bearerToken, instanceId, aspspSettings)) {
             return;
         }
         oauthDataHolder.setToken(bearerToken);
@@ -84,16 +93,11 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     }
 
     private boolean isInvalidOauthRequest(HttpServletRequest request, @NotNull HttpServletResponse response,
-                                          String bearerToken) throws IOException {
-        String instanceId = request.getHeader(INSTANCE_ID);
-
-        AspspSettings aspspSettings = aspspProfileService.getAspspSettings(instanceId);
+                                          String bearerToken, String instanceId, AspspSettings aspspSettings) throws IOException {
         ScaRedirectFlow scaRedirectFlow = aspspSettings.getCommon().getScaRedirectFlow();
-
         String requestPath = requestPathResolver.resolveRequestPath(request);
 
         boolean tokenRequired = isTokenRequired(scaRedirectFlow, requestPath, instanceId);
-
         if (tokenRequired && StringUtils.isBlank(bearerToken)) {
             log.info("Token authentication error: token is absent in redirect OAuth pre-step.");
             String oauthConfigurationUrl = aspspSettings.getCommon().getOauthConfigurationUrl();
@@ -107,6 +111,11 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
             return true;
         }
         return false;
+    }
+
+    private boolean isOAuthRequest(List<ScaApproach> scaApproaches, ScaRedirectFlow scaRedirectFlow) {
+        return scaApproaches.contains(ScaApproach.REDIRECT)
+                       && EnumSet.of(ScaRedirectFlow.OAUTH_PRE_STEP, ScaRedirectFlow.OAUTH).contains(scaRedirectFlow);
     }
 
     private String getBearerToken(HttpServletRequest request) {
