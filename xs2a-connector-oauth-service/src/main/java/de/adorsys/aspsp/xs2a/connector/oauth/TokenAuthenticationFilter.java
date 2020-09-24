@@ -73,7 +73,6 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     @Override
     protected void doFilterInternalCustom(HttpServletRequest request, @NotNull HttpServletResponse response,
                                           @NotNull FilterChain chain) throws IOException, ServletException {
-        String bearerToken = getBearerToken(request);
         String instanceId = request.getHeader(INSTANCE_ID);
         List<ScaApproach> scaApproaches = aspspProfileService.getScaApproaches(instanceId);
         AspspSettings aspspSettings = aspspProfileService.getAspspSettings(instanceId);
@@ -84,6 +83,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
             return;
         }
 
+        String bearerToken = getBearerToken(request);
         if (isInvalidOauthRequest(request, response, bearerToken, instanceId, aspspSettings)) {
             return;
         }

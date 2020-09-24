@@ -22,6 +22,7 @@ import de.adorsys.psd2.aspsp.profile.domain.common.CommonAspspProfileSetting;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.domain.MessageCategory;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
+import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
 import de.adorsys.psd2.xs2a.web.Xs2aEndpointChecker;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
@@ -42,6 +43,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
@@ -97,6 +99,7 @@ class TokenAuthenticationFilterTest {
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + BEARER_TOKEN_VALUE);
         when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
         when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH_PRE_STEP);
 
         when(tokenValidationService.validate(BEARER_TOKEN_VALUE)).thenReturn(new BearerTokenTO());
@@ -119,6 +122,7 @@ class TokenAuthenticationFilterTest {
         when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
         when(requestPathResolver.resolveRequestPath(httpServletRequest)).thenReturn("consents");
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
         when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH);
 
         // When
@@ -139,6 +143,7 @@ class TokenAuthenticationFilterTest {
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(null);
         when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
         when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH_PRE_STEP);
         when(commonAspspProfileSetting.getOauthConfigurationUrl()).thenReturn(IDP_CONFIGURATION_LINK);
 
@@ -162,6 +167,7 @@ class TokenAuthenticationFilterTest {
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("");
         when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
         when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH_PRE_STEP);
         when(commonAspspProfileSetting.getOauthConfigurationUrl()).thenReturn(IDP_CONFIGURATION_LINK);
 
@@ -185,6 +191,7 @@ class TokenAuthenticationFilterTest {
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(BEARER_TOKEN_VALUE);
         when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
         when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH_PRE_STEP);
         when(commonAspspProfileSetting.getOauthConfigurationUrl()).thenReturn(IDP_CONFIGURATION_LINK);
 
@@ -208,8 +215,8 @@ class TokenAuthenticationFilterTest {
         when(httpServletRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer " + BEARER_TOKEN_VALUE);
         when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
 
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.REDIRECT));
         when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH_PRE_STEP);
-
         when(tokenValidationService.validate(BEARER_TOKEN_VALUE)).thenReturn(null);
 
         // When
@@ -225,5 +232,23 @@ class TokenAuthenticationFilterTest {
 
         assertEquals(MessageCategory.ERROR, tppErrorMessageArgumentCaptor.getValue().getCategory());
         assertEquals(MessageErrorCode.TOKEN_INVALID, tppErrorMessageArgumentCaptor.getValue().getCode());
+    }
+
+    @Test
+    void isNotOAuthRequest() throws ServletException, IOException {
+        // Given
+        when(httpServletRequest.getHeader(INSTANCE_ID_HEADER)).thenReturn(INSTANCE_ID);
+
+        when(aspspProfileService.getScaApproaches(INSTANCE_ID)).thenReturn(Collections.singletonList(ScaApproach.EMBEDDED));
+        when(commonAspspProfileSetting.getScaRedirectFlow()).thenReturn(ScaRedirectFlow.OAUTH_PRE_STEP);
+
+
+        // When
+        tokenAuthenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+
+        // Then
+        verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+
+        verify(oauthDataHolder, never()).setToken(anyString());
     }
 }
