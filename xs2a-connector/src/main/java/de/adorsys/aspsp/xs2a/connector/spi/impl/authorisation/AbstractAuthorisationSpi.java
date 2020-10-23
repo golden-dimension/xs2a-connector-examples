@@ -99,7 +99,22 @@ public abstract class AbstractAuthorisationSpi<T> {
                            .build();
         }
 
-        GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
+        GlobalScaResponseTO scaResponseTO;
+        try {
+            scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
+        } catch (FeignException feignException) {
+            String devMessage = feignExceptionReader.getErrorMessage(feignException);
+            log.error("Initiate business object: {}", devMessage);
+            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT))
+                           .build();
+        }
+        //todo: change me
+        if (scaResponseTO == null) {
+            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                           .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
+                           .build();
+        }
 
         if (scaResponseTO.getScaStatus() == EXEMPTED && isFirstInitiationOfMultilevelSca(businessObject, scaResponseTO)) {
 
@@ -160,9 +175,10 @@ public abstract class AbstractAuthorisationSpi<T> {
 
             ResponseEntity<GlobalScaResponseTO> availableMethodsResponse = redirectScaRestClient.getSCA(sca.getAuthorisationId());
 
-            List<ScaUserDataTO> scaMethods = Optional.ofNullable(availableMethodsResponse.getBody())
+            List<ScaUserDataTO> scaMethods = availableMethodsResponse != null ?
+                                                     Optional.ofNullable(availableMethodsResponse.getBody())
                                                      .map(GlobalScaResponseTO::getScaMethods)
-                                                     .orElse(Collections.emptyList());
+                                                     .orElse(Collections.emptyList()) : Collections.emptyList();
 
             if (!scaMethods.isEmpty()) {
                 List<AuthenticationObject> authenticationObjects = scaMethodConverter.toAuthenticationObjectList(scaMethods);
