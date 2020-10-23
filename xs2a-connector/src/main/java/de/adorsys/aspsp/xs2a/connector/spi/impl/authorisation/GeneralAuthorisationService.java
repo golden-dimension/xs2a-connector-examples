@@ -21,9 +21,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
-import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.StartScaOprTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
@@ -89,10 +87,7 @@ public class GeneralAuthorisationService {
                     return response;
                 }
                 return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                               .payload(new SpiPsuAuthorisationResponse(ScaStatusTO.EXEMPTED == Optional.ofNullable(response)
-                                                                                                    .map(HttpEntity::getBody)
-                                                                                                    .map(SCAResponseTO::getScaStatus)
-                                                                                                    .orElse(null), SpiAuthorisationStatus.FAILURE))
+                               .payload(new SpiPsuAuthorisationResponse(response.getPayload().isScaExempted(), SpiAuthorisationStatus.FAILURE))
                                .build();
             }
 

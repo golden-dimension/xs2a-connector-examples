@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 
 
 @Component
-public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment, SpiBulkPaymentInitiationResponse> implements BulkPaymentSpi {
+public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment> implements BulkPaymentSpi {
     private final LedgersSpiPaymentMapper paymentMapper;
     private PaymentSpi paymentSpi;
 

@@ -50,6 +50,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.Collections;
 
 @Slf4j
@@ -129,16 +130,6 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
-    }
-
-    @Override
-    protected SCAConsentResponseTO mapToScaResponse(SpiPiisConsent businessObject, byte[] aspspConsentData, SCAConsentResponseTO originalResponse) throws IOException {
-        SCALoginResponseTO scaResponseTO = tokenStorageService.fromBytes(aspspConsentData, SCALoginResponseTO.class);
-        SCAConsentResponseTO consentResponse = scaLoginMapper.toConsentResponse(scaResponseTO);
-        consentResponse.setObjectType(SCAConsentResponseTO.class.getSimpleName());
-        consentResponse.setConsentId(businessObject.getId());
-        consentResponse.setMultilevelScaRequired(originalResponse.isMultilevelScaRequired());
-        return consentResponse;
     }
 
     @Override

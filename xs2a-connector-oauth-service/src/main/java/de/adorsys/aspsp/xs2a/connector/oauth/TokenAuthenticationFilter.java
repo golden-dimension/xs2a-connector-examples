@@ -26,6 +26,7 @@ import de.adorsys.psd2.xs2a.web.Xs2aEndpointChecker;
 import de.adorsys.psd2.xs2a.web.error.TppErrorMessageWriter;
 import de.adorsys.psd2.xs2a.web.filter.AbstractXs2aFilter;
 import de.adorsys.psd2.xs2a.web.filter.TppErrorMessage;
+import de.adorsys.psd2.xs2a.web.request.RequestPathResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -38,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.adorsys.psd2.xs2a.core.domain.MessageCategory.ERROR;
 import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.UNAUTHORIZED_NO_TOKEN;
@@ -55,15 +57,11 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     private final TppErrorMessageWriter tppErrorMessageWriter;
     private final OauthDataHolder oauthDataHolder;
     private final RequestPathResolver requestPathResolver;
-    private final TppErrorMessageWriter tppErrorMessageWriter;
 
-    public TokenAuthenticationFilter(TokenValidationService tokenValidationService,
-                                     Xs2aEndpointChecker xs2aEndpointChecker,
     public TokenAuthenticationFilter(Xs2aEndpointChecker xs2aEndpointChecker,
                                      KeycloakTokenService keycloakTokenService,
                                      AspspProfileService aspspProfileService,
-                                     TppErrorMessageWriter tppErrorMessageWriter,
-                                     OauthDataHolder oauthDataHolder, RequestPathResolver requestPathResolver) {
+                                     OauthDataHolder oauthDataHolder, RequestPathResolver requestPathResolver,
                                      TppErrorMessageWriter tppErrorMessageWriter) {
         super(tppErrorMessageWriter, xs2aEndpointChecker);
         this.keycloakTokenService = keycloakTokenService;
@@ -71,7 +69,6 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
         this.tppErrorMessageWriter = tppErrorMessageWriter;
         this.oauthDataHolder = oauthDataHolder;
         this.requestPathResolver = requestPathResolver;
-        this.tppErrorMessageWriter = tppErrorMessageWriter;
     }
 
     @Override
@@ -131,7 +128,7 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
     }
 
     private boolean isTokenInvalid(String bearerToken) {
-        return tokenValidationService.validate(bearerToken) == null;
+        return keycloakTokenService.validate(bearerToken) == null;
     }
 
     private TppErrorMessage buildTppErrorMessage(MessageErrorCode messageErrorCode, Object... params) {
@@ -155,10 +152,10 @@ public class TokenAuthenticationFilter extends AbstractXs2aFilter {
 
     private String trimEndingSlash(String input) {
         String result = input;
-
         while (StringUtils.endsWith(result, "/")) {
             result = StringUtils.removeEnd(result, "/");
         }
-
+        return result;
+    }
 
 }

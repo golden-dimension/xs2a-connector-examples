@@ -21,7 +21,6 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMa
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.CmsPaymentStatusUpdateService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
@@ -42,6 +41,7 @@ import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
+import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPaymentInfo;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.PaymentAuthorisationSpi;
@@ -107,18 +107,6 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    protected SpiResponse<SpiPsuAuthorisationResponse> getSpiPsuAuthorisationResponseSpiResponseWithError(FeignException feignException, String devMessage, String errorCode) {
-        if (errorCode.equals("REQUEST_VALIDATION_FAILURE")) {
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, PRODUCT_UNKNOWN, devMessage))
-                           .build();
-        }
-        return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                       .error(FeignExceptionHandler.getFailureMessage(feignException, FORMAT_ERROR))
-                       .build();
-    }
-
-    @Override
     protected String getBusinessObjectId(SpiPayment businessObject) {
         return businessObject.getPaymentId();
     }
@@ -144,11 +132,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     @Override
     protected GlobalScaResponseTO executeBusinessObject(SpiPayment businessObject) {
         SCAPaymentResponseTO paymentExecutionResponse = paymentRestClient.executePayment(businessObject.getPaymentId()).getBody();
-//        if (businessObject.getPsuDataList().size() == 1) {
-
         cmsPsuPisClient.updatePaymentStatus(businessObject.getPaymentId(), TransactionStatus.valueOf(paymentExecutionResponse.getTransactionStatus().name()), requestProviderService.getInstanceId());
-
-//        }
 
         return scaResponseMapper.toGlobalScaResponse(paymentExecutionResponse);
     }

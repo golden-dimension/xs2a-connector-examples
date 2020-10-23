@@ -36,7 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PeriodicPaymentSpiImpl extends AbstractPaymentSpi<SpiPeriodicPayment, SpiPeriodicPaymentInitiationResponse> implements PeriodicPaymentSpi {
+public class PeriodicPaymentSpiImpl extends AbstractPaymentSpi<SpiPeriodicPayment> implements PeriodicPaymentSpi {
 
     private final LedgersSpiPaymentMapper paymentMapper;
     private PaymentSpi paymentSpi;
