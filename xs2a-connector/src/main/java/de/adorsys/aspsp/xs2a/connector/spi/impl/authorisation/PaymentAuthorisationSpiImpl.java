@@ -21,7 +21,6 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMa
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
@@ -41,13 +40,11 @@ import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiPaymentInfo;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.PaymentAuthorisationSpi;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import lombok.extern.slf4j.Slf4j;
-import feign.FeignException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +53,6 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.FORMAT_ERROR;
-import static de.adorsys.psd2.xs2a.core.error.MessageErrorCode.PRODUCT_UNKNOWN;
 
 @Component
 @Slf4j

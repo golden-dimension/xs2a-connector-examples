@@ -118,7 +118,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
         GlobalScaResponseTO globalScaResponse;
         try {
-            globalScaResponse = initiateConsentInternal(accountConsent, initialAspspConsentData, null);
+            globalScaResponse = initiateConsentInternal(accountConsent, null);
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             logger.error("Initiate AIS consent failed: consent ID: {}, devMessage: {}", accountConsent.getId(), devMessage);
@@ -309,7 +309,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
     @Override
     protected GlobalScaResponseTO initiateBusinessObject(SpiAccountConsent businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, String authorisationId) {
-        return initiateConsentInternal(businessObject, aspspConsentDataProvider.loadAspspConsentData(), authorisationId);
+        return initiateConsentInternal(businessObject, authorisationId);
     }
 
     @Override
@@ -328,7 +328,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                        .build();
     }
 
-    private GlobalScaResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, byte[] initialAspspConsentData, String authorisationId) {
+    private GlobalScaResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, String authorisationId) {
         try {
 
             ResponseEntity<SCAConsentResponseTO> a = consentRestClient.initiateAisConsent(accountConsent.getId(), aisConsentMapper.mapToAisConsent(accountConsent));
