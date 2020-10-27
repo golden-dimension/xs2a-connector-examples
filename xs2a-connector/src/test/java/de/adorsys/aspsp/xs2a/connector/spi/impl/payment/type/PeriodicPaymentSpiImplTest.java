@@ -56,11 +56,6 @@ class PeriodicPaymentSpiImplTest {
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     private SpiPeriodicPayment payment;
 
-    @Autowired
-    private PaymentSpi paymentSpi;
-    @Autowired
-    private Xs2aPaymentMapper xs2aPaymentMapper;
-
     @BeforeEach
     void setUp() {
         payment = new SpiPeriodicPayment(PAYMENT_PRODUCT);
@@ -70,7 +65,7 @@ class PeriodicPaymentSpiImplTest {
 
         paymentService = mock(GeneralPaymentService.class);
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
-        periodicPaymentSpi = new PeriodicPaymentSpiImpl(paymentService, spiPaymentMapper, paymentSpi, xs2aPaymentMapper);
+        periodicPaymentSpi = new PeriodicPaymentSpiImpl(paymentService, spiPaymentMapper);
     }
 
     @Test

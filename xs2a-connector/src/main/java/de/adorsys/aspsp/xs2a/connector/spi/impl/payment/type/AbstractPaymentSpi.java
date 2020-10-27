@@ -9,6 +9,7 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.*;
+import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,16 @@ import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 @RequiredArgsConstructor
-public abstract class AbstractPaymentSpi<P extends SpiPayment> {
+public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaymentInitiationResponse> {
 
     protected final GeneralPaymentService paymentService;
+
+    /*
+     * Initiating a payment you need a valid bearer token if not we just return ok.
+     */
+    public @NotNull SpiResponse<R> initiatePayment(@NotNull SpiContextData contextData, @NotNull P payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        return processEmptyAspspConsentData(payment, aspspConsentDataProvider, contextData.getPsuData());
+    }
 
     public @NotNull SpiResponse<SpiGetPaymentStatusResponse> getPaymentStatusById(@NotNull SpiContextData contextData,
                                                                                   @NotNull String acceptMediaType,
@@ -72,4 +80,8 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment> {
                        .payload(response)
                        .build();
     }
+
+    protected abstract SpiResponse<R> processEmptyAspspConsentData(@NotNull P payment,
+                                                                   @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+                                                                   @NotNull SpiPsuData spiPsuData);
 }

@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 
 @Service
-public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo> implements CommonPaymentSpi {
+public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo, SpiPaymentInitiationResponse> implements CommonPaymentSpi {
 
     private static final String PSU_MESSAGE = "Mocked PSU message from SPI for this payment";
 
@@ -53,6 +53,11 @@ public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo> imp
     }
 
     @Override
+    protected SpiResponse<SpiPaymentInitiationResponse> processEmptyAspspConsentData(@NotNull SpiPaymentInfo payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, @NotNull SpiPsuData spiPsuData) {
+        return paymentService.firstCallInstantiatingPayment(PaymentTypeTO.valueOf(payment.getPaymentType().name()), payment, aspspConsentDataProvider, new SpiSinglePaymentInitiationResponse(), spiPsuData, new HashSet<>());
+    }
+
+    @Override
     public @NotNull SpiResponse<SpiPaymentInfo> getPaymentById(@NotNull SpiContextData contextData, @NotNull String acceptMediaType, @NotNull SpiPaymentInfo payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         return SpiResponse.<SpiPaymentInfo>builder().payload(payment).build();
     }
@@ -66,9 +71,5 @@ public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo> imp
         return SpiResponse.<SpiGetPaymentStatusResponse>builder()
                        .payload(new SpiGetPaymentStatusResponse(TransactionStatus.ACSP, null, MediaType.APPLICATION_JSON_VALUE, null, PSU_MESSAGE))
                        .build();
-    }
-
-    protected SpiResponse<SpiPaymentInitiationResponse> processEmptyAspspConsentData(@NotNull SpiPaymentInfo payment, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, @NotNull SpiPsuData spiPsuData) {
-        return paymentService.firstCallInstantiatingPayment(PaymentTypeTO.valueOf(payment.getPaymentType().name()), payment, aspspConsentDataProvider, new SpiSinglePaymentInitiationResponse(), spiPsuData, new HashSet<>());
     }
 }

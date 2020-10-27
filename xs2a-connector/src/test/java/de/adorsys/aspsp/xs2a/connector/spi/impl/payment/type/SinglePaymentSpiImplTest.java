@@ -57,11 +57,6 @@ class SinglePaymentSpiImplTest {
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     private SpiSinglePayment payment;
 
-    @Autowired
-    private PaymentSpi paymentSpi;
-    @Autowired
-    private Xs2aPaymentMapper xs2aPaymentMapper;
-
     @BeforeEach
     void setUp() {
         payment = new SpiSinglePayment(PAYMENT_PRODUCT);
@@ -71,7 +66,7 @@ class SinglePaymentSpiImplTest {
         paymentService = mock(GeneralPaymentService.class);
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
 
-        singlePaymentSpi = new SinglePaymentSpiImpl(paymentService, spiPaymentMapper, paymentSpi, xs2aPaymentMapper);
+        singlePaymentSpi = new SinglePaymentSpiImpl(paymentService, spiPaymentMapper);
     }
 
     @Test

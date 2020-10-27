@@ -304,7 +304,6 @@ class AisConsentSpiImplTest {
         when(keycloakTokenService.login(spiPsuData.getPsuId(), password)).thenReturn(token);
 
         spiAccountConsent.setId(CONSENT_ID);
-        when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
         when(consentRestClient.initiateAisConsent(eq(CONSENT_ID), any(AisConsentTO.class)))
                 .thenReturn(ResponseEntity.ok(sca));
         authRequestInterceptor.setAccessToken(ACCESS_TOKEN);
@@ -324,7 +323,6 @@ class AisConsentSpiImplTest {
         assertEquals(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.SUCCESS), actualResponse.getPayload());
 
         verify(authRequestInterceptor, times(3)).setAccessToken(scaConsentResponseTO.getBearerToken().getAccess_token());
-        verify(spiAspspConsentDataProvider).loadAspspConsentData();
         verify(consentRestClient).initiateAisConsent(eq(CONSENT_ID), any(AisConsentTO.class));
         verify(redirectScaRestClient).startSca(any(StartScaOprTO.class));
         verify(authorisationService).authorisePsuInternal(CONSENT_ID, AUTHORISATION_ID, OpTypeTO.CONSENT, globalScaResponseTO, spiAspspConsentDataProvider);
@@ -348,7 +346,6 @@ class AisConsentSpiImplTest {
         when(keycloakTokenService.login(spiPsuData.getPsuId(), password)).thenReturn(token);
 
         spiAccountConsent.setId(CONSENT_ID);
-        when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
         when(consentRestClient.initiateAisConsent(eq(CONSENT_ID), any(AisConsentTO.class)))
                 .thenReturn(ResponseEntity.ok(sca));
         authRequestInterceptor.setAccessToken(ACCESS_TOKEN);
@@ -363,7 +360,6 @@ class AisConsentSpiImplTest {
         assertEquals(SpiAuthorisationStatus.FAILURE, actual.getPayload().getSpiAuthorisationStatus());
 
         verify(authRequestInterceptor, times(3)).setAccessToken(scaConsentResponseTO.getBearerToken().getAccess_token());
-        verify(spiAspspConsentDataProvider).loadAspspConsentData();
         verify(consentRestClient).initiateAisConsent(eq(CONSENT_ID), any(AisConsentTO.class));
         verify(redirectScaRestClient).startSca(any(StartScaOprTO.class));
         verify(authorisationService, never()).authorisePsuInternal(anyString(), anyString(), any(), any(), any());
@@ -383,7 +379,6 @@ class AisConsentSpiImplTest {
         authRequestInterceptor.setAccessToken(ACCESS_TOKEN);
 
         spiAccountConsent.setId(CONSENT_ID);
-        when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
         when(consentRestClient.initiateAisConsent(eq(CONSENT_ID), any(AisConsentTO.class)))
                 .thenThrow(FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, "message"));
 

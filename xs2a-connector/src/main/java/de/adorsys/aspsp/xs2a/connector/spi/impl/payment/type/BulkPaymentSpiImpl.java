@@ -18,43 +18,33 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.NotSupportedPaymentTypeException;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpi;
-import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
-import de.adorsys.psd2.xs2a.core.error.TppMessage;
+import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
+import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
+import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiBulkPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
-import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentInitiationResponse;
+import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.BulkPaymentSpi;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 
 @Component
-public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment> implements BulkPaymentSpi {
+public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment, SpiBulkPaymentInitiationResponse> implements BulkPaymentSpi {
     private final LedgersSpiPaymentMapper paymentMapper;
-    private PaymentSpi paymentSpi;
 
     @Autowired
-    public BulkPaymentSpiImpl(GeneralPaymentService paymentService, LedgersSpiPaymentMapper paymentMapper, PaymentSpi paymentSpi) {
+    public BulkPaymentSpiImpl(GeneralPaymentService paymentService, LedgersSpiPaymentMapper paymentMapper) {
         super(paymentService);
         this.paymentMapper = paymentMapper;
-        this.paymentSpi = paymentSpi;
-    }
-
-    @Override
-    public @NotNull SpiResponse<SpiBulkPaymentInitiationResponse> initiatePayment(@NotNull SpiContextData spiContextData, @NotNull SpiBulkPayment spiBulkPayment, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        try {
-            SpiResponse<? extends SpiPaymentInitiationResponse> bulkPayment = paymentSpi.initiatePayment(spiContextData, spiBulkPayment, spiAspspConsentDataProvider);
-            return SpiResponse.<SpiBulkPaymentInitiationResponse>builder().payload((SpiBulkPaymentInitiationResponse) bulkPayment.getPayload()).build();
-        } catch (NotSupportedPaymentTypeException e) {
-            return SpiResponse.<SpiBulkPaymentInitiationResponse>builder().error(new TppMessage(MessageErrorCode.FORMAT_ERROR)).build();
-        }
     }
 
     @Override
@@ -68,5 +58,15 @@ public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment> imple
     @Override
     public @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> notifyConfirmationCodeValidation(@NotNull SpiContextData spiContextData, boolean confirmationCodeValidationResult, @NotNull SpiBulkPayment payment, boolean isCancellation, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
         return super.notifyConfirmationCodeValidation(spiContextData, confirmationCodeValidationResult, payment, isCancellation, spiAspspConsentDataProvider);
+    }
+
+    @Override
+    protected SpiResponse<SpiBulkPaymentInitiationResponse> processEmptyAspspConsentData(@NotNull SpiBulkPayment payment,
+                                                                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+                                                                                         @NotNull SpiPsuData spiPsuData) {
+        Set<SpiAccountReference> spiAccountReferences = payment.getPayments().stream()
+                                                                .map(SpiSinglePayment::getDebtorAccount)
+                                                                .collect(Collectors.toSet());
+        return paymentService.firstCallInstantiatingPayment(PaymentTypeTO.BULK, payment, aspspConsentDataProvider, new SpiBulkPaymentInitiationResponse(), spiPsuData, spiAccountReferences);
     }
 }

@@ -58,9 +58,6 @@ class BulkPaymentSpiImplTest {
     private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
     private SpiBulkPayment payment;
 
-    @Autowired
-    private PaymentSpi paymentSpi;
-
     @BeforeEach
     void setUp() {
         payment = new SpiBulkPayment();
@@ -72,7 +69,7 @@ class BulkPaymentSpiImplTest {
         paymentService = mock(GeneralPaymentService.class);
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
 
-        bulkPaymentSpi = new BulkPaymentSpiImpl(paymentService, spiPaymentMapper, paymentSpi);
+        bulkPaymentSpi = new BulkPaymentSpiImpl(paymentService, spiPaymentMapper);
     }
 
     @Test
