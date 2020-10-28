@@ -132,13 +132,6 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
     }
 
     @Override
-    protected SpiResponse<SpiAvailableScaMethodsResponse> getForZeroScaMethods(ScaStatusTO status) {
-        return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
-                       .payload(new SpiAvailableScaMethodsResponse(Collections.emptyList()))
-                       .build();
-    }
-
-    @Override
     protected boolean isFirstInitiationOfMultilevelSca(SpiPiisConsent businessObject, GlobalScaResponseTO scaConsentResponseTO) {
         return !scaConsentResponseTO.isMultilevelScaRequired() || businessObject.getPsuData().size() <= 1;
     }

@@ -288,6 +288,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
     @Override
     protected GlobalScaResponseTO executeBusinessObject(SpiAccountConsent businessObject) {
+        // AIS consent cannot be executed.
         return null;
     }
 
@@ -313,10 +314,26 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     }
 
     @Override
-    protected SpiResponse<SpiAvailableScaMethodsResponse> getForZeroScaMethods(ScaStatusTO status) {
-        return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
-                       .payload(new SpiAvailableScaMethodsResponse(Collections.emptyList()))
-                       .build();
+    public SpiResponse<SpiAvailableScaMethodsResponse> requestAvailableScaMethods(@NotNull SpiContextData contextData,
+                                                                                  SpiAccountConsent businessObject,
+                                                                                  @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+
+        GlobalScaResponseTO sca = getScaObjectResponse(aspspConsentDataProvider, true);
+
+        if (validateStatuses(businessObject, sca)) {
+            return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
+                           .payload(new SpiAvailableScaMethodsResponse(Collections.emptyList()))
+                           .build();
+        }
+
+        // For AIS consent 'exempted' status means that XS2A should reject the consent and fail the authorisation.
+        if (sca.getScaStatus() == ScaStatusTO.EXEMPTED) {
+            return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
+                           .payload(new SpiAvailableScaMethodsResponse(true, Collections.emptyList()))
+                           .build();
+        }
+
+        return super.requestAvailableScaMethods(contextData, businessObject, aspspConsentDataProvider);
     }
 
     @Override
@@ -330,9 +347,6 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
 
     private GlobalScaResponseTO initiateConsentInternal(SpiAccountConsent accountConsent, String authorisationId) {
         try {
-
-            ResponseEntity<SCAConsentResponseTO> a = consentRestClient.initiateAisConsent(accountConsent.getId(), aisConsentMapper.mapToAisConsent(accountConsent));
-            authRequestInterceptor.setAccessToken(a.getBody().getBearerToken().getAccess_token());
 
             SpiAccountAccess spiAccountAccess = accountConsent.getAccess();
             boolean isAllAvailableAccounts = spiAccountAccess.getAvailableAccounts() != null;
@@ -352,12 +366,22 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                 }
             }
 
+            ResponseEntity<SCAConsentResponseTO> consentResponseEntity = consentRestClient.initiateAisConsent(accountConsent.getId(), aisConsentMapper.mapToAisConsent(accountConsent));
+            SCAConsentResponseTO consentResponse = consentResponseEntity.getBody();
+
+            authRequestInterceptor.setAccessToken(consentResponse.getBearerToken().getAccess_token());
+            consentResponse.setAuthorisationId(authorisationId);
+
+            // EXEMPTED here means that we should not start SCA in ledgers.
+            if (consentResponse.getScaStatus() == ScaStatusTO.EXEMPTED) {
+                return scaResponseMapper.toGlobalScaResponse(consentResponse);
+            }
+
             StartScaOprTO startScaOprTO = new StartScaOprTO(accountConsent.getId(), OpTypeTO.CONSENT);
             startScaOprTO.setAuthorisationId(authorisationId);
 
-            // Bearer token only returned in case of exempted consent.
-            ResponseEntity<GlobalScaResponseTO> consentResponse = redirectScaRestClient.startSca(startScaOprTO);
-            return consentResponse.getBody();
+            ResponseEntity<GlobalScaResponseTO> consentScaResponse = redirectScaRestClient.startSca(startScaOprTO);
+            return consentScaResponse.getBody();
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }

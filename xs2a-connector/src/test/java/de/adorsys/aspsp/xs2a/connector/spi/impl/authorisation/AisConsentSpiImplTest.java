@@ -574,43 +574,51 @@ class AisConsentSpiImplTest {
 
     @Test
     void requestAvailableScaMethods_scaMethodUnknown() {
-        when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
+        // Given
+        when(spiAspspConsentDataProvider.loadAspspConsentData())
+                .thenReturn(CONSENT_DATA_BYTES);
         GlobalScaResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         scaConsentResponseTO.setScaMethods(null);
-        when(consentDataService.response(CONSENT_DATA_BYTES, true)).thenReturn(scaConsentResponseTO);
+        when(consentDataService.response(CONSENT_DATA_BYTES, true))
+                .thenReturn(scaConsentResponseTO);
+        when(redirectScaRestClient.getSCA(AUTHORISATION_ID))
+                .thenReturn(ResponseEntity.ok(scaConsentResponseTO));
 
-        when(redirectScaRestClient.getSCA(AUTHORISATION_ID)).thenReturn(ResponseEntity.ok(scaConsentResponseTO));
-
+        // When
         SpiResponse<SpiAvailableScaMethodsResponse> actual = spi.requestAvailableScaMethods(SPI_CONTEXT_DATA,
                                                                                             spiAccountConsent, spiAspspConsentDataProvider);
 
-        assertFalse(actual.hasError());
-        assertEquals(Collections.emptyList(), actual.getPayload().getAvailableScaMethods());
+        // Then
+        assertTrue(actual.hasError());
+        assertEquals(MessageErrorCode.SCA_METHOD_UNKNOWN_PROCESS_MISMATCH, actual.getErrors().get(0).getErrorCode());
 
-        verify(spiAspspConsentDataProvider).loadAspspConsentData();
-        verify(consentDataService).response(CONSENT_DATA_BYTES, true);
+        verify(spiAspspConsentDataProvider, times(2)).loadAspspConsentData();
+        verify(consentDataService, times(2)).response(CONSENT_DATA_BYTES, true);
         verify(redirectScaRestClient).getSCA(AUTHORISATION_ID);
     }
 
     @Test
     void requestAvailableScaMethods_feignException() {
-        when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
+        // Given
+        when(spiAspspConsentDataProvider.loadAspspConsentData())
+                .thenReturn(CONSENT_DATA_BYTES);
         GlobalScaResponseTO scaConsentResponseTO = buildSCAConsentResponseTO(ScaStatusTO.PSUIDENTIFIED);
         scaConsentResponseTO.setScaMethods(Collections.emptyList());
         when(consentDataService.response(CONSENT_DATA_BYTES, true))
                 .thenReturn(scaConsentResponseTO);
-
         when(redirectScaRestClient.getSCA(AUTHORISATION_ID))
                 .thenThrow(FeignExceptionHandler.getException(HttpStatus.BAD_REQUEST, "message"));
 
+        // When
         SpiResponse<SpiAvailableScaMethodsResponse> actual = spi.requestAvailableScaMethods(SPI_CONTEXT_DATA,
                                                                                             spiAccountConsent, spiAspspConsentDataProvider);
 
+        // Then
         assertTrue(actual.hasError());
         assertEquals(MessageErrorCode.FORMAT_ERROR_SCA_METHODS, actual.getErrors().get(0).getErrorCode());
 
-        verify(spiAspspConsentDataProvider).loadAspspConsentData();
-        verify(consentDataService).response(CONSENT_DATA_BYTES, true);
+        verify(spiAspspConsentDataProvider, times(2)).loadAspspConsentData();
+        verify(consentDataService, times(2)).response(CONSENT_DATA_BYTES, true);
         verify(redirectScaRestClient).getSCA(AUTHORISATION_ID);
     }
 

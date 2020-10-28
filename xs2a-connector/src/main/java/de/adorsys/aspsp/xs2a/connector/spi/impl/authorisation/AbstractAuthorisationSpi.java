@@ -7,7 +7,6 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
-import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
@@ -122,9 +121,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                 GlobalScaResponseTO executionResponse = executeBusinessObject(businessObject);
 
                 if (executionResponse == null) {
-                    return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                                   .error(getAuthorisePsuFailureMessage(businessObject))
-                                   .build();
+                    executionResponse = scaResponseTO;
                 }
 
                 executionResponse.setBearerToken(scaResponseTO.getBearerToken());
@@ -144,7 +141,6 @@ public abstract class AbstractAuthorisationSpi<T> {
                                .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR))
                                .build();
             }
-
         }
 
         log.info("Authorising user with login: {}", psuLoginData.getPsuId());
@@ -176,8 +172,8 @@ public abstract class AbstractAuthorisationSpi<T> {
 
             List<ScaUserDataTO> scaMethods = availableMethodsResponse != null ?
                                                      Optional.ofNullable(availableMethodsResponse.getBody())
-                                                     .map(GlobalScaResponseTO::getScaMethods)
-                                                     .orElse(Collections.emptyList()) : Collections.emptyList();
+                                                             .map(GlobalScaResponseTO::getScaMethods)
+                                                             .orElse(Collections.emptyList()) : Collections.emptyList();
 
             if (!scaMethods.isEmpty()) {
                 List<AuthenticationObject> authenticationObjects = scaMethodConverter.toAuthenticationObjectList(scaMethods);
@@ -185,9 +181,8 @@ public abstract class AbstractAuthorisationSpi<T> {
                 return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
                                .payload(new SpiAvailableScaMethodsResponse(authenticationObjects))
                                .build();
-            } else {
-                return getForZeroScaMethods(sca.getScaStatus());
             }
+
         } catch (FeignException feignException) {
             String devMessage = feignExceptionReader.getErrorMessage(feignException);
             log.error("Request available SCA methods failed: business object ID: {}, devMessage: {}", getBusinessObjectId(businessObject), devMessage);
@@ -195,10 +190,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                            .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR_SCA_METHODS))
                            .build();
         }
-    }
 
-    SpiResponse<SpiAvailableScaMethodsResponse> getForZeroScaMethods(ScaStatusTO status) {
-        log.error("Process mismatch. Current SCA Status is: {}", status);
         return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
                        .error(new TppMessage(MessageErrorCode.SCA_METHOD_UNKNOWN_PROCESS_MISMATCH))
                        .build();
