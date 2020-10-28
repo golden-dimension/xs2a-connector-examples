@@ -97,22 +97,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                            .build();
         }
 
-        GlobalScaResponseTO scaResponseTO;
-        try {
-            scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
-        } catch (FeignException feignException) {
-            String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            log.error("Initiate business object: {}", devMessage);
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT))
-                           .build();
-        }
-        //todo: change me
-        if (scaResponseTO == null) {
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
-                           .build();
-        }
+        GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
 
         if (scaResponseTO.getScaStatus() == EXEMPTED && isFirstInitiationOfMultilevelSca(businessObject, scaResponseTO)) {
 
