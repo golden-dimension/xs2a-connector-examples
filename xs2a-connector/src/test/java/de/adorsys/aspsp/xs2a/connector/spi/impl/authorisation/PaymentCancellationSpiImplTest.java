@@ -349,8 +349,8 @@ class PaymentCancellationSpiImplTest {
         SpiResponse<SpiPsuAuthorisationResponse> actual = authorisationSpi.authorisePsu(SPI_CONTEXT_DATA, AUTHORISATION_ID, PSU_ID_DATA, SECRET,
                                                                                         businessObject, spiAspspConsentDataProvider);
 
-        assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.FORMAT_ERROR_UNKNOWN_ACCOUNT, actual.getErrors().get(0).getErrorCode());
+        assertFalse(actual.hasError());
+        assertEquals(SpiAuthorisationStatus.FAILURE, actual.getPayload().getSpiAuthorisationStatus());
 
         verify(keycloakTokenService).login(SPI_CONTEXT_DATA.getPsuData().getPsuId(), SECRET);
         verify(authRequestInterceptor, times(2)).setAccessToken(ACCESS_TOKEN);

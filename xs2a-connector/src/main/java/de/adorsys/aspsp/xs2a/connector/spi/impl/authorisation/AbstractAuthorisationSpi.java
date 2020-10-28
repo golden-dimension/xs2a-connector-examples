@@ -97,7 +97,15 @@ public abstract class AbstractAuthorisationSpi<T> {
                            .build();
         }
 
-        GlobalScaResponseTO scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
+        GlobalScaResponseTO scaResponseTO;
+        try {
+            scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
+
+        } catch (FeignException feignException) {
+            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                           .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
+                           .build();
+        }
 
         if (scaResponseTO.getScaStatus() == EXEMPTED && isFirstInitiationOfMultilevelSca(businessObject, scaResponseTO)) {
 
