@@ -4,9 +4,7 @@ import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTO;
@@ -125,6 +123,8 @@ class PaymentAuthorisationSpiImplTest {
     private KeycloakTokenService keycloakTokenService;
     @Mock
     private RequestProviderService requestProviderService;
+    @Mock
+    private LoginAttemptAspspConsentDataService loginAttemptAspspConsentDataService;
 
     @Spy
     private ScaMethodConverter scaMethodConverter = Mappers.getMapper(ScaMethodConverter.class);
@@ -172,8 +172,8 @@ class PaymentAuthorisationSpiImplTest {
         // Given
         when(keycloakTokenService.login(PSU_ID, SECRET))
                 .thenThrow(FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
-        GlobalScaResponseTO scaPaymentResponseTO = getGlobalScaResponseTO(ScaStatusTO.PSUIDENTIFIED);
-        scaPaymentResponseTO.setScaMethods(Collections.emptyList());
+        when(consentDataService.getLoginAttemptAspspConsentDataService()).thenReturn(loginAttemptAspspConsentDataService);
+        when(loginAttemptAspspConsentDataService.response(any())).thenReturn(new LoginAttemptResponse());
 
         byte[] responseBytes = "response_byte".getBytes();
         lenient().doNothing().when(spiAspspConsentDataProvider).updateAspspConsentData(responseBytes);
@@ -182,8 +182,8 @@ class PaymentAuthorisationSpiImplTest {
         SpiResponse<SpiPsuAuthorisationResponse> actual = authorisationSpi.authorisePsu(SPI_CONTEXT_DATA, AUTHORISATION_ID, PSU_ID_DATA_1, SECRET,
                                                                                         businessObject, spiAspspConsentDataProvider);
         // Then
-        assertTrue(actual.hasError());
-        verify(authorisationService, never()).authorisePsuInternal(PAYMENT_ID, AUTHORISATION_ID, OpTypeTO.PAYMENT, scaPaymentResponseTO, spiAspspConsentDataProvider);
+        assertFalse(actual.hasError());
+        verify(authorisationService, never()).authorisePsuInternal(eq(PAYMENT_ID), eq(AUTHORISATION_ID), eq(OpTypeTO.PAYMENT), any(), eq(spiAspspConsentDataProvider));
         verify(authRequestInterceptor, never()).setAccessToken(ACCESS_TOKEN);
     }
 

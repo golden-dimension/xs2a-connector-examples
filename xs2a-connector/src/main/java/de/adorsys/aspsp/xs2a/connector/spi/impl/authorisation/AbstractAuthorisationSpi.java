@@ -1,9 +1,7 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
-import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
@@ -37,6 +35,7 @@ import static de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO.*;
 public abstract class AbstractAuthorisationSpi<T> {
 
     private static final String DECOUPLED_PSU_MESSAGE = "Please check your app to continue...";
+    private static final String LOGIN_AMOUNT_ATTEMPTS_REMAINING_MESSAGE = "You have %s attempts to enter valid credentials";
 
     private final AuthRequestInterceptor authRequestInterceptor;
     private final AspspConsentDataService consentDataService;
@@ -90,11 +89,7 @@ public abstract class AbstractAuthorisationSpi<T> {
             authRequestInterceptor.setAccessToken(loginToken.getAccess_token());
 
         } catch (FeignException feignException) {
-            String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            log.error("Login to IDP in authorise PSU failed: business object ID: {}, devMessage: {}", getBusinessObjectId(businessObject), devMessage);
-            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
-                           .error(new TppMessage(MessageErrorCode.PSU_CREDENTIALS_INVALID))
-                           .build();
+            return handleLoginFailureError(businessObject, aspspConsentDataProvider, feignException);
         }
 
         GlobalScaResponseTO scaResponseTO;
@@ -102,6 +97,8 @@ public abstract class AbstractAuthorisationSpi<T> {
             scaResponseTO = initiateBusinessObject(businessObject, aspspConsentDataProvider, authorisationId);
 
         } catch (FeignException feignException) {
+            String devMessage = feignExceptionReader.getErrorMessage(feignException);
+            log.info("Initiate business object error: business object ID: {}, devMessage: {}", getBusinessObjectId(businessObject), devMessage);
             return SpiResponse.<SpiPsuAuthorisationResponse>builder()
                            .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
                            .build();
@@ -244,6 +241,35 @@ public abstract class AbstractAuthorisationSpi<T> {
         String psuMessage = generatePsuMessage(contextData, authorisationId, aspspConsentDataProvider, response);
         return SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder().payload(new SpiAuthorisationDecoupledScaResponse(psuMessage)).build();
 
+    }
+
+    private SpiResponse<SpiPsuAuthorisationResponse> handleLoginFailureError(T businessObject,
+                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
+                                                                             FeignException feignException) {
+        String devMessage = feignExceptionReader.getErrorMessage(feignException);
+        log.info("Login to IDP in authorise PSU failed: business object ID: {}, devMessage: {}", getBusinessObjectId(businessObject), devMessage);
+
+        byte[] aspspConsentData = aspspConsentDataProvider.loadAspspConsentData();
+        LoginAttemptAspspConsentDataService loginAttemptAspspConsentDataService = consentDataService.getLoginAttemptAspspConsentDataService();
+        LoginAttemptResponse loginAttemptResponse = loginAttemptAspspConsentDataService.response(aspspConsentData);
+        if (loginAttemptResponse == null) {
+            loginAttemptResponse = new LoginAttemptResponse();
+        }
+
+        int remainingLoginAttempts = loginAttemptAspspConsentDataService.getRemainingLoginAttempts(loginAttemptResponse.getLoginFailedCount());
+        loginAttemptResponse.incrementLoginFailedCount();
+        aspspConsentDataProvider.updateAspspConsentData(loginAttemptAspspConsentDataService.store(loginAttemptResponse));
+        if (remainingLoginAttempts > 0) {
+            devMessage = String.format(LOGIN_AMOUNT_ATTEMPTS_REMAINING_MESSAGE, remainingLoginAttempts);
+            log.info(devMessage);
+            return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                           .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.ATTEMPT_FAILURE))
+                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                           .build();
+        }
+        return SpiResponse.<SpiPsuAuthorisationResponse>builder()
+                       .payload(new SpiPsuAuthorisationResponse(false, SpiAuthorisationStatus.FAILURE))
+                       .build();
     }
 
     private MessageErrorCode getMessageErrorCodeByStatus(int status) {

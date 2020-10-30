@@ -67,6 +67,8 @@ skip.ssl.certificate.verification: true
 # ENDPOINTS CORS CONFIGURATION
 # Whether credentials are supported. When not set, credentials are not supported.
 xs2a:
+  sca:
+    login.failed.max: 3
   endpoints:
     cors:
       allow-credentials: false

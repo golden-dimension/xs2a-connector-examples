@@ -35,6 +35,7 @@ public class AspspConsentDataService {
 
     private final ObjectMapper objectMapper;
     private final ScaResponseMapper scaResponseMapper;
+    private final LoginAttemptAspspConsentDataService loginAttemptAspspConsentDataService;
 
     /**
      * Default storage, makes sure there is a bearer token in the response object.
@@ -66,6 +67,10 @@ public class AspspConsentDataService {
         } catch (IOException e) {
             throw FeignExceptionHandler.getException(HttpStatus.UNAUTHORIZED, e.getMessage());
         }
+    }
+
+    public LoginAttemptAspspConsentDataService getLoginAttemptAspspConsentDataService() {
+        return loginAttemptAspspConsentDataService;
     }
 
     private void checkBearerTokenPresent(boolean checkCredentials, GlobalScaResponseTO sca) {
