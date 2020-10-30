@@ -16,7 +16,9 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
+import de.adorsys.aspsp.xs2a.connector.spi.converter.AisConsentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
+import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionHandler;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
@@ -24,22 +26,21 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.MultilevelScaService;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
+import de.adorsys.ledgers.rest.client.ConsentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.core.tpp.TppInfo;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
+import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountConsent;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAvailableScaMethodsResponse;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
-import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentConfirmationCodeValidationResponse;
-import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentStatusResponse;
-import de.adorsys.psd2.xs2a.spi.domain.consent.SpiInitiatePiisConsentResponse;
-import de.adorsys.psd2.xs2a.spi.domain.consent.SpiVerifyScaAuthorisationResponse;
+import de.adorsys.psd2.xs2a.spi.domain.consent.*;
 import de.adorsys.psd2.xs2a.spi.domain.piis.SpiPiisConsent;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.PiisConsentSpi;
@@ -65,13 +66,16 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
     private final FeignExceptionReader feignExceptionReader;
     private final UserMgmtRestClient userMgmtRestClient;
     private final RedirectScaRestClient redirectScaRestClient;
+    private final ConsentRestClient consentRestClient;
+    private final AisConsentMapper aisConsentMapper;
+    private final ScaResponseMapper scaResponseMapper;
 
     public PiisConsentSpiImpl(AuthRequestInterceptor authRequestInterceptor,
                               AspspConsentDataService consentDataService, GeneralAuthorisationService authorisationService,
                               ScaMethodConverter scaMethodConverter, FeignExceptionReader feignExceptionReader,
                               MultilevelScaService multilevelScaService, UserMgmtRestClient userMgmtRestClient,
                               RedirectScaRestClient redirectScaRestClient,
-                              KeycloakTokenService keycloakTokenService) {
+                              KeycloakTokenService keycloakTokenService, ConsentRestClient consentRestClient, AisConsentMapper aisConsentMapper, ScaResponseMapper scaResponseMapper) {
         super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient);
         this.authRequestInterceptor = authRequestInterceptor;
         this.consentDataService = consentDataService;
@@ -79,6 +83,9 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
         this.feignExceptionReader = feignExceptionReader;
         this.userMgmtRestClient = userMgmtRestClient;
         this.redirectScaRestClient = redirectScaRestClient;
+        this.consentRestClient = consentRestClient;
+        this.aisConsentMapper = aisConsentMapper;
+        this.scaResponseMapper = scaResponseMapper;
     }
 
     @Override
@@ -115,17 +122,33 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
     @Override
     protected GlobalScaResponseTO initiateBusinessObject(SpiPiisConsent piisConsent, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, String authorisationId) {
         try {
-            GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            SpiAccountConsent mockedConsent = new SpiAccountConsent();
+            SpiAccountAccess access = new SpiAccountAccess();
+            access.setAccounts(Collections.singletonList(piisConsent.getAccount()));
+            mockedConsent.setAccess(access);
+            TppInfo tppInfo = new TppInfo();
+            tppInfo.setAuthorityId("TPP ID");
+            tppInfo.setAuthorisationNumber("TPP ID");
+            mockedConsent.setTppInfo(tppInfo);
+            mockedConsent.setId(piisConsent.getId());
+
+            ResponseEntity<SCAConsentResponseTO> consentResponseEntity = consentRestClient.initiateAisConsent(piisConsent.getId(), aisConsentMapper.mapToAisConsent(mockedConsent));
+            SCAConsentResponseTO consentResponse = consentResponseEntity.getBody();
+
+            authRequestInterceptor.setAccessToken(consentResponse.getBearerToken().getAccess_token());
+            consentResponse.setAuthorisationId(authorisationId);
+
+            // EXEMPTED here means that we should not start SCA in ledgers.
+            if (consentResponse.getScaStatus() == ScaStatusTO.EXEMPTED) {
+                return scaResponseMapper.toGlobalScaResponse(consentResponse);
+            }
 
             StartScaOprTO startScaOprTO = new StartScaOprTO(piisConsent.getId(), OpTypeTO.CONSENT);
-            startScaOprTO.setAuthorisationId(sca.getAuthorisationId());
+            startScaOprTO.setAuthorisationId(authorisationId);
 
-            // Bearer token only returned in case of exempted consent.
-            ResponseEntity<GlobalScaResponseTO> consentResponse = redirectScaRestClient.startSca(startScaOprTO);
-
-            return consentResponse.getBody();
-
+            ResponseEntity<GlobalScaResponseTO> consentScaResponse = redirectScaRestClient.startSca(startScaOprTO);
+            return consentScaResponse.getBody();
         } finally {
             authRequestInterceptor.setAccessToken(null);
         }
