@@ -5,6 +5,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
+import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
@@ -157,6 +158,12 @@ public abstract class AbstractAuthorisationSpi<T> {
             }
 
             authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
+
+            if (sca.getScaStatus() == ScaStatusTO.EXEMPTED) {
+                return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
+                               .payload(new SpiAvailableScaMethodsResponse(true, Collections.emptyList()))
+                               .build();
+            }
 
             ResponseEntity<GlobalScaResponseTO> availableMethodsResponse = redirectScaRestClient.getSCA(sca.getAuthorisationId());
 

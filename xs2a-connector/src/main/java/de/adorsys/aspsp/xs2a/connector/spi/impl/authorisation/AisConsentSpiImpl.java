@@ -329,13 +329,6 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                            .build();
         }
 
-        // For AIS consent 'exempted' status means that XS2A should reject the consent and fail the authorisation.
-        if (sca.getScaStatus() == ScaStatusTO.EXEMPTED) {
-            return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
-                           .payload(new SpiAvailableScaMethodsResponse(true, Collections.emptyList()))
-                           .build();
-        }
-
         return super.requestAvailableScaMethods(contextData, businessObject, aspspConsentDataProvider);
     }
 
