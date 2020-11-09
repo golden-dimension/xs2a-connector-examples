@@ -19,6 +19,6 @@ package de.adorsys.ledgers.rest.client;
 import de.adorsys.ledgers.middleware.rest.resource.RedirectScaRestAPI;
 import org.springframework.cloud.openfeign.FeignClient;
 
-@FeignClient(value = "ledgersRedirectSca", url = "${xs2asandbox.ledgers.url}", path = RedirectScaRestAPI.BASE_PATH, configuration = FeignConfig.class)
+@FeignClient(value = "ledgersRedirectSca", url = "${modelbank.ledgers.url}", path = RedirectScaRestAPI.BASE_PATH, configuration = FeignConfig.class)
 public interface RedirectScaRestClient extends RedirectScaRestAPI {
 }

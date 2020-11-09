@@ -85,7 +85,7 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
     private final AisConsentMapper aisConsentMapper;
     private final ScaResponseMapper scaResponseMapper;
 
-    @Value("${xs2asandbox.tppui.online-banking.url}")
+    @Value("${modelbank.tppui.online-banking.url}")
     private String onlineBankingUrl;
 
     public AisConsentSpiImpl(AuthRequestInterceptor authRequestInterceptor,

@@ -48,8 +48,8 @@ spring:
       wrap-root-value: true
 
 xs2a.cms.url: http://localhost:38080
-xs2asandbox.ledgers.url: http://localhost:8088
-xs2asandbox.tppui.online-banking.url: http://localhost:8090/api/v1/consents/confirm/{userLogin}/{consentId}/{authorizationId}/{tan}
+modelbank.ledgers.url: http://localhost:8088
+modelbank.tppui.online-banking.url: http://localhost:8090/api/v1/consents/confirm/{userLogin}/{consentId}/{authorizationId}/{tan}
 
 
 server_key: test123
@@ -114,7 +114,7 @@ spring:
     datasource.data: classpath:data-h2.sql
 
 db:
-  url: jdbc:h2:mem:psdsandboxdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  url: jdbc:h2:mem:psdmodelbankdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
   user: sa
   password: sa
 
