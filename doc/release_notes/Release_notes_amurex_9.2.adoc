@@ -1,0 +1,9 @@
+= Release notes v.9.2
+
+== Table of Contents
+
+* Renamed configuration properties starting with `xs2asandbox.*`
+
+== Renamed configuration properties starting with `xs2asandbox.`
+
+From now on, all configuration properties starting with `xs2asandbox.*` were renamed to `modelbank.*`.
