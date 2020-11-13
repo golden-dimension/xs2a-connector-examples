@@ -1,10 +1,12 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.AddressMapperImpl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapperImpl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.*;
 import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
@@ -66,7 +68,7 @@ class SinglePaymentSpiImplTest {
         paymentService = mock(GeneralPaymentService.class);
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
 
-        singlePaymentSpi = new SinglePaymentSpiImpl(paymentService, spiPaymentMapper);
+        singlePaymentSpi = new SinglePaymentSpiImpl(paymentService, spiPaymentMapper, mock(AspspConsentDataService.class), mock(OauthProfileServiceWrapper.class));
     }
 
     @Test

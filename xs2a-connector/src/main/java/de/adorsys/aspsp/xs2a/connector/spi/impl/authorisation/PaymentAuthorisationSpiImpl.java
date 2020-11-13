@@ -17,6 +17,7 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
 import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
+import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiCommonPaymentTOMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
@@ -35,6 +36,7 @@ import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
+import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
@@ -84,8 +86,10 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                                        LedgersSpiCommonPaymentTOMapper ledgersSpiCommonPaymentTOMapper,
                                        AspspConsentDataService aspspConsentDataService,
                                        ScaResponseMapper scaResponseMapper,
-                                       PaymentRestClient paymentRestClient, CmsPsuPisClient cmsPsuPisClient, RequestProviderService requestProviderService) {
-        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader, keycloakTokenService, redirectScaRestClient);
+                                       PaymentRestClient paymentRestClient, CmsPsuPisClient cmsPsuPisClient, RequestProviderService requestProviderService,
+                                       UserMgmtRestClient userMgmtRestClient, OauthProfileServiceWrapper oauthProfileServiceWrapper) {
+        super(authRequestInterceptor, consentDataService, authorisationService, scaMethodConverter, feignExceptionReader,
+              keycloakTokenService, redirectScaRestClient, userMgmtRestClient, oauthProfileServiceWrapper);
         this.paymentService = paymentService;
         this.ledgersSpiCommonPaymentTOMapper = ledgersSpiCommonPaymentTOMapper;
         this.aspspConsentDataService = aspspConsentDataService;

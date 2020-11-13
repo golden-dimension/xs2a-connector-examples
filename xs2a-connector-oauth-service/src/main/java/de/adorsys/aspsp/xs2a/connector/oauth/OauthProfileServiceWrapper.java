@@ -25,6 +25,7 @@ import de.adorsys.psd2.aspsp.profile.domain.pis.PisRedirectLinkSetting;
 import de.adorsys.psd2.aspsp.profile.service.AspspProfileService;
 import de.adorsys.psd2.xs2a.core.profile.ScaApproach;
 import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
+import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.service.discovery.ServiceTypeDiscoveryService;
 import de.adorsys.psd2.xs2a.core.mapper.ServiceType;
 import org.apache.commons.lang3.StringUtils;
@@ -44,6 +45,7 @@ public class OauthProfileServiceWrapper implements AspspProfileService {
     private final AspspProfileService aspspProfileService;
     private final OauthDataHolder oauthDataHolder;
     private final ServiceTypeDiscoveryService serviceTypeDiscoveryService;
+    private final RequestProviderService requestProviderService;
 
     private final String aisIntegratedOauthSuffix;
     private final String pisIntegratedOauthSuffix;
@@ -53,6 +55,7 @@ public class OauthProfileServiceWrapper implements AspspProfileService {
     public OauthProfileServiceWrapper(AspspProfileService aspspProfileService,
                                       OauthDataHolder oauthDataHolder,
                                       ServiceTypeDiscoveryService serviceTypeDiscoveryService,
+                                      RequestProviderService requestProviderService,
                                       @Value("${oauth.integrated.ais.suffix:?consentId={encrypted-consent-id}&redirectId={redirect-id}}") String aisIntegratedOauthSuffix,
                                       @Value("${oauth.integrated.pis.suffix:?paymentId={encrypted-payment-id}&redirectId={redirect-id}}") String pisIntegratedOauthSuffix,
                                       @Value("${oauth.pre-step.ais.suffix:&token=}") String aisPreStepOauthSuffix,
@@ -60,6 +63,7 @@ public class OauthProfileServiceWrapper implements AspspProfileService {
         this.aspspProfileService = aspspProfileService;
         this.oauthDataHolder = oauthDataHolder;
         this.serviceTypeDiscoveryService = serviceTypeDiscoveryService;
+        this.requestProviderService = requestProviderService;
         this.aisIntegratedOauthSuffix = aisIntegratedOauthSuffix;
         this.pisIntegratedOauthSuffix = pisIntegratedOauthSuffix;
         this.aisPreStepOauthSuffix = aisPreStepOauthSuffix;
@@ -93,6 +97,26 @@ public class OauthProfileServiceWrapper implements AspspProfileService {
     @Override
     public List<ScaApproach> getScaApproaches(String instanceId) {
         return aspspProfileService.getScaApproaches(instanceId);
+    }
+
+    /**
+     * Reads list of sca approaches from ASPSP profile service
+     *
+     * @return List of Available SCA approaches for tpp
+     */
+    public List<ScaApproach> getScaApproaches() {
+        return aspspProfileService.getScaApproaches(requestProviderService.getInstanceId());
+    }
+
+    /**
+     * Reads the variant of redirect approach to be used.
+     *
+     * @return the variant of redirect approach to be used.
+     */
+    public ScaRedirectFlow getScaRedirectFlow() {
+        return aspspProfileService.getAspspSettings(requestProviderService.getInstanceId())
+                       .getCommon()
+                       .getScaRedirectFlow();
     }
 
     @Override

@@ -1,19 +1,25 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
+import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
+import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
-import de.adorsys.psd2.xs2a.spi.domain.payment.response.*;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiGetPaymentStatusResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentExecutionResponse;
+import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentInitiationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.SpiPayment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 @Slf4j
@@ -21,6 +27,8 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaymentInitiationResponse> {
 
     protected final GeneralPaymentService paymentService;
+    protected final AspspConsentDataService consentDataService;
+    protected final OauthProfileServiceWrapper oauthProfileServiceWrapper;
 
     /*
      * Initiating a payment you need a valid bearer token if not we just return ok.
@@ -68,17 +76,16 @@ public abstract class AbstractPaymentSpi<P extends SpiPayment, R extends SpiPaym
         return paymentService.checkConfirmationCode(spiCheckConfirmationCodeRequest, aspspConsentDataProvider);
     }
 
-    protected @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> notifyConfirmationCodeValidation(@NotNull SpiContextData spiContextData, boolean confirmationCodeValidationResult, @NotNull P payment, boolean isCancellation, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        ScaStatus scaStatus = confirmationCodeValidationResult ? ScaStatus.FINALISED : ScaStatus.FAILED;
-        TransactionStatus transactionStatus = isCancellation
-                                                      ? confirmationCodeValidationResult ? TransactionStatus.CANC : payment.getPaymentStatus()
-                                                      : confirmationCodeValidationResult ? TransactionStatus.ACSP : TransactionStatus.RJCT;
+    public @NotNull SpiResponse<SpiPaymentConfirmationCodeValidationResponse> notifyConfirmationCodeValidation(@NotNull SpiContextData spiContextData, boolean confirmationCodeValidationResult, @NotNull P payment, boolean isCancellation, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        return paymentService.completeAuthConfirmation(confirmationCodeValidationResult, aspspConsentDataProvider);
+    }
 
-        SpiPaymentConfirmationCodeValidationResponse response = new SpiPaymentConfirmationCodeValidationResponse(scaStatus, transactionStatus);
-
-        return SpiResponse.<SpiPaymentConfirmationCodeValidationResponse>builder()
-                       .payload(response)
-                       .build();
+    public boolean checkConfirmationCodeInternally(String confirmationCode, String scaAuthenticationData, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+        if (oauthProfileServiceWrapper.getScaRedirectFlow() == ScaRedirectFlow.OAUTH) {
+            GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
+            confirmationCode = sca.getAuthConfirmationCode();
+        }
+        return StringUtils.equals(confirmationCode, scaAuthenticationData);
     }
 
     protected abstract SpiResponse<R> processEmptyAspspConsentData(@NotNull P payment,

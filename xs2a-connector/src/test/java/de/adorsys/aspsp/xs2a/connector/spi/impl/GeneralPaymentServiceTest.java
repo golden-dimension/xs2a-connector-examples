@@ -1,6 +1,7 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl;
 
 import de.adorsys.aspsp.xs2a.connector.cms.CmsPsuPisClient;
+import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaResponseMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
@@ -87,6 +88,8 @@ class GeneralPaymentServiceTest {
     private CmsPsuPisClient cmsPsuPisClient;
     @Mock
     private RequestProviderService requestProviderService;
+    @Mock
+    private OauthProfileServiceWrapper oauthProfileServiceWrapper;
 
     @Spy
     private ScaResponseMapper scaResponseMapper = Mappers.getMapper(ScaResponseMapper.class);
@@ -95,7 +98,10 @@ class GeneralPaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        generalPaymentService = new GeneralPaymentService(paymentRestClient, authRequestInterceptor, consentDataService, feignExceptionReader, MOCK_XML_BODY, multilevelScaService, userMgmtRestClient, redirectScaRestClient, scaResponseMapper, cmsPsuPisClient, requestProviderService);
+        generalPaymentService = new GeneralPaymentService(paymentRestClient, authRequestInterceptor, consentDataService,
+                                                          feignExceptionReader, MOCK_XML_BODY, multilevelScaService,
+                                                          userMgmtRestClient, redirectScaRestClient, scaResponseMapper,
+                                                          cmsPsuPisClient, requestProviderService, oauthProfileServiceWrapper);
     }
 
     @Test
