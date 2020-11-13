@@ -1,34 +1,26 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 
-import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.*;
 import de.adorsys.ledgers.keycloak.client.api.KeycloakTokenService;
-import de.adorsys.ledgers.middleware.api.domain.sca.AuthConfirmationTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
 import de.adorsys.psd2.xs2a.core.authorisation.AuthenticationObject;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
-import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.*;
-import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentConfirmationCodeValidationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.psu.SpiPsuData;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpStatus;
@@ -52,8 +44,6 @@ public abstract class AbstractAuthorisationSpi<T> {
     private final FeignExceptionReader feignExceptionReader;
     private final KeycloakTokenService keycloakTokenService;
     private final RedirectScaRestClient redirectScaRestClient;
-    private final UserMgmtRestClient userMgmtRestClient;
-    private final OauthProfileServiceWrapper oauthProfileServiceWrapper;
 
     protected ResponseEntity<GlobalScaResponseTO> getSelectMethodResponse(@NotNull String authenticationMethodId, GlobalScaResponseTO sca) {
         ResponseEntity<GlobalScaResponseTO> scaResponse = redirectScaRestClient.selectMethod(sca.getAuthorisationId(), authenticationMethodId);
@@ -261,88 +251,6 @@ public abstract class AbstractAuthorisationSpi<T> {
         String psuMessage = generatePsuMessage(contextData, authorisationId, aspspConsentDataProvider, response);
         return SpiResponse.<SpiAuthorisationDecoupledScaResponse>builder().payload(new SpiAuthorisationDecoupledScaResponse(psuMessage)).build();
 
-    }
-
-    public @NotNull SpiResponse<SpiConsentConfirmationCodeValidationResponse> checkConfirmationCode(@NotNull SpiContextData spiContextData,
-                                                                                                    @NotNull SpiCheckConfirmationCodeRequest spiCheckConfirmationCodeRequest, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        try {
-            GlobalScaResponseTO sca = consentDataService.response(spiAspspConsentDataProvider.loadAspspConsentData());
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
-
-            String confirmationCodeToCheck = isOAuthRedirectFlow() ?
-                                                     sca.getAuthConfirmationCode() :
-                                                     spiCheckConfirmationCodeRequest.getConfirmationCode();
-
-            ResponseEntity<AuthConfirmationTO> authConfirmationTOResponse =
-                    userMgmtRestClient.verifyAuthConfirmationCode(spiCheckConfirmationCodeRequest.getAuthorisationId(), confirmationCodeToCheck);
-
-            return handleAuthConfirmationResponse(authConfirmationTOResponse);
-        } catch (FeignException feignException) {
-            String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
-                           .build();
-        } finally {
-            authRequestInterceptor.setAccessToken(null);
-        }
-    }
-
-    public @NotNull SpiResponse<SpiConsentConfirmationCodeValidationResponse> notifyConfirmationCodeValidation
-            (@NotNull SpiContextData spiContextData, boolean confirmationCodeValidationResult,
-             @NotNull T businessObject, @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        try {
-            GlobalScaResponseTO sca = consentDataService.response(spiAspspConsentDataProvider.loadAspspConsentData());
-            authRequestInterceptor.setAccessToken(sca.getBearerToken().getAccess_token());
-
-            ResponseEntity<AuthConfirmationTO> authConfirmationTOResponse =
-                    userMgmtRestClient.completeAuthConfirmation(sca.getAuthorisationId(), confirmationCodeValidationResult);
-
-            return handleAuthConfirmationResponse(authConfirmationTOResponse);
-        } catch (FeignException feignException) {
-            String devMessage = feignExceptionReader.getErrorMessage(feignException);
-            return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
-                           .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
-                           .build();
-        } finally {
-            authRequestInterceptor.setAccessToken(null);
-        }
-    }
-
-    public boolean checkConfirmationCodeInternally(String confirmationCode, String scaAuthenticationData, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        if (oauthProfileServiceWrapper.getScaRedirectFlow() == ScaRedirectFlow.OAUTH) {
-            GlobalScaResponseTO sca = consentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
-            confirmationCode = sca.getAuthConfirmationCode();
-        }
-        return StringUtils.equals(confirmationCode, scaAuthenticationData);
-    }
-
-    protected SpiResponse<SpiConsentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(ScaStatus scaStatus, ConsentStatus consentStatus) {
-        SpiConsentConfirmationCodeValidationResponse response = new SpiConsentConfirmationCodeValidationResponse(scaStatus, consentStatus);
-
-        return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()
-                       .payload(response)
-                       .build();
-    }
-
-    protected boolean isOAuthRedirectFlow() {
-        return oauthProfileServiceWrapper.getScaRedirectFlow() == ScaRedirectFlow.OAUTH;
-    }
-
-    private SpiResponse<SpiConsentConfirmationCodeValidationResponse> handleAuthConfirmationResponse(ResponseEntity<AuthConfirmationTO> authConfirmationResponse) {
-        AuthConfirmationTO authConfirmationTO = authConfirmationResponse.getBody();
-
-        if (authConfirmationTO == null || !authConfirmationTO.isSuccess()) {
-            // No response in payload from ASPSP or confirmation code verification failed at ASPSP side.
-            return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, ConsentStatus.REJECTED);
-        }
-
-        if (authConfirmationTO.isPartiallyAuthorised()) {
-            // This authorisation is finished, but others are left.
-            return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.PARTIALLY_AUTHORISED);
-        }
-
-        // Authorisation is finalised and consent becomes valid.
-        return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.VALID);
     }
 
     private SpiResponse<SpiPsuAuthorisationResponse> handleLoginFailureError(T businessObject,

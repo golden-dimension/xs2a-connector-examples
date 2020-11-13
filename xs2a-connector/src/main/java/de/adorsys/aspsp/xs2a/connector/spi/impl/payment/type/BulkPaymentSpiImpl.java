@@ -16,9 +16,9 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
-import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.confirmation.PaymentAuthConfirmationCodeService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -44,8 +44,9 @@ public class BulkPaymentSpiImpl extends AbstractPaymentSpi<SpiBulkPayment, SpiBu
 
     @Autowired
     public BulkPaymentSpiImpl(GeneralPaymentService paymentService, LedgersSpiPaymentMapper paymentMapper,
-                              AspspConsentDataService consentDataService,OauthProfileServiceWrapper oauthProfileServiceWrapper) {
-        super(paymentService, consentDataService, oauthProfileServiceWrapper);
+                              AspspConsentDataService consentDataService,
+                              PaymentAuthConfirmationCodeService paymentAuthConfirmationCodeService) {
+        super(paymentService, consentDataService, paymentAuthConfirmationCodeService);
         this.paymentMapper = paymentMapper;
     }
 

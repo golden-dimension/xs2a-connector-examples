@@ -1,12 +1,12 @@
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.AddressMapperImpl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapperImpl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiAccountMapperImpl;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.confirmation.PaymentAuthConfirmationCodeService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.PaymentSpiImpl;
 import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
@@ -71,7 +71,7 @@ class BulkPaymentSpiImplTest {
         spiAspspConsentDataProvider = mock(SpiAspspConsentDataProvider.class);
 
         bulkPaymentSpi = new BulkPaymentSpiImpl(paymentService, spiPaymentMapper, mock(AspspConsentDataService.class),
-                                                mock(OauthProfileServiceWrapper.class));
+                                                mock(PaymentAuthConfirmationCodeService.class));
     }
 
     @Test

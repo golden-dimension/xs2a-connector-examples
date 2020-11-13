@@ -16,8 +16,8 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
-import de.adorsys.aspsp.xs2a.connector.oauth.OauthProfileServiceWrapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.confirmation.PaymentAuthConfirmationCodeService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
 import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
@@ -43,8 +43,8 @@ public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo, Spi
 
     @Autowired
     public CommonPaymentSpiImpl(GeneralPaymentService generalPaymentService, AspspConsentDataService consentDataService,
-                                OauthProfileServiceWrapper oauthProfileServiceWrapper) {
-        super(generalPaymentService, consentDataService, oauthProfileServiceWrapper);
+                                PaymentAuthConfirmationCodeService paymentAuthConfirmationCodeService) {
+        super(generalPaymentService, consentDataService, paymentAuthConfirmationCodeService);
     }
 
     @Override
