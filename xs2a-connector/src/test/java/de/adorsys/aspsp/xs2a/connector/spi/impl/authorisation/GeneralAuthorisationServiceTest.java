@@ -19,6 +19,8 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ChallengeDataMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.converter.ScaMethodConverter;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
+import de.adorsys.aspsp.xs2a.connector.spi.impl.LedgersErrorCode;
 import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.OpTypeTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.ScaStatusTO;
@@ -34,7 +36,9 @@ import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorizationCodeResult;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiPsuAuthorisationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
-import org.jetbrains.annotations.NotNull;
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
@@ -49,7 +53,6 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,7 +75,8 @@ class GeneralAuthorisationServiceTest {
     private AuthRequestInterceptor authRequestInterceptor;
     @Mock
     private RedirectScaRestClient redirectScaRestClient;
-
+    @Mock
+    private FeignExceptionReader feignExceptionReader;
 
     @Spy
     private ChallengeDataMapper challengeDataMapper = Mappers.getMapper(ChallengeDataMapper.class);
@@ -130,6 +134,62 @@ class GeneralAuthorisationServiceTest {
     }
 
     @Test
+    void authorisePsuInternal_feignException() {
+        ArgumentCaptor<StartScaOprTO> scaOprTOCaptor = ArgumentCaptor.forClass(StartScaOprTO.class);
+
+        GlobalScaResponseTO globalScaResponseTO = new GlobalScaResponseTO();
+        globalScaResponseTO.setAuthorisationId(AUTHORISATION_ID);
+        BearerTokenTO bearerToken = new BearerTokenTO();
+        bearerToken.setAccess_token(ACCESS_TOKEN);
+        globalScaResponseTO.setBearerToken(bearerToken);
+
+        when(consentDataService.store(globalScaResponseTO)).thenReturn(CONSENT_DATA_BYTES);
+        doNothing().when(authRequestInterceptor).setAccessToken(ACCESS_TOKEN);
+
+        FeignException feignException = getFeignException();
+        when(redirectScaRestClient.startSca(scaOprTOCaptor.capture())).thenThrow(feignException);
+        when(feignExceptionReader.getErrorMessage(feignException)).thenReturn("error message");
+        when(feignExceptionReader.getLedgersErrorCode(feignException)).thenReturn(LedgersErrorCode.REQUEST_VALIDATION_FAILURE);
+
+        SpiResponse<SpiPsuAuthorisationResponse> actual = generalAuthorisationService.authorisePsuInternal(CONSENT_ID, AUTHORISATION_ID, OpTypeTO.CONSENT, globalScaResponseTO, spiAspspConsentDataProvider);
+
+        assertTrue(actual.hasError());
+        assertNull(actual.getPayload());
+        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actual.getErrors().get(0).getErrorCode());
+
+        verify(spiAspspConsentDataProvider, times(1)).updateAspspConsentData(CONSENT_DATA_BYTES);
+    }
+
+    @Test
+    void authorisePsuInternal_attemptFailedFeignException() {
+        ArgumentCaptor<StartScaOprTO> scaOprTOCaptor = ArgumentCaptor.forClass(StartScaOprTO.class);
+
+        GlobalScaResponseTO globalScaResponseTO = new GlobalScaResponseTO();
+        globalScaResponseTO.setAuthorisationId(AUTHORISATION_ID);
+        BearerTokenTO bearerToken = new BearerTokenTO();
+        bearerToken.setAccess_token(ACCESS_TOKEN);
+        globalScaResponseTO.setBearerToken(bearerToken);
+
+        when(consentDataService.store(globalScaResponseTO)).thenReturn(CONSENT_DATA_BYTES);
+        doNothing().when(authRequestInterceptor).setAccessToken(ACCESS_TOKEN);
+
+        FeignException feignException = getFeignException();
+        when(redirectScaRestClient.startSca(scaOprTOCaptor.capture())).thenThrow(feignException);
+        when(feignExceptionReader.getErrorMessage(feignException)).thenReturn("error message");
+        when(feignExceptionReader.getLedgersErrorCode(feignException)).thenReturn(LedgersErrorCode.PSU_AUTH_ATTEMPT_INVALID);
+
+        SpiResponse<SpiPsuAuthorisationResponse> actual = generalAuthorisationService.authorisePsuInternal(CONSENT_ID, AUTHORISATION_ID, OpTypeTO.CONSENT, globalScaResponseTO, spiAspspConsentDataProvider);
+
+        assertTrue(actual.hasError());
+        assertNotNull(actual.getPayload());
+        assertEquals(SpiAuthorisationStatus.ATTEMPT_FAILURE, actual.getPayload().getSpiAuthorisationStatus());
+        assertFalse(actual.getPayload().isScaExempted());
+        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actual.getErrors().get(0).getErrorCode());
+
+        verify(spiAspspConsentDataProvider, times(1)).updateAspspConsentData(CONSENT_DATA_BYTES);
+    }
+
+    @Test
     void authorisePsuInternal_startScaResponseNull() {
         GlobalScaResponseTO globalScaResponseTO = new GlobalScaResponseTO();
         globalScaResponseTO.setAuthorisationId(AUTHORISATION_ID);
@@ -181,6 +241,19 @@ class GeneralAuthorisationServiceTest {
 
         assertTrue(actual.hasError());
         assertEquals(MessageErrorCode.SCA_INVALID, actual.getErrors().get(0).getErrorCode());
+    }
+
+    private FeignException getFeignException() {
+        return FeignException.errorStatus("User doesn't have access to the requested account",
+                                          buildErrorResponseForbidden());
+    }
+
+    private Response buildErrorResponseForbidden() {
+        return Response.builder()
+                       .status(403)
+                       .request(Request.create(Request.HttpMethod.GET, "", Collections.emptyMap(), null))
+                       .headers(Collections.emptyMap())
+                       .build();
     }
 
     private ScaUserDataTO getScaUserDataTO(String methodId) {
