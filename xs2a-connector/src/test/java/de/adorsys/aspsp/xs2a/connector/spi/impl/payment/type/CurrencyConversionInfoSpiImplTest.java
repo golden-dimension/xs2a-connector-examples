@@ -16,19 +16,34 @@
 
 package de.adorsys.aspsp.xs2a.connector.spi.impl.payment.type;
 
+import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
+import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
+import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCurrencyConversionInfo;
+import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import de.adorsys.psd2.xs2a.spi.service.CurrencyConversionInfoSpi;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class CurrencyConversionInfoSpiImplTest {
+
+    private static final SpiContextData SPI_CONTEXT_DATA = TestSpiDataProvider.getSpiContextData();
+    private final static String PAYMENT_PRODUCT = "sepa-credit-transfers";
+    private static final String AUTHORISATION_ID = "authorisation id";
+
+    @Mock
+    private SpiAspspConsentDataProvider spiAspspConsentDataProvider;
 
     @Test
     void getCurrencyConversionInfo() {
         CurrencyConversionInfoSpi currencyConversionInfoSpi = new CurrencyConversionInfoSpiImpl();
-        SpiResponse<SpiCurrencyConversionInfo> currencyConversionInfo = currencyConversionInfoSpi.getCurrencyConversionInfo(null, null, null, null);
+        SpiResponse<SpiCurrencyConversionInfo> currencyConversionInfo = currencyConversionInfoSpi.getCurrencyConversionInfo(SPI_CONTEXT_DATA, new SpiSinglePayment(PAYMENT_PRODUCT), AUTHORISATION_ID, spiAspspConsentDataProvider);
         assertNotNull(currencyConversionInfo);
     }
 }
