@@ -70,6 +70,8 @@ public abstract class AbstractAuthorisationSpi<T> {
 
     protected abstract GlobalScaResponseTO executeBusinessObject(T businessObject);
 
+    protected abstract void updateStatusInCms(String businessObjectId, SpiAspspConsentDataProvider aspspConsentDataProvider);
+
     protected String generatePsuMessage(@NotNull SpiContextData contextData, @NotNull String authorisationId,
                                         @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider,
                                         SpiResponse<SpiAuthorizationCodeResult> response) {
@@ -131,8 +133,13 @@ public abstract class AbstractAuthorisationSpi<T> {
 
         log.info("Authorising user with login: {}", psuLoginData.getPsuId());
 
-        return authorisationService.authorisePsuInternal(getBusinessObjectId(businessObject),
-                                                         authorisationId, getOpType(), scaResponseTO, aspspConsentDataProvider);
+        SpiResponse<SpiPsuAuthorisationResponse> authorisationResponse =
+                authorisationService.authorisePsuInternal(getBusinessObjectId(businessObject),
+                                                          authorisationId, getOpType(), scaResponseTO, aspspConsentDataProvider);
+
+        updateStatusInCms(getBusinessObjectId(businessObject), aspspConsentDataProvider);
+
+        return authorisationResponse;
     }
 
     protected SpiResponse<SpiPsuAuthorisationResponse> resolveErrorResponse(T businessObject, FeignException feignException) {
