@@ -137,7 +137,9 @@ public abstract class AbstractAuthorisationSpi<T> {
                 authorisationService.authorisePsuInternal(getBusinessObjectId(businessObject),
                                                           authorisationId, getOpType(), scaResponseTO, aspspConsentDataProvider);
 
-        updateStatusInCms(getBusinessObjectId(businessObject), aspspConsentDataProvider);
+        if (isFirstInitiationOfMultilevelSca(businessObject, scaResponseTO)) {
+            updateStatusInCms(getBusinessObjectId(businessObject), aspspConsentDataProvider);
+        }
 
         return authorisationResponse;
     }
