@@ -18,10 +18,12 @@ package de.adorsys.aspsp.xs2a.connector.mock;
 
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiEntryDetails;
+import de.adorsys.psd2.xs2a.spi.domain.account.SpiExchangeRate;
 import de.adorsys.psd2.xs2a.spi.domain.common.SpiAmount;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiAddress;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
@@ -54,15 +56,29 @@ public class MockAccountData {
 
     private static SpiEntryDetails buildSpiEntryDetails() {
         return new SpiEntryDetails("endToEndId", "mandateId", "checkId", "creditorId",
-                                   new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(345)),
-                                   Collections.emptyList(), "creditorName", buildSpiAccountReference(),
-                                   "creditorAgent", "ultimateCreditor", "debtorName", buildSpiAccountReference(),
+                                   new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(123)),
+                                   Collections.singletonList(buildSpiExchangeRate()), "creditorName", buildSpiAccountReferenceCreditor(),
+                                   "creditorAgent", "ultimateCreditor", "debtorName", buildSpiAccountReferenceDebtor(),
                                    "debtorAgent", "ultimateDebtor", "remittanceInformationUnstructured", Collections.singletonList("remittanceInformationUnstructuredArray"),
                                    "remittanceInformationStructured", Collections.singletonList("remittanceInformationStructuredArray"), "CDCB");
     }
 
-    private static SpiAccountReference buildSpiAccountReference() {
-        return new SpiAccountReference("11111-11118", "10023-999999999", "DE52500105173911841934",
-                                       null, null, null, null, Currency.getInstance("EUR"), null);
+    private static SpiAccountReference buildSpiAccountReferenceCreditor() {
+        return new SpiAccountReference("1234567890", "3276159a-27ad-46db-8491-71e629d82baa", "DE52500105173911841934",
+                                       "Test BBAN", "1111", "23456xxxxxx1234", "0172/1111111", Currency.getInstance("EUR"), null);
+    }
+
+    private static SpiAccountReference buildSpiAccountReferenceDebtor() {
+        return new SpiAccountReference("111234567890", "3276159a-27ad-46db-8491-71e629d82baa", "DE52500105173911841934",
+                                       "Test BBAN", "2222", "23456xxxxxx1234", "0172/1111111", Currency.getInstance("USD"), null);
+    }
+
+    private static SpiExchangeRate buildSpiExchangeRate() {
+        return new SpiExchangeRate("USD",
+                                   "23",
+                                   "EUR",
+                                   "EUR",
+                                   LocalDate.parse("2018-02-02"),
+                                   "contractIdentification");
     }
 }
