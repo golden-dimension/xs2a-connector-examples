@@ -16,6 +16,8 @@
 
 package de.adorsys.aspsp.xs2a.connector.mock;
 
+import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
+import de.adorsys.psd2.xs2a.spi.domain.account.SpiEntryDetails;
 import de.adorsys.psd2.xs2a.spi.domain.common.SpiAmount;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiAddress;
 
@@ -43,7 +45,24 @@ public class MockAccountData {
     public static final List<String> REMITTANCE_UNSTRUCTURED_ARRAY = Collections.singletonList("mock remittance unstructured array");
     public static final List<String> REMITTANCE_STRUCTURED_ARRAY = Collections.singletonList("mock remittance reference");
     public static final String ADDITIONAL_INFORMATION = "mock additional information";
+    public static final boolean BATCH_INDICATOR = false;
+    public static final int BATCH_NUMBER_OF_TRANSACTIONS = 14;
+    public static final List<SpiEntryDetails> ENTRY_DETAILS = Collections.singletonList(buildSpiEntryDetails());
 
     private MockAccountData() {
+    }
+
+    private static SpiEntryDetails buildSpiEntryDetails() {
+        return new SpiEntryDetails("endToEndId", "mandateId", "checkId", "creditorId",
+                                   new SpiAmount(Currency.getInstance("EUR"), new BigDecimal(345)),
+                                   Collections.emptyList(), "creditorName", buildSpiAccountReference(),
+                                   "creditorAgent", "ultimateCreditor", "debtorName", buildSpiAccountReference(),
+                                   "debtorAgent", "ultimateDebtor", "remittanceInformationUnstructured", Collections.singletonList("remittanceInformationUnstructuredArray"),
+                                   "remittanceInformationStructured", Collections.singletonList("remittanceInformationStructuredArray"), "CDCB");
+    }
+
+    private static SpiAccountReference buildSpiAccountReference() {
+        return new SpiAccountReference("11111-11118", "10023-999999999", "DE52500105173911841934",
+                                       null, null, null, null, Currency.getInstance("EUR"), null);
     }
 }
