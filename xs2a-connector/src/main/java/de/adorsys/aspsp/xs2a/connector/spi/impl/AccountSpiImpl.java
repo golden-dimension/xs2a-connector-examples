@@ -203,7 +203,7 @@ public class AccountSpiImpl implements AccountSpi {
             logger.info("Retrieving mock standing order report for account: {}", accountReference.getResourceId());
             SpiTransactionLinks spiTransactionLinks = buildSpiTransactionLinks();
             SpiTransactionReport transactionReport = new SpiTransactionReport(null, createStandingOrderReportMock(), null,
-                                                                              processAcceptMediaType(spiTransactionReportParameters.getAcceptMediaType()), null, spiTransactionLinks);
+                                                                              processAcceptMediaType(spiTransactionReportParameters.getAcceptMediaType()), null, spiTransactionLinks, 2);
             return SpiResponse.<SpiTransactionReport>builder()
                            .payload(transactionReport)
                            .build();
@@ -235,7 +235,7 @@ public class AccountSpiImpl implements AccountSpi {
                                                                      accountConsent, aspspConsentDataProvider);
             SpiTransactionLinks spiTransactionLinks = buildSpiTransactionLinks();
             SpiTransactionReport transactionReport = new SpiTransactionReport("downloadId", transactions, balances,
-                                                                              processAcceptMediaType(acceptMediaType), null, spiTransactionLinks);
+                                                                              processAcceptMediaType(acceptMediaType), null, spiTransactionLinks, 1);
             logger.info("Finally found {} transactions.", transactionReport.getTransactions().size());
 
             aspspConsentDataProvider.updateAspspConsentData(consentDataService.store(response));
