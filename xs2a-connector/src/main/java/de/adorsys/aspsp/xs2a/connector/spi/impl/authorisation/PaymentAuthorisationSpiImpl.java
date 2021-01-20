@@ -178,18 +178,6 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     }
 
     @Override
-    public @NotNull SpiResponse<Boolean> requestTrustedBeneficiaryFlag(@NotNull SpiContextData spiContextData,
-                                                                       @NotNull SpiPayment payment,
-                                                                       @NotNull String authorisationId,
-                                                                       @NotNull SpiAspspConsentDataProvider spiAspspConsentDataProvider) {
-        // TODO replace with real response from ledgers https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/-/issues/1263
-        logger.info("Retrieving mock trusted beneficiaries flag for payment: {}", payment);
-        return SpiResponse.<Boolean>builder()
-                       .payload(true)
-                       .build();
-    }
-
-    @Override
     protected SpiResponse<SpiPsuAuthorisationResponse> resolveErrorResponse(SpiPayment businessObject, FeignException feignException) {
         String devMessage = feignExceptionReader.getErrorMessage(feignException);
         LedgersErrorCode errorCode = feignExceptionReader.getLedgersErrorCode(feignException);
