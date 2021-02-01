@@ -351,8 +351,8 @@ class GeneralPaymentServiceTest {
         SpiResponse<SpiPaymentExecutionResponse> actual = generalPaymentService.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actual.getErrors().get(0).getErrorCode());
-        assertEquals(SpiAuthorisationStatus.ATTEMPT_FAILURE, actual.getPayload().getSpiAuthorisationStatus());
+        assertEquals(MessageErrorCode.SCA_INVALID, actual.getErrors().get(0).getErrorCode());
+        assertNull(actual.getPayload());
 
         verify(cmsPsuPisClient, never()).updatePaymentStatus(any(), any(), any());
         verify(authRequestInterceptor, times(1)).setAccessToken(null);

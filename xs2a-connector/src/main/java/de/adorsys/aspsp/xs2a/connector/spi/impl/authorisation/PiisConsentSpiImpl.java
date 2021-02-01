@@ -33,7 +33,6 @@ import de.adorsys.psd2.xs2a.core.tpp.TppInfo;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountConsent;
-import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
 import de.adorsys.psd2.xs2a.spi.domain.consent.*;
@@ -196,8 +195,7 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
             LedgersErrorCode errorCode = feignExceptionReader.getLedgersErrorCode(feignException);
             if (LedgersErrorCode.SCA_VALIDATION_ATTEMPT_FAILED.equals(errorCode)) {
                 return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
-                               .payload(new SpiVerifyScaAuthorisationResponse(spiPiisConsent.getConsentStatus(), SpiAuthorisationStatus.ATTEMPT_FAILURE))
-                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.SCA_INVALID, devMessage))
                                .build();
             }
 

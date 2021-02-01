@@ -194,8 +194,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
             LedgersErrorCode errorCode = feignExceptionReader.getLedgersErrorCode(feignException);
             if (LedgersErrorCode.SCA_VALIDATION_ATTEMPT_FAILED.equals(errorCode)) {
                 return SpiResponse.<SpiPaymentExecutionResponse>builder()
-                               .payload(new SpiPaymentExecutionResponse(SpiAuthorisationStatus.ATTEMPT_FAILURE))
-                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.SCA_INVALID, devMessage))
                                .build();
             }
             return SpiResponse.<SpiPaymentExecutionResponse>builder()
