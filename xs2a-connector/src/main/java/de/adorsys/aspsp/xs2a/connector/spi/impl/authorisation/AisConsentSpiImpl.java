@@ -216,7 +216,8 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             LedgersErrorCode errorCode = feignExceptionReader.getLedgersErrorCode(feignException);
             if (LedgersErrorCode.SCA_VALIDATION_ATTEMPT_FAILED.equals(errorCode)) {
                 return SpiResponse.<SpiVerifyScaAuthorisationResponse>builder()
-                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.SCA_INVALID, devMessage))
+                               .payload(new SpiVerifyScaAuthorisationResponse(accountConsent.getConsentStatus(), SpiAuthorisationStatus.ATTEMPT_FAILURE))
+                               .error(FeignExceptionHandler.getFailureMessage(feignException, MessageErrorCode.PSU_CREDENTIALS_INVALID, devMessage))
                                .build();
             }
 

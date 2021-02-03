@@ -4,7 +4,6 @@
 
 * Improved decoupled approach
 * Updated mapstruct version to 1.4.1.RELEASE
-* Bugfix: Updated authorisation status after ATTEMPT_FAILURE
 
 == Improved decoupled approach
 
@@ -13,7 +12,3 @@ From now on, method AbstractAuthorisationSpi#startScaDecoupled returns SCA statu
 == Updated mapstruct version to 1.4.1.RELEASE
 
 Mapstruct version was updated to 1.4.1.RELEASE.
-
-== Bugfix: Updated authorisation status after ATTEMPT_FAILURE
-
-From now on, `SpiVerifyScaAuthorisationResponse` will include `SCA_INVALID` message error when Ledgers returns `SCA_VALIDATION_ATTEMPT_FAILED` error code.

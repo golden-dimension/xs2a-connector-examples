@@ -527,8 +527,8 @@ class AisConsentSpiImplTest {
 
         // Then
         assertTrue(actual.hasError());
-        assertNull(actual.getPayload());
         assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actual.getErrors().get(0).getErrorCode());
+        assertEquals(SpiAuthorisationStatus.ATTEMPT_FAILURE, actual.getPayload().getSpiAuthorisationStatus());
     }
 
     @Test

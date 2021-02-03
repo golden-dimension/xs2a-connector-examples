@@ -294,8 +294,8 @@ class PaymentCancellationSpiImplTest {
                                                                                                                               businessObject, spiAspspConsentDataProvider);
 
         assertTrue(actual.hasError());
-        assertNull(actual.getPayload());
-        assertEquals(MessageErrorCode.SCA_INVALID, actual.getErrors().get(0).getErrorCode());
+        assertEquals(MessageErrorCode.PSU_CREDENTIALS_INVALID, actual.getErrors().get(0).getErrorCode());
+        assertEquals(SpiAuthorisationStatus.ATTEMPT_FAILURE, actual.getPayload().getSpiAuthorisationStatus());
 
         verify(spiAspspConsentDataProvider, times(1)).loadAspspConsentData();
         verify(consentDataService, times(1)).response(CONSENT_DATA_BYTES);
