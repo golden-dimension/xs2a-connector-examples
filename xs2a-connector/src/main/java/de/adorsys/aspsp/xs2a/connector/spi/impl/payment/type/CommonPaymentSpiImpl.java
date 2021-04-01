@@ -20,7 +20,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.AspspConsentDataService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.confirmation.PaymentAuthConfirmationCodeService;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
@@ -69,7 +69,7 @@ public class CommonPaymentSpiImpl extends AbstractPaymentSpi<SpiPaymentInfo, Spi
         }
 
         return SpiResponse.<SpiGetPaymentStatusResponse>builder()
-                       .payload(new SpiGetPaymentStatusResponse(TransactionStatus.ACSP, null, MediaType.APPLICATION_JSON_VALUE, null, PSU_MESSAGE))
+                       .payload(new SpiGetPaymentStatusResponse(Xs2aTransactionStatus.ACSP, null, MediaType.APPLICATION_JSON_VALUE, null, PSU_MESSAGE))
                        .build();
     }
 }

@@ -26,7 +26,7 @@ import de.adorsys.ledgers.middleware.api.domain.sca.*;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.ConsentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
+import de.adorsys.psd2.xs2a.core.consent.Xs2aConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.core.tpp.TppInfo;
@@ -270,13 +270,13 @@ public class PiisConsentSpiImpl extends AbstractAuthorisationSpi<SpiPiisConsent>
         return authConfirmationCodeService.checkConfirmationCodeInternally(authorisationId, confirmationCode, scaAuthenticationData, aspspConsentDataProvider);
     }
 
-    ConsentStatus mapToConsentStatus(GlobalScaResponseTO globalScaResponse) {
+    Xs2aConsentStatus mapToConsentStatus(GlobalScaResponseTO globalScaResponse) {
         if (globalScaResponse != null
                     && globalScaResponse.isPartiallyAuthorised()
                     && ScaStatusTO.FINALISED.equals(globalScaResponse.getScaStatus())) {
-            return ConsentStatus.PARTIALLY_AUTHORISED;
+            return Xs2aConsentStatus.PARTIALLY_AUTHORISED;
         }
-        return ConsentStatus.VALID;
+        return Xs2aConsentStatus.VALID;
     }
 
 }

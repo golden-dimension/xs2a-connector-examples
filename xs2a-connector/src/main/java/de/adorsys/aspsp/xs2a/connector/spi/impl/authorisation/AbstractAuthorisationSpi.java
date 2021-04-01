@@ -9,11 +9,11 @@ import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.psd2.xs2a.core.authorisation.AuthenticationObject;
+import de.adorsys.psd2.xs2a.core.authorisation.Xs2aAuthenticationObject;
 import de.adorsys.psd2.xs2a.core.consent.AspspConsentData;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.core.sca.Xs2aScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.*;
@@ -187,7 +187,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                                                              .orElse(Collections.emptyList()) : Collections.emptyList();
 
             if (!scaMethods.isEmpty()) {
-                List<AuthenticationObject> authenticationObjects = scaMethodConverter.toAuthenticationObjectList(scaMethods);
+                List<Xs2aAuthenticationObject> authenticationObjects = scaMethodConverter.toAuthenticationObjectList(scaMethods);
 
                 return SpiResponse.<SpiAvailableScaMethodsResponse>builder()
                                .payload(new SpiAvailableScaMethodsResponse(authenticationObjects))
@@ -277,7 +277,7 @@ public abstract class AbstractAuthorisationSpi<T> {
                        .build();
     }
 
-    public SpiResponse<SpiScaStatusResponse> getScaStatus(@NotNull ScaStatus scaStatus, @NotNull SpiContextData contextData, @NotNull String authorisationId, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
+    public SpiResponse<SpiScaStatusResponse> getScaStatus(@NotNull Xs2aScaStatus scaStatus, @NotNull SpiContextData contextData, @NotNull String authorisationId, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         // TODO replace with real response from ledgers https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/-/issues/1263
         return SpiResponse.<SpiScaStatusResponse>builder()
                        .payload(new SpiScaStatusResponse(scaStatus, false, PSU_MESSAGE))

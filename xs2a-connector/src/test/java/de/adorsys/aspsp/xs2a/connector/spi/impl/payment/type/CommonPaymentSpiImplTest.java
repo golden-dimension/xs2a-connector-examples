@@ -4,7 +4,7 @@ import de.adorsys.aspsp.xs2a.connector.spi.converter.LedgersSpiPaymentMapper;
 import de.adorsys.aspsp.xs2a.connector.spi.impl.payment.GeneralPaymentService;
 import de.adorsys.aspsp.xs2a.util.TestSpiDataProvider;
 import de.adorsys.ledgers.middleware.api.domain.payment.PaymentTypeTO;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
@@ -48,7 +48,7 @@ class CommonPaymentSpiImplTest {
     void verifyScaAuthorisationAndExecutePayment() {
         SpiScaConfirmation spiScaConfirmation = new SpiScaConfirmation();
         when(generalPaymentService.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(spiScaConfirmation, spiAspspConsentDataProvider))
-                .thenReturn(buildSpiResponse(new SpiPaymentExecutionResponse(TransactionStatus.ACSP)));
+                .thenReturn(buildSpiResponse(new SpiPaymentExecutionResponse(Xs2aTransactionStatus.ACSP)));
 
         SpiResponse<SpiPaymentExecutionResponse> response = commonPaymentSpi.verifyScaAuthorisationAndExecutePaymentWithPaymentResponse(SPI_CONTEXT_DATA, spiScaConfirmation, new SpiPaymentInfo(PAYMENT_PRODUCT), spiAspspConsentDataProvider);
 
@@ -114,7 +114,7 @@ class CommonPaymentSpiImplTest {
         SpiPaymentInfo spiPaymentInfo = new SpiPaymentInfo(PAYMENT_PRODUCT);
         spiPaymentInfo.setPaymentType(PaymentType.SINGLE);
         spiPaymentInfo.setPaymentId(PAYMENT_ID);
-        spiPaymentInfo.setPaymentStatus(TransactionStatus.ACSP);
+        spiPaymentInfo.setPaymentStatus(Xs2aTransactionStatus.ACSP);
 
         SpiGetPaymentStatusResponse spiGetPaymentStatusResponse = new SpiGetPaymentStatusResponse(spiPaymentInfo.getPaymentStatus(), null, SpiGetPaymentStatusResponse.RESPONSE_TYPE_JSON, null, PSU_MESSAGE);
 
@@ -133,7 +133,7 @@ class CommonPaymentSpiImplTest {
         SpiPaymentInfo spiPaymentInfo = new SpiPaymentInfo(PAYMENT_PRODUCT);
         spiPaymentInfo.setPaymentType(PaymentType.SINGLE);
         spiPaymentInfo.setPaymentId(PAYMENT_ID);
-        spiPaymentInfo.setPaymentStatus(TransactionStatus.ACSP);
+        spiPaymentInfo.setPaymentStatus(Xs2aTransactionStatus.ACSP);
 
         SpiGetPaymentStatusResponse spiGetPaymentStatusResponse = new SpiGetPaymentStatusResponse(spiPaymentInfo.getPaymentStatus(), null, SpiGetPaymentStatusResponse.RESPONSE_TYPE_JSON, null, PSU_MESSAGE);
 

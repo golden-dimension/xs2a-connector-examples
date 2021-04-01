@@ -30,7 +30,7 @@ import de.adorsys.ledgers.rest.client.AccountRestClient;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.ConsentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
+import de.adorsys.psd2.xs2a.core.consent.Xs2aConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -379,13 +379,13 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
                                                 || StringUtils.isNotBlank(ref.getPan()));
     }
 
-    private ConsentStatus getConsentStatus(GlobalScaResponseTO globalScaResponse) {
+    private Xs2aConsentStatus getConsentStatus(GlobalScaResponseTO globalScaResponse) {
         if (globalScaResponse != null
                     && globalScaResponse.isPartiallyAuthorised()
                     && ScaStatusTO.FINALISED.equals(globalScaResponse.getScaStatus())) {
-            return ConsentStatus.PARTIALLY_AUTHORISED;
+            return Xs2aConsentStatus.PARTIALLY_AUTHORISED;
         }
-        return ConsentStatus.VALID;
+        return Xs2aConsentStatus.VALID;
     }
 
     private boolean isMultilevelScaRequired(@NotNull SpiAccountConsent accountConsent, @NotNull SpiPsuData spiPsuData) {

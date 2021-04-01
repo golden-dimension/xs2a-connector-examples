@@ -23,8 +23,8 @@ import de.adorsys.ledgers.middleware.api.domain.payment.TransactionStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.AuthConfirmationTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
+import de.adorsys.psd2.xs2a.core.sca.Xs2aScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import org.springframework.http.ResponseEntity;
@@ -53,18 +53,18 @@ public class PaymentAuthConfirmationCodeServiceImpl extends AuthConfirmationCode
 
         if (authConfirmationTO.isPartiallyAuthorised()) {
             // This authorisation is finished, but others are left.
-            return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, TransactionStatus.PATC);
+            return getConfirmationCodeResponseForXs2a(Xs2aScaStatus.FINALISED, Xs2aTransactionStatus.PATC);
         }
 
-        Optional<TransactionStatus> xs2aTransactionStatus = Optional.ofNullable(authConfirmationTO.getTransactionStatus())
+        Optional<Xs2aTransactionStatus> xs2aTransactionStatus = Optional.ofNullable(authConfirmationTO.getTransactionStatus())
                                                                     .map(TransactionStatusTO::getName)
-                                                                    .map(TransactionStatus::getByValue);
+                                                                    .map(Xs2aTransactionStatus::getByValue);
         return xs2aTransactionStatus
-                       .map(transactionStatus -> getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, transactionStatus))
+                       .map(transactionStatus -> getConfirmationCodeResponseForXs2a(Xs2aScaStatus.FINALISED, transactionStatus))
                        .orElse(buildFailedConfirmationCodeResponse());
     }
 
-    private SpiResponse<SpiPaymentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(ScaStatus scaStatus, TransactionStatus transactionStatus) {
+    private SpiResponse<SpiPaymentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(Xs2aScaStatus scaStatus, Xs2aTransactionStatus transactionStatus) {
         SpiPaymentConfirmationCodeValidationResponse response = new SpiPaymentConfirmationCodeValidationResponse(scaStatus, transactionStatus);
 
         return SpiResponse.<SpiPaymentConfirmationCodeValidationResponse>builder()
@@ -73,6 +73,6 @@ public class PaymentAuthConfirmationCodeServiceImpl extends AuthConfirmationCode
     }
 
     private SpiResponse<SpiPaymentConfirmationCodeValidationResponse> buildFailedConfirmationCodeResponse() {
-        return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, TransactionStatus.RJCT);
+        return getConfirmationCodeResponseForXs2a(Xs2aScaStatus.FAILED, Xs2aTransactionStatus.RJCT);
     }
 }

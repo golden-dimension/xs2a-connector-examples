@@ -17,7 +17,7 @@
 package de.adorsys.aspsp.xs2a.embedded.connector.cms;
 
 import de.adorsys.psd2.consent.psu.api.CmsPsuPisService;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,7 +29,7 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class CmsPsuPisClientEmbeddedImplTest {
     private static final String PAYMENT_ID = "some payment id";
-    private static final TransactionStatus TRANSACTION_STATUS = TransactionStatus.ACSP;
+    private static final Xs2aTransactionStatus TRANSACTION_STATUS = Xs2aTransactionStatus.ACSP;
     private static final String INSTANCE_ID = "UNDEFINED";
 
     @Mock

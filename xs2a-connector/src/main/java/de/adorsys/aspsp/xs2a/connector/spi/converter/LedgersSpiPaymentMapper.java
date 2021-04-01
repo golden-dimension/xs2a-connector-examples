@@ -2,7 +2,7 @@ package de.adorsys.aspsp.xs2a.connector.spi.converter;
 
 import de.adorsys.ledgers.middleware.api.domain.general.AddressTO;
 import de.adorsys.ledgers.middleware.api.domain.payment.*;
-import de.adorsys.psd2.core.payment.model.PurposeCode;
+import de.adorsys.psd2.core.payment.model.Xs2aPisPurposeCode;
 import de.adorsys.psd2.xs2a.core.pis.*;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiAddress;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
@@ -62,7 +62,7 @@ public class LedgersSpiPaymentMapper {
         spiBulkPayment.setDebtorName(paymentTO.getDebtorName());
         spiBulkPayment.setRequestedExecutionDate(paymentTO.getRequestedExecutionDate());
         spiBulkPayment.setRequestedExecutionTime(toDateTime(paymentTO.getRequestedExecutionDate(), paymentTO.getRequestedExecutionTime()));
-        spiBulkPayment.setPaymentStatus(TransactionStatus.valueOf(paymentTO.getTransactionStatus().name()));
+        spiBulkPayment.setPaymentStatus(Xs2aTransactionStatus.valueOf(paymentTO.getTransactionStatus().name()));
         spiBulkPayment.setPayments(toSpiSinglePaymentsList(paymentTO));
         spiBulkPayment.setPaymentProduct(paymentTO.getPaymentProduct());
 
@@ -87,7 +87,7 @@ public class LedgersSpiPaymentMapper {
 
     private void fillCommonPartFromPaymentTO(PaymentTO paymentTO, SpiSinglePayment spiPayment) {
         spiPayment.setDebtorAccount(accountMapper.toSpiAccountReference(paymentTO.getDebtorAccount()));
-        spiPayment.setPaymentStatus(Optional.ofNullable(paymentTO.getTransactionStatus()).map(TransactionStatusTO::name).map(TransactionStatus::valueOf).orElse(null));
+        spiPayment.setPaymentStatus(Optional.ofNullable(paymentTO.getTransactionStatus()).map(TransactionStatusTO::name).map(Xs2aTransactionStatus::valueOf).orElse(null));
         spiPayment.setRequestedExecutionDate(paymentTO.getRequestedExecutionDate());
         spiPayment.setRequestedExecutionTime(toDateTime(paymentTO.getRequestedExecutionDate(), paymentTO.getRequestedExecutionTime()));
         spiPayment.setDebtorName(paymentTO.getDebtorName());
@@ -105,7 +105,7 @@ public class LedgersSpiPaymentMapper {
         spiPayment.setRemittanceInformationStructured(mapToRemittanceString(paymentTargetTO.getRemittanceInformationStructured()));
         spiPayment.setPurposeCode(Optional.ofNullable(paymentTargetTO.getPurposeCode())
                                           .map(PurposeCodeTO::name)
-                                          .map(PurposeCode::fromValue)
+                                          .map(Xs2aPisPurposeCode::fromValue)
                                           .orElse(null));
     }
 

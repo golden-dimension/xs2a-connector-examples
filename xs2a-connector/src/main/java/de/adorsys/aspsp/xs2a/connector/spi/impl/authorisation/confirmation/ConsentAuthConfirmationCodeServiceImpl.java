@@ -22,8 +22,8 @@ import de.adorsys.aspsp.xs2a.connector.spi.impl.FeignExceptionReader;
 import de.adorsys.ledgers.middleware.api.domain.sca.AuthConfirmationTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
-import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.core.consent.Xs2aConsentStatus;
+import de.adorsys.psd2.xs2a.core.sca.Xs2aScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentConfirmationCodeValidationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import org.springframework.http.ResponseEntity;
@@ -45,19 +45,19 @@ public class ConsentAuthConfirmationCodeServiceImpl extends AuthConfirmationCode
 
         if (authConfirmationTO == null || !authConfirmationTO.isSuccess()) {
             // No response in payload from ASPSP or confirmation code verification failed at ASPSP side.
-            return getConfirmationCodeResponseForXs2a(ScaStatus.FAILED, ConsentStatus.REJECTED);
+            return getConfirmationCodeResponseForXs2a(Xs2aScaStatus.FAILED, Xs2aConsentStatus.REJECTED);
         }
 
         if (authConfirmationTO.isPartiallyAuthorised()) {
             // This authorisation is finished, but others are left.
-            return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.PARTIALLY_AUTHORISED);
+            return getConfirmationCodeResponseForXs2a(Xs2aScaStatus.FINALISED, Xs2aConsentStatus.PARTIALLY_AUTHORISED);
         }
 
         // Authorisation is finalised and consent becomes valid.
-        return getConfirmationCodeResponseForXs2a(ScaStatus.FINALISED, ConsentStatus.VALID);
+        return getConfirmationCodeResponseForXs2a(Xs2aScaStatus.FINALISED, Xs2aConsentStatus.VALID);
     }
 
-    private SpiResponse<SpiConsentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(ScaStatus scaStatus, ConsentStatus consentStatus) {
+    private SpiResponse<SpiConsentConfirmationCodeValidationResponse> getConfirmationCodeResponseForXs2a(Xs2aScaStatus scaStatus, Xs2aConsentStatus consentStatus) {
         SpiConsentConfirmationCodeValidationResponse response = new SpiConsentConfirmationCodeValidationResponse(scaStatus, consentStatus);
 
         return SpiResponse.<SpiConsentConfirmationCodeValidationResponse>builder()

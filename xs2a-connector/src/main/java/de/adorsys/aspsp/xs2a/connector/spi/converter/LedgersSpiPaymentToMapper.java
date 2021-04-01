@@ -44,7 +44,7 @@ public class LedgersSpiPaymentToMapper {
     public PaymentTO toPaymentTO_Single(SpiPaymentInfo spiPaymentInfo) {
         return Optional.ofNullable(spiPaymentInfo.getPaymentData())
                        .filter(ArrayUtils::isNotEmpty)
-                       .map(paymentData -> convert(paymentData, PaymentInitiationJson.class))
+                       .map(paymentData -> convert(paymentData, Xs2aPisPaymentInitiationJson.class))
                        .map(payment -> {
 
                            PaymentTO paymentTO = new PaymentTO();
@@ -64,7 +64,7 @@ public class LedgersSpiPaymentToMapper {
     public PaymentTO toPaymentTO_Bulk(SpiPaymentInfo spiPaymentInfo) {
         return Optional.ofNullable(spiPaymentInfo.getPaymentData())
                        .filter(ArrayUtils::isNotEmpty)
-                       .map(paymentData -> convert(paymentData, BulkPaymentInitiationJson.class))
+                       .map(paymentData -> convert(paymentData, Xs2aPisBulkPaymentInitiationJson.class))
                        .map(payment -> {
 
                            PaymentTO paymentTO = new PaymentTO();
@@ -88,7 +88,7 @@ public class LedgersSpiPaymentToMapper {
     public PaymentTO toPaymentTO_Periodic(SpiPaymentInfo spiPaymentInfo) {
         return Optional.ofNullable(spiPaymentInfo.getPaymentData())
                        .filter(ArrayUtils::isNotEmpty)
-                       .map(paymentData -> convert(paymentData, PeriodicPaymentInitiationJson.class))
+                       .map(paymentData -> convert(paymentData, Xs2aPisPeriodicPaymentInitiationJson.class))
                        .map(payment -> {
 
                            PaymentTO paymentTO = new PaymentTO();
@@ -100,7 +100,7 @@ public class LedgersSpiPaymentToMapper {
                            paymentTO.setStartDate(payment.getStartDate());
                            paymentTO.setEndDate(payment.getEndDate());
                            paymentTO.setExecutionRule(Optional.ofNullable(payment.getExecutionRule())
-                                                              .map(ExecutionRule::toString)
+                                                              .map(Xs2aPisExecutionRule::toString)
                                                               .orElse(null));
                            paymentTO.setFrequency(mapToFrequencyCodeTO(payment.getFrequency()));
                            paymentTO.setDayOfExecution(Optional.ofNullable(payment.getDayOfExecution())
@@ -130,7 +130,7 @@ public class LedgersSpiPaymentToMapper {
         }
     }
 
-    private AccountReferenceTO mapToAccountReferenceTO(AccountReference accountReference) {
+    private AccountReferenceTO mapToAccountReferenceTO(Xs2aPisAccountReference accountReference) {
         if (accountReference == null) {
             return null;
         }
@@ -146,7 +146,7 @@ public class LedgersSpiPaymentToMapper {
         return accountReferenceTO;
     }
 
-    private PaymentTargetTO mapToPaymentTargetTO(PeriodicPaymentInitiationJson payment, SpiPaymentInfo spiPaymentInfo) {
+    private PaymentTargetTO mapToPaymentTargetTO(Xs2aPisPeriodicPaymentInitiationJson payment, SpiPaymentInfo spiPaymentInfo) {
         if (payment == null) {
             return null;
         }
@@ -167,7 +167,7 @@ public class LedgersSpiPaymentToMapper {
         return paymentTargetTO;
     }
 
-    private PaymentTargetTO mapToPaymentTargetTO(PaymentInitiationJson payment) {
+    private PaymentTargetTO mapToPaymentTargetTO(Xs2aPisPaymentInitiationJson payment) {
         if (payment == null) {
             return null;
         }
@@ -201,9 +201,9 @@ public class LedgersSpiPaymentToMapper {
         return remittanceInformationStructuredTO;
     }
 
-    private PurposeCodeTO mapToPurposeCodeTO(PurposeCode purposeCode) {
+    private PurposeCodeTO mapToPurposeCodeTO(Xs2aPisPurposeCode purposeCode) {
         return Optional.ofNullable(purposeCode)
-                       .map(PurposeCode::name)
+                       .map(Xs2aPisPurposeCode::name)
                        .map(PurposeCodeTO::valueOf)
                        .orElse(null);
     }
@@ -220,7 +220,7 @@ public class LedgersSpiPaymentToMapper {
         return amountTO;
     }
 
-    private AddressTO mapToAddressTO(Address address) {
+    private AddressTO mapToAddressTO(Xs2aPisAddress address) {
         if (address == null) {
             return null;
         }

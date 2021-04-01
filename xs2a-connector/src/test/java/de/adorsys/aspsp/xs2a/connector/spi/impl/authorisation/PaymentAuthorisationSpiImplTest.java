@@ -22,7 +22,7 @@ import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.core.tpp.TppInfo;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
@@ -389,7 +389,7 @@ class PaymentAuthorisationSpiImplTest {
 
     @Test
     void initiateBusinessObject_TransactionStatusPATC() {
-        businessObject.setStatus(TransactionStatus.PATC);
+        businessObject.setStatus(Xs2aTransactionStatus.PATC);
         GlobalScaResponseTO globalScaResponseTO = new GlobalScaResponseTO();
 
         when(spiAspspConsentDataProvider.loadAspspConsentData()).thenReturn(CONSENT_DATA_BYTES);
@@ -414,7 +414,7 @@ class PaymentAuthorisationSpiImplTest {
         GlobalScaResponseTO actual = authorisationSpi.executeBusinessObject(businessObject);
         assertNotNull(actual);
 
-        verify(cmsPsuPisClient, times(1)).updatePaymentStatus(businessObject.getPaymentId(), TransactionStatus.ACCC, INSTANCE_ID);
+        verify(cmsPsuPisClient, times(1)).updatePaymentStatus(businessObject.getPaymentId(), Xs2aTransactionStatus.ACCC, INSTANCE_ID);
     }
 
     @Test

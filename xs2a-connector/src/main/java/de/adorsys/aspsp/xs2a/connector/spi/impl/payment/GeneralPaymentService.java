@@ -32,7 +32,7 @@ import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.ledgers.util.Ids;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
@@ -120,7 +120,7 @@ public class GeneralPaymentService {
         response.setOperationObjectId(paymentId);
         response.setOpType(OpTypeTO.PAYMENT);
         responsePayload.setPaymentId(paymentId);
-        responsePayload.setTransactionStatus(TransactionStatus.RCVD);
+        responsePayload.setTransactionStatus(Xs2aTransactionStatus.RCVD);
 
         boolean isMultilevelScaRequired;
 
@@ -146,7 +146,7 @@ public class GeneralPaymentService {
     public SpiResponse<SpiGetPaymentStatusResponse> getPaymentStatusById(@NotNull PaymentTypeTO paymentType,
                                                                          @NotNull String acceptMediaType,
                                                                          @NotNull String paymentId,
-                                                                         @NotNull TransactionStatus spiTransactionStatus,
+                                                                         @NotNull Xs2aTransactionStatus spiTransactionStatus,
                                                                          @NotNull byte[] aspspConsentData) {
         if (acceptMediaType.equals(XML_MEDIA_TYPE)) {
             return SpiResponse.<SpiGetPaymentStatusResponse>builder()
@@ -154,7 +154,7 @@ public class GeneralPaymentService {
                            .build();
         }
 
-        if (!TransactionStatus.ACSP.equals(spiTransactionStatus)) {
+        if (!Xs2aTransactionStatus.ACSP.equals(spiTransactionStatus)) {
             return SpiResponse.<SpiGetPaymentStatusResponse>builder()
                            .payload(new SpiGetPaymentStatusResponse(spiTransactionStatus, null, SpiGetPaymentStatusResponse.RESPONSE_TYPE_JSON, null, PSU_MESSAGE))
                            .build();
@@ -165,8 +165,8 @@ public class GeneralPaymentService {
 
             logger.info("Get payment status by ID with type: {} and ID: {}", paymentType, paymentId);
             TransactionStatusTO response = paymentRestClient.getPaymentStatusById(sca.getOperationObjectId()).getBody();
-            TransactionStatus status = Optional.ofNullable(response)
-                                               .map(r -> TransactionStatus.valueOf(r.name()))
+            Xs2aTransactionStatus status = Optional.ofNullable(response)
+                                               .map(r -> Xs2aTransactionStatus.valueOf(r.name()))
                                                .orElseThrow(() -> FeignException.errorStatus("Request failed, response was 200, but body was empty!",
                                                                                              Response.builder().status(HttpStatus.BAD_REQUEST.value()).build()));
             logger.info("Transaction status: {}", status);
@@ -298,7 +298,7 @@ public class GeneralPaymentService {
 
         Function<P, SpiResponse<P>> buildSuccessResponse = p -> SpiResponse.<P>builder().payload(p).build();
 
-        if (!TransactionStatus.ACSP.equals(payment.getPaymentStatus())) {
+        if (!Xs2aTransactionStatus.ACSP.equals(payment.getPaymentStatus())) {
             return buildSuccessResponse.apply(payment);
         }
 
@@ -348,12 +348,12 @@ public class GeneralPaymentService {
     }
 
     private SpiPaymentExecutionResponse spiPaymentExecutionResponse(TransactionStatusTO transactionStatus) {
-        return new SpiPaymentExecutionResponse(TransactionStatus.valueOf(transactionStatus.name()));
+        return new SpiPaymentExecutionResponse(Xs2aTransactionStatus.valueOf(transactionStatus.name()));
     }
 
-    private TransactionStatus getTransactionStatus(TransactionStatusTO transactionStatusTO) {
+    private Xs2aTransactionStatus getTransactionStatus(TransactionStatusTO transactionStatusTO) {
         return Optional.ofNullable(transactionStatusTO)
-                       .map(ts -> TransactionStatus.valueOf(ts.name()))
+                       .map(ts -> Xs2aTransactionStatus.valueOf(ts.name()))
                        .orElse(null);
     }
 }

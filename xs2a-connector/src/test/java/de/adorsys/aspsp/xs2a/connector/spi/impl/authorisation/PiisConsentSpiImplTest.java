@@ -34,7 +34,7 @@ import de.adorsys.ledgers.middleware.api.domain.um.ScaUserDataTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.ConsentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
-import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
+import de.adorsys.psd2.xs2a.core.consent.Xs2aConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -237,11 +237,11 @@ class PiisConsentSpiImplTest {
 
     @Test
     void getConsentStatus() {
-        spiPiisConsent.setConsentStatus(ConsentStatus.VALID);
+        spiPiisConsent.setConsentStatus(Xs2aConsentStatus.VALID);
 
         SpiResponse<SpiConsentStatusResponse> actual = piisConsentSpi.getConsentStatus(SPI_CONTEXT_DATA, spiPiisConsent, spiAspspConsentDataProvider);
         assertTrue(actual.isSuccessful());
-        assertEquals(ConsentStatus.VALID, actual.getPayload().getConsentStatus());
+        assertEquals(Xs2aConsentStatus.VALID, actual.getPayload().getConsentStatus());
         assertNull(actual.getPayload().getPsuMessage());
     }
 
@@ -408,7 +408,7 @@ class PiisConsentSpiImplTest {
         SpiResponse<SpiVerifyScaAuthorisationResponse> actual = piisConsentSpi.verifyScaAuthorisation(SPI_CONTEXT_DATA, spiScaConfirmation, spiPiisConsent, spiAspspConsentDataProvider);
 
         assertTrue(actual.isSuccessful());
-        assertEquals(ConsentStatus.PARTIALLY_AUTHORISED, actual.getPayload().getConsentStatus());
+        assertEquals(Xs2aConsentStatus.PARTIALLY_AUTHORISED, actual.getPayload().getConsentStatus());
     }
 
     @Test
@@ -441,7 +441,7 @@ class PiisConsentSpiImplTest {
 
     @Test
     void verifyScaAuthorisation_attemptFailedFeignException() {
-        spiPiisConsent.setConsentStatus(ConsentStatus.RECEIVED);
+        spiPiisConsent.setConsentStatus(Xs2aConsentStatus.RECEIVED);
 
         SpiScaConfirmation spiScaConfirmation = new SpiScaConfirmation();
         spiScaConfirmation.setTanNumber(TAN_NUMBER);
@@ -493,16 +493,16 @@ class PiisConsentSpiImplTest {
 
     @Test
     void mapToConsentStatus() {
-        assertEquals(ConsentStatus.VALID, piisConsentSpi.mapToConsentStatus(null));
+        assertEquals(Xs2aConsentStatus.VALID, piisConsentSpi.mapToConsentStatus(null));
 
         GlobalScaResponseTO globalScaResponse = new GlobalScaResponseTO();
-        assertEquals(ConsentStatus.VALID, piisConsentSpi.mapToConsentStatus(globalScaResponse));
+        assertEquals(Xs2aConsentStatus.VALID, piisConsentSpi.mapToConsentStatus(globalScaResponse));
 
         globalScaResponse.setPartiallyAuthorised(true);
-        assertEquals(ConsentStatus.VALID, piisConsentSpi.mapToConsentStatus(globalScaResponse));
+        assertEquals(Xs2aConsentStatus.VALID, piisConsentSpi.mapToConsentStatus(globalScaResponse));
 
         globalScaResponse.setScaStatus(ScaStatusTO.FINALISED);
-        assertEquals(ConsentStatus.PARTIALLY_AUTHORISED, piisConsentSpi.mapToConsentStatus(globalScaResponse));
+        assertEquals(Xs2aConsentStatus.PARTIALLY_AUTHORISED, piisConsentSpi.mapToConsentStatus(globalScaResponse));
     }
 
     private FeignException getFeignException() {

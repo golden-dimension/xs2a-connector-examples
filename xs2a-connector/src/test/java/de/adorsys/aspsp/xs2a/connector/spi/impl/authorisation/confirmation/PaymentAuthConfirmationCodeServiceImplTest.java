@@ -18,8 +18,8 @@ package de.adorsys.aspsp.xs2a.connector.spi.impl.authorisation.confirmation;
 
 import de.adorsys.ledgers.middleware.api.domain.payment.TransactionStatusTO;
 import de.adorsys.ledgers.middleware.api.domain.sca.AuthConfirmationTO;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
+import de.adorsys.psd2.xs2a.core.sca.Xs2aScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentConfirmationCodeValidationResponse;
 import de.adorsys.psd2.xs2a.spi.domain.response.SpiResponse;
 import org.junit.jupiter.api.Test;
@@ -43,8 +43,8 @@ class PaymentAuthConfirmationCodeServiceImplTest {
         SpiResponse<SpiPaymentConfirmationCodeValidationResponse> actual =
                 authConfirmationCodeService.handleAuthConfirmationResponse(ResponseEntity.ok(authConfirmation));
 
-        assertEquals(ScaStatus.FAILED, actual.getPayload().getScaStatus());
-        assertEquals(TransactionStatus.RJCT, actual.getPayload().getTransactionStatus());
+        assertEquals(Xs2aScaStatus.FAILED, actual.getPayload().getScaStatus());
+        assertEquals(Xs2aTransactionStatus.RJCT, actual.getPayload().getTransactionStatus());
     }
 
     @Test
@@ -56,8 +56,8 @@ class PaymentAuthConfirmationCodeServiceImplTest {
         SpiResponse<SpiPaymentConfirmationCodeValidationResponse> actual =
                 authConfirmationCodeService.handleAuthConfirmationResponse(ResponseEntity.ok(authConfirmation));
 
-        assertEquals(ScaStatus.FINALISED, actual.getPayload().getScaStatus());
-        assertEquals(TransactionStatus.PATC, actual.getPayload().getTransactionStatus());
+        assertEquals(Xs2aScaStatus.FINALISED, actual.getPayload().getScaStatus());
+        assertEquals(Xs2aTransactionStatus.PATC, actual.getPayload().getTransactionStatus());
     }
 
     @Test
@@ -70,7 +70,7 @@ class PaymentAuthConfirmationCodeServiceImplTest {
         SpiResponse<SpiPaymentConfirmationCodeValidationResponse> actual =
                 authConfirmationCodeService.handleAuthConfirmationResponse(ResponseEntity.ok(authConfirmation));
 
-        assertEquals(ScaStatus.FINALISED, actual.getPayload().getScaStatus());
-        assertEquals(TransactionStatus.ACSP, actual.getPayload().getTransactionStatus());
+        assertEquals(Xs2aScaStatus.FINALISED, actual.getPayload().getScaStatus());
+        assertEquals(Xs2aTransactionStatus.ACSP, actual.getPayload().getTransactionStatus());
     }
 }

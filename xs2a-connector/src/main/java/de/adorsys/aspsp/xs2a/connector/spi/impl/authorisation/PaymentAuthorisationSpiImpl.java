@@ -39,7 +39,7 @@ import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import de.adorsys.psd2.xs2a.core.profile.PaymentType;
 import de.adorsys.psd2.xs2a.service.RequestProviderService;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
@@ -122,7 +122,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     @Override
     protected GlobalScaResponseTO initiateBusinessObject(SpiPayment businessObject, @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider, String authorisationId) {
 
-        if (businessObject.getPaymentStatus() == TransactionStatus.PATC) {
+        if (businessObject.getPaymentStatus() == Xs2aTransactionStatus.PATC) {
             return aspspConsentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
         }
 
@@ -162,7 +162,7 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
     @Override
     protected void updateStatusInCms(String paymentId, SpiAspspConsentDataProvider aspspConsentDataProvider) {
         GlobalScaResponseTO globalScaResponseTO = aspspConsentDataService.response(aspspConsentDataProvider.loadAspspConsentData());
-        TransactionStatus transactionStatus = getTransactionStatus(globalScaResponseTO.getScaStatus());
+        Xs2aTransactionStatus transactionStatus = getTransactionStatus(globalScaResponseTO.getScaStatus());
 
         cmsPsuPisClient.updatePaymentStatus(paymentId, transactionStatus, requestProviderService.getInstanceId());
     }
@@ -198,19 +198,19 @@ public class PaymentAuthorisationSpiImpl extends AbstractAuthorisationSpi<SpiPay
                        .build();
     }
 
-    private TransactionStatus mapTransactionStatus(TransactionStatusTO transactionStatusTO) {
+    private Xs2aTransactionStatus mapTransactionStatus(TransactionStatusTO transactionStatusTO) {
         return Optional.ofNullable(transactionStatusTO)
-                       .map(ts -> TransactionStatus.valueOf(ts.name()))
+                       .map(ts -> Xs2aTransactionStatus.valueOf(ts.name()))
                        .orElse(null);
     }
 
-    private TransactionStatus getTransactionStatus(ScaStatusTO scaStatus) {
+    private Xs2aTransactionStatus getTransactionStatus(ScaStatusTO scaStatus) {
         if (EnumSet.of(PSUIDENTIFIED, EXEMPTED).contains(scaStatus)) {
-            return TransactionStatus.ACCP;
+            return Xs2aTransactionStatus.ACCP;
         } else if (scaStatus == PSUAUTHENTICATED) {
-            return TransactionStatus.ACTC;
+            return Xs2aTransactionStatus.ACTC;
         } else {
-            return TransactionStatus.RCVD;
+            return Xs2aTransactionStatus.RCVD;
         }
     }
 

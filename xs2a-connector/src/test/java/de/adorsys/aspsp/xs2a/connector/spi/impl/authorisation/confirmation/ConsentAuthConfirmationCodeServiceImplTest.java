@@ -24,10 +24,10 @@ import de.adorsys.ledgers.middleware.api.domain.sca.GlobalScaResponseTO;
 import de.adorsys.ledgers.middleware.api.domain.um.BearerTokenTO;
 import de.adorsys.ledgers.rest.client.AuthRequestInterceptor;
 import de.adorsys.ledgers.rest.client.UserMgmtRestClient;
-import de.adorsys.psd2.xs2a.core.consent.ConsentStatus;
+import de.adorsys.psd2.xs2a.core.consent.Xs2aConsentStatus;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.profile.ScaRedirectFlow;
-import de.adorsys.psd2.xs2a.core.sca.ScaStatus;
+import de.adorsys.psd2.xs2a.core.sca.Xs2aScaStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiCheckConfirmationCodeRequest;
 import de.adorsys.psd2.xs2a.spi.domain.consent.SpiConsentConfirmationCodeValidationResponse;
@@ -82,8 +82,8 @@ class ConsentAuthConfirmationCodeServiceImplTest {
         SpiResponse<SpiConsentConfirmationCodeValidationResponse> actual =
                 authConfirmationCodeService.handleAuthConfirmationResponse(ResponseEntity.ok(authConfirmation));
 
-        assertEquals(ScaStatus.FAILED, actual.getPayload().getScaStatus());
-        assertEquals(ConsentStatus.REJECTED, actual.getPayload().getConsentStatus());
+        assertEquals(Xs2aScaStatus.FAILED, actual.getPayload().getScaStatus());
+        assertEquals(Xs2aConsentStatus.REJECTED, actual.getPayload().getConsentStatus());
     }
 
     @Test
@@ -95,8 +95,8 @@ class ConsentAuthConfirmationCodeServiceImplTest {
         SpiResponse<SpiConsentConfirmationCodeValidationResponse> actual =
                 authConfirmationCodeService.handleAuthConfirmationResponse(ResponseEntity.ok(authConfirmation));
 
-        assertEquals(ScaStatus.FINALISED, actual.getPayload().getScaStatus());
-        assertEquals(ConsentStatus.PARTIALLY_AUTHORISED, actual.getPayload().getConsentStatus());
+        assertEquals(Xs2aScaStatus.FINALISED, actual.getPayload().getScaStatus());
+        assertEquals(Xs2aConsentStatus.PARTIALLY_AUTHORISED, actual.getPayload().getConsentStatus());
     }
 
     @Test
@@ -108,8 +108,8 @@ class ConsentAuthConfirmationCodeServiceImplTest {
         SpiResponse<SpiConsentConfirmationCodeValidationResponse> actual =
                 authConfirmationCodeService.handleAuthConfirmationResponse(ResponseEntity.ok(authConfirmation));
 
-        assertEquals(ScaStatus.FINALISED, actual.getPayload().getScaStatus());
-        assertEquals(ConsentStatus.VALID, actual.getPayload().getConsentStatus());
+        assertEquals(Xs2aScaStatus.FINALISED, actual.getPayload().getScaStatus());
+        assertEquals(Xs2aConsentStatus.VALID, actual.getPayload().getConsentStatus());
     }
 
     @Test

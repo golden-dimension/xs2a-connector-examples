@@ -33,7 +33,7 @@ import de.adorsys.ledgers.rest.client.PaymentRestClient;
 import de.adorsys.ledgers.rest.client.RedirectScaRestClient;
 import de.adorsys.psd2.xs2a.core.error.MessageErrorCode;
 import de.adorsys.psd2.xs2a.core.error.TppMessage;
-import de.adorsys.psd2.xs2a.core.pis.TransactionStatus;
+import de.adorsys.psd2.xs2a.core.pis.Xs2aTransactionStatus;
 import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.SpiContextData;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
@@ -99,7 +99,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
                                                                                             @NotNull SpiPayment payment,
                                                                                             @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         SpiPaymentCancellationResponse response = new SpiPaymentCancellationResponse();
-        boolean cancellationMandated = payment.getPaymentStatus() != TransactionStatus.RCVD;
+        boolean cancellationMandated = payment.getPaymentStatus() != Xs2aTransactionStatus.RCVD;
         response.setCancellationAuthorisationMandated(cancellationMandated);
         response.setTransactionStatus(payment.getPaymentStatus());
         return SpiResponse.<SpiPaymentCancellationResponse>builder()
@@ -118,7 +118,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
     public @NotNull SpiResponse<SpiResponse.VoidResponse> cancelPaymentWithoutSca(@NotNull SpiContextData contextData,
                                                                                   @NotNull SpiPayment payment,
                                                                                   @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        if (payment.getPaymentStatus() == TransactionStatus.RCVD) {
+        if (payment.getPaymentStatus() == Xs2aTransactionStatus.RCVD) {
             return SpiResponse.<SpiResponse.VoidResponse>builder()
                            .payload(SpiResponse.voidResponse())
                            .build();
@@ -229,7 +229,7 @@ public class PaymentCancellationSpiImpl extends AbstractAuthorisationSpi<SpiPaym
 
     @Override
     protected boolean validateStatuses(SpiPayment businessObject, GlobalScaResponseTO sca) {
-        return businessObject.getPaymentStatus() == TransactionStatus.RCVD ||
+        return businessObject.getPaymentStatus() == Xs2aTransactionStatus.RCVD ||
                        sca.getScaStatus() == ScaStatusTO.EXEMPTED;
     }
 
