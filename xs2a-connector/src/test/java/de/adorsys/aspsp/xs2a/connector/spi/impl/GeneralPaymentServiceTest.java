@@ -24,6 +24,7 @@ import de.adorsys.psd2.xs2a.spi.domain.SpiAspspConsentDataProvider;
 import de.adorsys.psd2.xs2a.spi.domain.account.SpiAccountReference;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiAuthorisationStatus;
 import de.adorsys.psd2.xs2a.spi.domain.authorisation.SpiScaConfirmation;
+import de.adorsys.psd2.xs2a.spi.domain.payment.SpiBulkPayment;
 import de.adorsys.psd2.xs2a.spi.domain.payment.SpiSinglePayment;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiGetPaymentStatusResponse;
 import de.adorsys.psd2.xs2a.spi.domain.payment.response.SpiPaymentExecutionResponse;
@@ -64,6 +65,7 @@ class GeneralPaymentServiceTest {
     private static final String AUTHORISATION_ID = "authorisation id";
     private static final String TAN_NUMBER = "123456";
     private final static String INSTANCE_ID = "test-instance-id";
+    private final static String DEBTOR_NAME = "Mocked debtorName";
 
     private final JsonReader jsonReader = new JsonReader();
 
@@ -177,6 +179,109 @@ class GeneralPaymentServiceTest {
         SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
         //Then
         assertTrue(paymentById.isSuccessful());
+        assertEquals(paymentAspsp, paymentById.getPayload());
+    }
+
+    @Test
+    void getPaymentByIdTransactionStatusACSP_withDebtorName() {
+        //Given
+        SpiPayment initialPayment = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
+        SpiPayment paymentAspsp = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
+
+        PaymentTO paymentTO = getPaymentTO_withDebtorName();
+
+        GlobalScaResponseTO sca = getGlobalScaResponseTO();
+
+        byte[] aspspConsentData = "".getBytes();
+
+        doReturn(ResponseEntity.ok(paymentTO))
+                .when(paymentRestClient).getPaymentById(paymentTO.getPaymentId());
+        when(spiAspspConsentDataProvider.loadAspspConsentData())
+                .thenReturn(aspspConsentData);
+        doNothing()
+                .when(authRequestInterceptor).setAccessToken(anyString());
+        when(consentDataService.response(aspspConsentData))
+                .thenReturn(sca);
+        doReturn(paymentAspsp)
+                .when(paymentMapper).toSpiSinglePayment(paymentTO);
+
+        //When
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
+
+        //Then
+        assertTrue(paymentById.isSuccessful());
+        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(paymentAspsp, paymentById.getPayload());
+    }
+
+    @Test
+    void getPaymentByIdTransactionStatusACSP_BulkPaymentWithDebtorName() {
+        //Given
+        SpiBulkPayment initialPayment = new SpiBulkPayment();
+        initialPayment.setPaymentStatus(TransactionStatus.ACSP);
+        initialPayment.setDebtorName(DEBTOR_NAME);
+        SpiPayment paymentAspsp = new SpiBulkPayment();
+        paymentAspsp.setDebtorName(DEBTOR_NAME);
+        paymentAspsp.setPaymentStatus(TransactionStatus.ACSP);
+
+        PaymentTO paymentTO = getPaymentTO_withDebtorName();
+
+        GlobalScaResponseTO sca = getGlobalScaResponseTO();
+
+        byte[] aspspConsentData = "".getBytes();
+
+        doReturn(ResponseEntity.ok(paymentTO))
+                .when(paymentRestClient).getPaymentById(paymentTO.getPaymentId());
+        when(spiAspspConsentDataProvider.loadAspspConsentData())
+                .thenReturn(aspspConsentData);
+        doNothing()
+                .when(authRequestInterceptor).setAccessToken(anyString());
+        when(consentDataService.response(aspspConsentData))
+                .thenReturn(sca);
+        doReturn(paymentAspsp)
+                .when(paymentMapper).mapToSpiBulkPayment(paymentTO);
+
+        //When
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::mapToSpiBulkPayment);
+
+        //Then
+        assertTrue(paymentById.isSuccessful());
+        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(paymentAspsp, paymentById.getPayload());
+    }
+
+
+    @Test
+    void getPaymentByIdTransactionStatusRCVD_withDebtorName() {
+        //Given
+        SpiPayment initialPayment = getSpiSingleWithDebtorName(TransactionStatus.RCVD);
+        SpiPayment paymentAspsp = getSpiSingleWithDebtorName(TransactionStatus.RCVD);
+
+        //When
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
+
+        //Then
+        assertTrue(paymentById.isSuccessful());
+        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(paymentAspsp, paymentById.getPayload());
+    }
+
+    @Test
+    void getPaymentByIdTransactionStatusRCVD_BulkPaymentWithDebtorName() {
+        //Given
+        SpiBulkPayment initialPayment =
+                new SpiBulkPayment();
+        initialPayment.setDebtorName(DEBTOR_NAME)
+        ;
+        SpiBulkPayment paymentAspsp = new SpiBulkPayment();
+        paymentAspsp.setDebtorName(DEBTOR_NAME);
+
+        //When
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::mapToSpiBulkPayment);
+
+        //Then
+        assertTrue(paymentById.isSuccessful());
+        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
         assertEquals(paymentAspsp, paymentById.getPayload());
     }
 
@@ -505,6 +610,32 @@ class GeneralPaymentServiceTest {
         spiPayment.setCreditorAgent(agent);
         spiPayment.setPaymentStatus(transactionStatus);
         return spiPayment;
+    }
+
+    private SpiSinglePayment getSpiSingleWithDebtorName(TransactionStatus transactionStatus) {
+        SpiSinglePayment spiPayment = new SpiSinglePayment(PAYMENT_PRODUCT);
+        spiPayment.setPaymentId("myPaymentId");
+        spiPayment.setDebtorName(DEBTOR_NAME);
+        spiPayment.setPaymentStatus(transactionStatus);
+        return spiPayment;
+    }
+
+    private PaymentTO getPaymentTO_withDebtorName() {
+        PaymentTO paymentTO = new PaymentTO();
+        paymentTO.setPaymentId("myPaymentId");
+        paymentTO.setTransactionStatus(TransactionStatusTO.ACSP);
+        paymentTO.setDebtorName(DEBTOR_NAME);
+        return paymentTO;
+    }
+
+    private GlobalScaResponseTO getGlobalScaResponseTO() {
+        SpiPayment initialPayment = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
+        GlobalScaResponseTO sca = new GlobalScaResponseTO();
+        sca.setOperationObjectId(initialPayment.getPaymentId());
+        BearerTokenTO bearerTokenTO = new BearerTokenTO();
+        bearerTokenTO.setAccess_token("accessToken");
+        sca.setBearerToken(bearerTokenTO);
+        return sca;
     }
 
     private FeignException buildFeignException() {
