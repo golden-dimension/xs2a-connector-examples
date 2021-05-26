@@ -185,14 +185,14 @@ class GeneralPaymentServiceTest {
     @Test
     void getPaymentByIdTransactionStatusACSP_withDebtorName() {
         //Given
-        SpiPayment initialPayment = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
-        SpiPayment paymentAspsp = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
+        SpiPayment input = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
+        SpiPayment expected = getSpiSingleWithDebtorName(TransactionStatus.ACSP);
 
-        PaymentTO paymentTO = getPaymentTO_withDebtorName();
+        PaymentTO paymentTO = getPaymentToWithDebtorName();
 
         GlobalScaResponseTO sca = getGlobalScaResponseTO();
 
-        byte[] aspspConsentData = "".getBytes();
+        byte[] aspspConsentData = BYTES;
 
         doReturn(ResponseEntity.ok(paymentTO))
                 .when(paymentRestClient).getPaymentById(paymentTO.getPaymentId());
@@ -202,33 +202,33 @@ class GeneralPaymentServiceTest {
                 .when(authRequestInterceptor).setAccessToken(anyString());
         when(consentDataService.response(aspspConsentData))
                 .thenReturn(sca);
-        doReturn(paymentAspsp)
+        doReturn(expected)
                 .when(paymentMapper).toSpiSinglePayment(paymentTO);
 
         //When
-        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(input, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
 
         //Then
         assertTrue(paymentById.isSuccessful());
-        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
-        assertEquals(paymentAspsp, paymentById.getPayload());
+        assertEquals(expected.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(expected, paymentById.getPayload());
     }
 
     @Test
     void getPaymentByIdTransactionStatusACSP_BulkPaymentWithDebtorName() {
         //Given
-        SpiBulkPayment initialPayment = new SpiBulkPayment();
-        initialPayment.setPaymentStatus(TransactionStatus.ACSP);
-        initialPayment.setDebtorName(DEBTOR_NAME);
-        SpiPayment paymentAspsp = new SpiBulkPayment();
-        paymentAspsp.setDebtorName(DEBTOR_NAME);
-        paymentAspsp.setPaymentStatus(TransactionStatus.ACSP);
+        SpiBulkPayment input = new SpiBulkPayment();
+        input.setPaymentStatus(TransactionStatus.ACSP);
+        input.setDebtorName(DEBTOR_NAME);
+        SpiPayment expected = new SpiBulkPayment();
+        expected.setDebtorName(DEBTOR_NAME);
+        expected.setPaymentStatus(TransactionStatus.ACSP);
 
-        PaymentTO paymentTO = getPaymentTO_withDebtorName();
+        PaymentTO paymentTO = getPaymentToWithDebtorName();
 
         GlobalScaResponseTO sca = getGlobalScaResponseTO();
 
-        byte[] aspspConsentData = "".getBytes();
+        byte[] aspspConsentData = BYTES;
 
         doReturn(ResponseEntity.ok(paymentTO))
                 .when(paymentRestClient).getPaymentById(paymentTO.getPaymentId());
@@ -238,51 +238,47 @@ class GeneralPaymentServiceTest {
                 .when(authRequestInterceptor).setAccessToken(anyString());
         when(consentDataService.response(aspspConsentData))
                 .thenReturn(sca);
-        doReturn(paymentAspsp)
+        doReturn(expected)
                 .when(paymentMapper).mapToSpiBulkPayment(paymentTO);
 
         //When
-        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::mapToSpiBulkPayment);
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(input, spiAspspConsentDataProvider, paymentMapper::mapToSpiBulkPayment);
 
         //Then
         assertTrue(paymentById.isSuccessful());
-        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
-        assertEquals(paymentAspsp, paymentById.getPayload());
+        assertEquals(expected.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(expected, paymentById.getPayload());
     }
 
 
     @Test
     void getPaymentByIdTransactionStatusRCVD_withDebtorName() {
         //Given
-        SpiPayment initialPayment = getSpiSingleWithDebtorName(TransactionStatus.RCVD);
-        SpiPayment paymentAspsp = getSpiSingleWithDebtorName(TransactionStatus.RCVD);
+        SpiPayment input = getSpiSingleWithDebtorName(TransactionStatus.RCVD);
+        SpiPayment expected = getSpiSingleWithDebtorName(TransactionStatus.RCVD);
 
         //When
-        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(input, spiAspspConsentDataProvider, paymentMapper::toSpiSinglePayment);
 
         //Then
         assertTrue(paymentById.isSuccessful());
-        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
-        assertEquals(paymentAspsp, paymentById.getPayload());
+        assertEquals(expected.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(expected, paymentById.getPayload());
     }
 
     @Test
     void getPaymentByIdTransactionStatusRCVD_BulkPaymentWithDebtorName() {
         //Given
-        SpiBulkPayment initialPayment =
-                new SpiBulkPayment();
-        initialPayment.setDebtorName(DEBTOR_NAME)
-        ;
-        SpiBulkPayment paymentAspsp = new SpiBulkPayment();
-        paymentAspsp.setDebtorName(DEBTOR_NAME);
+        SpiBulkPayment input = getBulkPaymentWithDebtorName();
+        SpiBulkPayment expected = getBulkPaymentWithDebtorName();
 
         //When
-        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(initialPayment, spiAspspConsentDataProvider, paymentMapper::mapToSpiBulkPayment);
+        SpiResponse<SpiPayment> paymentById = generalPaymentService.getPaymentById(input, spiAspspConsentDataProvider, paymentMapper::mapToSpiBulkPayment);
 
         //Then
         assertTrue(paymentById.isSuccessful());
-        assertEquals(paymentAspsp.getDebtorName(), paymentById.getPayload().getDebtorName());
-        assertEquals(paymentAspsp, paymentById.getPayload());
+        assertEquals(expected.getDebtorName(), paymentById.getPayload().getDebtorName());
+        assertEquals(expected, paymentById.getPayload());
     }
 
     @Test
@@ -620,12 +616,18 @@ class GeneralPaymentServiceTest {
         return spiPayment;
     }
 
-    private PaymentTO getPaymentTO_withDebtorName() {
+    private PaymentTO getPaymentToWithDebtorName() {
         PaymentTO paymentTO = new PaymentTO();
         paymentTO.setPaymentId("myPaymentId");
         paymentTO.setTransactionStatus(TransactionStatusTO.ACSP);
         paymentTO.setDebtorName(DEBTOR_NAME);
         return paymentTO;
+    }
+
+    private SpiBulkPayment getBulkPaymentWithDebtorName() {
+        SpiBulkPayment initialPayment = new SpiBulkPayment();
+        initialPayment.setDebtorName(DEBTOR_NAME);
+        return initialPayment;
     }
 
     private GlobalScaResponseTO getGlobalScaResponseTO() {
