@@ -570,7 +570,7 @@ class CardAccountSpiImplTest {
         verify(authRequestInterceptor, times(1)).setAccessToken(null);
     }
 
-    private SpiTransactionReportParameters buildSpiTransactionReportParameters(String mediaType) {
-        return new SpiTransactionReportParameters(mediaType, true, DATE_FROM, DATE_TO, BookingStatus.BOOKED, null, null, null, null);
+    private SpiCardTransactionReportParameters buildSpiTransactionReportParameters(String mediaType) {
+        return new SpiCardTransactionReportParameters(mediaType, DATE_FROM, DATE_TO, BookingStatus.BOOKED, null, null, null, null);
     }
 }

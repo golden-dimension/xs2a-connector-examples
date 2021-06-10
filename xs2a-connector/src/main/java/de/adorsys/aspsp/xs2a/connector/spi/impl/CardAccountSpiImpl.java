@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 
 @Component
 @PropertySource("classpath:mock-data.properties")
-public class CardAccountSpiImpl implements CardAccountSpi {
+public class  CardAccountSpiImpl implements CardAccountSpi {
 
     private static final String RESPONSE_STATUS_200_WITH_EMPTY_BODY = "Response status was 200, but the body was empty!";
 
@@ -156,16 +156,16 @@ public class CardAccountSpiImpl implements CardAccountSpi {
 
     @Override
     public SpiResponse<SpiCardTransactionReport> requestCardTransactionsForAccount(@NotNull SpiContextData contextData,
-                                                                                   @NotNull SpiTransactionReportParameters spiTransactionReportParameters,
+                                                                                   @NotNull SpiCardTransactionReportParameters spiCardTransactionReportParameters,
                                                                                    @NotNull SpiAccountReference accountReference,
                                                                                    @NotNull SpiAccountConsent accountConsent,
                                                                                    @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
         // TODO Remove it https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1100
-        if (BookingStatus.INFORMATION == spiTransactionReportParameters.getBookingStatus()) {
+        if (BookingStatus.INFORMATION == spiCardTransactionReportParameters.getBookingStatus()) {
             logger.info("Retrieving mock standing order report for account: {}", accountReference.getResourceId());
-            SpiCardTransactionReport transactionReport = new SpiCardTransactionReport("dGVzdA==", buildSpiTransactionList(), Collections.singletonList(buildSpiAccountBalance()), "application/json", null);
+            SpiCardTransactionReport spiCardTransactionReport = new SpiCardTransactionReport("dGVzdA==", buildSpiTransactionList(), Collections.singletonList(buildSpiAccountBalance()), "application/json", null);
             return SpiResponse.<SpiCardTransactionReport>builder()
-                           .payload(transactionReport)
+                           .payload(spiCardTransactionReport)
                            .build();
         }
 
@@ -174,24 +174,23 @@ public class CardAccountSpiImpl implements CardAccountSpi {
         // TODO https://git.adorsys.de/adorsys/xs2a/aspsp-xs2a/issues/1106
         // For dates there are alternative test values in case of receiving NULLs, ledgers must receive dates for retrieving transactions request
         // Will be deleted when Ledgers provides supporting getting transactions list without dates.
-        LocalDate dateFrom = Optional.ofNullable(spiTransactionReportParameters.getDateFrom())
+        LocalDate dateFrom = Optional.ofNullable(spiCardTransactionReportParameters.getDateFrom())
                                      .orElse(LocalDate.now().minusMonths(6));
-        LocalDate dateTo = Optional.ofNullable(spiTransactionReportParameters.getDateTo())
+        LocalDate dateTo = Optional.ofNullable(spiCardTransactionReportParameters.getDateTo())
                                    .orElse(LocalDate.now());
-        boolean withBalance = spiTransactionReportParameters.isWithBalance();
-        String acceptMediaType = spiTransactionReportParameters.getAcceptMediaType();
-        String entryReferenceFrom = spiTransactionReportParameters.getEntryReferenceFrom();
-        Boolean deltaList = spiTransactionReportParameters.getDeltaList();
+        String acceptMediaType = spiCardTransactionReportParameters.getAcceptMediaType();
+        String entryReferenceFrom = spiCardTransactionReportParameters.getEntryReferenceFrom();
+        Boolean deltaList = spiCardTransactionReportParameters.getDeltaList();
 
         try {
             GlobalScaResponseTO response = applyAuthorisation(aspspConsentData);
 
-            logger.info("Requested transactions for account: {}, dates from: {}, to: {}, withBalance: {}, entryReferenceFrom: {}, deltaList: {}",
-                        accountReference.getResourceId(), dateFrom, dateTo, withBalance, entryReferenceFrom, deltaList);
+            logger.info("Requested transactions for account: {}, dates from: {}, to: {}, entryReferenceFrom: {}, deltaList: {}",
+                        accountReference.getResourceId(), dateFrom, dateTo, entryReferenceFrom, deltaList);
             List<SpiCardTransaction> transactions = Optional.ofNullable(
                     accountRestClient.getTransactionByDates(accountReference.getResourceId(), dateFrom, dateTo).getBody())
                                                             .map(accountMapper::toSpiCardTransactions).orElseGet(ArrayList::new);
-            List<SpiAccountBalance> balances = getSpiAccountBalances(contextData, withBalance, accountReference,
+            List<SpiAccountBalance> balances = getSpiAccountBalances(contextData, accountReference,
                                                                      accountConsent, aspspConsentDataProvider);
 
             SpiCardTransactionReport transactionReport =
@@ -268,20 +267,16 @@ public class CardAccountSpiImpl implements CardAccountSpi {
     }
 
     private List<SpiAccountBalance> getSpiAccountBalances(@NotNull SpiContextData contextData,
-                                                          boolean withBalance,
                                                           @NotNull SpiAccountReference accountReference,
                                                           @NotNull SpiAccountConsent accountConsent,
                                                           @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
-        if (withBalance) {
-            SpiResponse<List<SpiAccountBalance>> response = requestCardBalancesForAccount(contextData, accountReference,
-                                                                                          accountConsent, aspspConsentDataProvider);
-            if (response.isSuccessful()) {
-                return response.getPayload();
-            } else {
-                throw FeignExceptionHandler.getException(HttpStatus.NOT_FOUND, "Requested transaction can`t be found");
-            }
+
+        SpiResponse<List<SpiAccountBalance>> response = requestCardBalancesForAccount(contextData, accountReference,
+                                                                                      accountConsent, aspspConsentDataProvider);
+        if (response.isSuccessful()) {
+            return response.getPayload();
         } else {
-            return null;
+            throw FeignExceptionHandler.getException(HttpStatus.NOT_FOUND, "Requested transaction can`t be found");
         }
     }
 
