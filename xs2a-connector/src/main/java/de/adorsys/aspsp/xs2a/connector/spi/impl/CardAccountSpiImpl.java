@@ -155,7 +155,7 @@ public class  CardAccountSpiImpl implements CardAccountSpi {
 
     @Override
     public SpiResponse<SpiCardTransactionReport> requestCardTransactionsForAccount(@NotNull SpiContextData contextData,
-                                                                                   @NotNull SpiCardTransactionReportParameters spiCardTransactionReportParameters,
+                                                                                   @NotNull SpiTransactionReportParameters spiCardTransactionReportParameters,
                                                                                    @NotNull SpiAccountReference accountReference,
                                                                                    @NotNull SpiAccountConsent accountConsent,
                                                                                    @NotNull SpiAspspConsentDataProvider aspspConsentDataProvider) {
