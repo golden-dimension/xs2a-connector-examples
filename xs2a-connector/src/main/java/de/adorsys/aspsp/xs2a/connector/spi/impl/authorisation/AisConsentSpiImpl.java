@@ -342,10 +342,10 @@ public class AisConsentSpiImpl extends AbstractAuthorisationSpi<SpiAccountConsen
             }
 
             AisConsentTO aisConsentTO = aisConsentMapper.mapToAisConsent(accountConsent);
-            ResponseEntity<GlobalScaResponseTO> responseEntity = operationInitiationRestClient.initiateAisConsent(aisConsentTO);
+            ResponseEntity<GlobalScaResponseTO> initiateAisConsentResponse = operationInitiationRestClient.initiateAisConsent(aisConsentTO);
 
-            if (responseEntity != null && responseEntity.getBody() != null) {
-                GlobalScaResponseTO globalScaResponseTO = responseEntity.getBody();
+            if (initiateAisConsentResponse != null && initiateAisConsentResponse.getBody() != null) {
+                GlobalScaResponseTO globalScaResponseTO = initiateAisConsentResponse.getBody();
 
                 authRequestInterceptor.setAccessToken(globalScaResponseTO.getBearerToken().getAccess_token()); //NOSONAR
 

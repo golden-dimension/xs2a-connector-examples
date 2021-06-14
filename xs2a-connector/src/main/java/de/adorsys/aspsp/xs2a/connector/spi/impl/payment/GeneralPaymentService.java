@@ -218,12 +218,12 @@ public class GeneralPaymentService {
                     authRequestInterceptor.setAccessToken(authorisationBearerToken);
                 }
 
-                ResponseEntity<GlobalScaResponseTO> globalScaResponseTOResponseEntity = operationInitiationRestClient.execution(OpTypeTO.PAYMENT, sca.getOperationObjectId());
+                ResponseEntity<GlobalScaResponseTO> globalScaResponseTOResponse = operationInitiationRestClient.execution(OpTypeTO.PAYMENT, sca.getOperationObjectId());
 
-                if (globalScaResponseTOResponseEntity != null &&
-                            globalScaResponseTOResponseEntity.getBody() != null &&
-                            globalScaResponseTOResponseEntity.getStatusCode() == HttpStatus.ACCEPTED) {
-                    GlobalScaResponseTO paymentExecutionResponse = globalScaResponseTOResponseEntity.getBody();
+                if (globalScaResponseTOResponse != null &&
+                            globalScaResponseTOResponse.getBody() != null &&
+                            globalScaResponseTOResponse.getStatusCode() == HttpStatus.ACCEPTED) {
+                    GlobalScaResponseTO paymentExecutionResponse = globalScaResponseTOResponse.getBody();
 
                     cmsPsuPisClient.updatePaymentStatus(paymentExecutionResponse.getOperationObjectId(), //NOSONAR
                                                         getTransactionStatus(paymentExecutionResponse.getTransactionStatus()),
